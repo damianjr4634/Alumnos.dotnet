@@ -28,6 +28,7 @@ public static class DependencyInjection
 
         services.AddSingleton(new FbConnectionFactory(connectionString));
         services.AddScoped<IAlumnosQuery, AlumnosQuery>();
+        services.AddScoped<ICarrerasQuery, CarrerasQuery>();
 
         // DbContext scoped resuelto desde la factory (un contexto por scope/circuito).
         services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<EsbaDbContext>>().CreateDbContext());

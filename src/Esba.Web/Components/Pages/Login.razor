@@ -1,0 +1,37 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@layout LoginLayout
+
+<PageTitle>ESBA — Inicio de Sesión</PageTitle>
+
+@* Sucesor de sesion.pas. El form hace POST nativo a /auth/login porque la
+   cookie de autenticación solo puede emitirse en una request HTTP real. *@
+
+<MudPaper Elevation="3" Class="pa-8 mx-auto" Style="width: 100%; max-width: 420px;">
+    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-1">ESBA</MudText>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-6 mud-text-secondary">
+        Gestión Académica — Inicio de sesión
+    </MudText>
+
+    @if (!string.IsNullOrWhiteSpace(Error))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@Error</MudAlert>
+    }
+
+    <form method="post" action="/auth/login">
+        <AntiforgeryToken />
+        <div class="d-flex flex-column gap-4">
+            <MudTextField T="string" Label="Usuario" name="usuario" Required="true"
+                          MaxLength="15" Variant="Variant.Outlined" autofocus />
+            <MudTextField T="string" Label="Contraseña" name="password" Required="true"
+                          InputType="InputType.Password" Variant="Variant.Outlined" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       Size="Size.Large" FullWidth="true">Ingresar</MudButton>
+        </div>
+    </form>
+</MudPaper>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+}
