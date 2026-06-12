@@ -30,21 +30,43 @@ else if (_modelo is null)
 }
 else
 {
-    <div class="d-flex align-center mb-4 gap-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" aria-label="Volver a la búsqueda" />
-        <div>
-            <MudText Typo="Typo.h5">@(EsAlta ? "Alta de alumno" : "Ficha del alumno")</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                Carrera @Carre@(EsAlta ? "" : $" — {Codigo} — Libro matriz: {_detalle?.Matriz ?? "sin asignar"}")
-            </MudText>
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" aria-label="Volver a la búsqueda" />
+            @if (_detalle?.Foto is not null)
+            {
+                <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(_detalle.Foto)}")"
+                          Alt="Foto del alumno" Width="64" Height="64" ObjectFit="ObjectFit.Cover" Class="rounded-lg" />
+            }
+            else
+            {
+                <MudAvatar Color="Color.Primary" Size="Size.Large">
+                    @(EsAlta ? "+" : $"{_modelo.Apellido?.FirstOrDefault()}{_modelo.Nombre?.FirstOrDefault()}")
+                </MudAvatar>
+            }
+            <div>
+                <MudText Typo="Typo.h5">
+                    @(EsAlta ? "Alta de alumno" : $"{_modelo.Apellido}, {_modelo.Nombre}")
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Carrera @Carre@(EsAlta ? "" : $" — {Codigo} — Libro matriz: {_detalle?.Matriz ?? "sin asignar"}")
+                </MudText>
+            </div>
+            <MudSpacer />
+            @if (!EsAlta)
+            {
+                @if (_modelo.Baja)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Error">Baja</MudChip>
+                }
+                else if (_modelo.Estado is { } estado)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@ColorEstado(estado)">@FichaAlumnoModel.Etiqueta(estado)</MudChip>
+                }
+            }
         </div>
-        <MudSpacer />
-        @if (_detalle?.Foto is not null)
-        {
-            <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(_detalle.Foto)}")"
-                      Alt="Foto del alumno" Width="80" Class="rounded" />
-        }
-    </div>
+    </MudPaper>
 
     @if (_error is not null)
     {
@@ -335,6 +357,14 @@ else
     [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
 
     private bool EsAlta => string.IsNullOrEmpty(Codigo);
+
+    private static Color ColorEstado(EstadoAlumno estado) => estado switch
+    {
+        EstadoAlumno.Cursando => Color.Success,
+        EstadoAlumno.Egresado => Color.Info,
+        EstadoAlumno.Pase => Color.Warning,
+        _ => Color.Default,
+    };
 
     private MudForm? _form;
     private FichaAlumnoModel? _modelo;

@@ -1,3 +1,5 @@
+using Esba.Domain.Enums;
+
 namespace Esba.Application.DTOs.Alumnos;
 
 /// <summary>
@@ -20,6 +22,13 @@ public sealed record AlumnoListItemDto
     public string? Mail { get; init; }
 
     public bool Baja { get; init; }
+
+    /// <summary>ALUMNOS.ESTADO crudo (CHAR(1)); datos viejos pueden traer códigos fuera del enum.</summary>
+    public char? EstadoCodigo { get; init; }
+
+    /// <summary>Estado tipado, o null si la columna está vacía o el código no es conocido.</summary>
+    public EstadoAlumno? Estado =>
+        EstadoCodigo is { } c && Enum.IsDefined((EstadoAlumno)c) ? (EstadoAlumno)c : null;
 
     /// <summary>DESCARRE de CARRERA.</summary>
     public string? NombreCarrera { get; init; }

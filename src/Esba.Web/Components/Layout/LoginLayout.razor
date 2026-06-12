@@ -1,7 +1,8 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="EsbaTheme.Tema" />
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center" Style="min-height: 100vh;">
+@* Fondo institucional (gradiente definido en app.css) con la tarjeta centrada. *@
+<div class="esba-login-fondo d-flex align-center justify-center px-4" style="min-height: 100vh;">
     @Body
-</MudContainer>
+</div>

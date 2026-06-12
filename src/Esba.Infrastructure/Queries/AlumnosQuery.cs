@@ -26,6 +26,7 @@ public sealed class AlumnosQuery : IAlumnosQuery
                TRIM(A.NOM_APE)  AS Nombre,
                TRIM(A.MAIL)     AS Mail,
                IIF(A.BAJA = 'S', TRUE, FALSE) AS Baja,
+               A.ESTADO         AS EstadoCodigo,
                TRIM(C.DESCARRE)   AS NombreCarrera,
                TRIM(C.RESOLUCION) AS Resolucion,
                IIF(C.DISTANCIA = 'S', 'DISTANCIA', 'PRESENCIAL') AS Modalidad

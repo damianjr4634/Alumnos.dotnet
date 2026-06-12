@@ -1,39 +1,105 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider @ref="_proveedorTema" Theme="EsbaTheme.Tema" @bind-IsDarkMode="_modoOscuro" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Elevation="0" Class="esba-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                        OnClick="AlternarDrawer" aria-label="Abrir menú" />
-        <MudText Typo="Typo.h6" Class="ml-2">ESBA — Gestión Académica</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.School" Color="Color.Primary" Class="ml-1 mr-2" />
+        <div>
+            <MudText Typo="Typo.h6" Style="line-height: 1.1;">ESBA</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-none d-sm-block">Gestión Académica</MudText>
+        </div>
         <MudSpacer />
-        <AuthorizeView>
+        <MudTooltip Text="@(_modoOscuro ? "Modo claro" : "Modo oscuro")">
+            <MudIconButton Icon="@(_modoOscuro ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit" OnClick="AlternarModoOscuro" aria-label="Cambiar modo claro/oscuro" />
+        </MudTooltip>
+        <AuthorizeView Context="estadoAuth">
             <Authorized>
-                <MudText Class="mr-4">@context.User.FindFirst(EsbaClaims.NombreCompleto)?.Value</MudText>
-                <form method="post" action="/auth/logout">
-                    <AntiforgeryToken />
-                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Inherit" Variant="Variant.Text"
-                               StartIcon="@Icons.Material.Filled.Logout">Salir</MudButton>
-                </form>
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <MudButton Color="Color.Inherit" Class="px-2 ml-1" aria-label="Menú de usuario">
+                            <MudAvatar Size="Size.Small" Color="Color.Primary">
+                                @Iniciales(estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value)
+                            </MudAvatar>
+                            <MudText Class="ml-2 d-none d-sm-block">
+                                @estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value
+                            </MudText>
+                        </MudButton>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <div class="px-4 py-2">
+                            <MudText Typo="Typo.body2">@estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@estadoAuth.User.Identity?.Name</MudText>
+                        </div>
+                        <MudDivider Class="mb-1" />
+                        <form method="post" action="/auth/logout" class="ma-0">
+                            <AntiforgeryToken />
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error"
+                                       FullWidth="true" StartIcon="@Icons.Material.Filled.Logout"
+                                       Class="justify-start px-4">Cerrar sesión</MudButton>
+                        </form>
+                    </ChildContent>
+                </MudMenu>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerAbierto" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="_drawerAbierto" ClipMode="DrawerClipMode.Always" Elevation="0"
+               Variant="@DrawerVariant.Responsive" Breakpoint="Breakpoint.Md" Class="esba-drawer">
         <NavMenu />
     </MudDrawer>
 
-    <MudMainContent Class="pa-4">
-        @Body
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 py-4 px-md-6 py-md-6">
+            @Body
+        </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
+    private MudThemeProvider? _proveedorTema;
     private bool _drawerAbierto = true;
+    private bool _modoOscuro;
+
+    // TODO-migrar: persistir la preferencia de modo en BD como el resto de las
+    // preferencias de usuario (sucesoras de los .bar/.not, §3.2); por ahora
+    // arranca con la preferencia del sistema operativo.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _proveedorTema is not null)
+        {
+            _modoOscuro = await _proveedorTema.GetSystemDarkModeAsync();
+            await _proveedorTema.WatchSystemDarkModeAsync(CambioModoSistema);
+            StateHasChanged();
+        }
+    }
+
+    private Task CambioModoSistema(bool oscuro)
+    {
+        _modoOscuro = oscuro;
+        return InvokeAsync(StateHasChanged);
+    }
 
     private void AlternarDrawer() => _drawerAbierto = !_drawerAbierto;
+
+    private void AlternarModoOscuro() => _modoOscuro = !_modoOscuro;
+
+    private static string Iniciales(string? nombreCompleto)
+    {
+        if (string.IsNullOrWhiteSpace(nombreCompleto))
+        {
+            return "?";
+        }
+
+        var partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length == 1
+            ? char.ToUpperInvariant(partes[0][0]).ToString()
+            : $"{char.ToUpperInvariant(partes[0][0])}{char.ToUpperInvariant(partes[^1][0])}";
+    }
 }

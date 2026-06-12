@@ -61,6 +61,18 @@ Formato para preguntar: **qué viste en el código, qué no podés determinar, y
 ### 4.4 Idioma
 Comunicación con el usuario en **castellano** (rioplatense, como los documentos del repo). Identificadores de código según §4.2; mensajes de validación y de UI siempre en castellano.
 
+### 4.5 Identidad visual de las pantallas (Etapa 3) — convenciones establecidas
+Decisiones del rediseño visual (2026-06-12). Toda pantalla nueva las respeta; cambiarlas implica actualizar `EsbaTheme.cs` y esta sección, nunca desviarse en un componente suelto.
+
+- **Tema único**: `src/Esba.Web/Components/Layout/EsbaTheme.cs` define las paletas clara y oscura (primario azul `#1E40AF`, acento teal `#0F766E`), radio de borde 8px y tipografía **Inter**. Prohibido hardcodear colores en componentes: usar los `Color.*` semánticos de MudBlazor o variables `--mud-palette-*` en CSS.
+- **Modo claro/oscuro**: lo maneja `MainLayout` (preferencia del sistema + toggle en la appbar). Los componentes no asumen modo: nada de blancos/negros fijos ni estilos que solo funcionen en un modo.
+- **`app.css` mínimo**: solo lo que `MudTheme` no puede expresar (clases `esba-*`, `prefers-reduced-motion`). Un estilo que se repite en dos pantallas va al tema o a una clase compartida, no inline.
+- **Anatomía de pantalla**: encabezado con título (`Typo.h5`) + subtítulo secundario (`mud-text-secondary`) + acción primaria a la derecha (`Color.Secondary` para altas, `Color.Primary` para la acción principal del formulario); paneles y grillas en `MudPaper Outlined` (sin elevación: el shell ya separa con bordes); el contenido vive dentro del `MudContainer MaxWidth.ExtraLarge` del layout.
+- **Grillas**: `MudDataGrid` server-side con `Dense + Hover + Striped`, filas clickeables con clase `cursor-pointer` y selección resaltada con `esba-fila-seleccionada`; las columnas secundarias se ocultan en pantallas chicas con `HeaderClass`/`CellClass="d-none d-md-table-cell"` (o `d-lg-`).
+- **Badges de estado**: `MudChip Variant="Variant.Text" Size="Size.Small"` con el mapa canónico: Baja=`Error`, Cursando=`Success`, Egresado=`Info`, Pase=`Warning`, desconocido/sin estado=`Default`. Etiquetas vía `FichaAlumnoModel.Etiqueta`; un estado nuevo se agrega al mapa, no se inventa un color ad-hoc en la pantalla.
+- **Accesibilidad**: todo `MudIconButton` lleva `aria-label`; avatar de iniciales como fallback de foto; los contrastes AA ya los garantiza el tema (no usar tonos `Lighten` para texto).
+- **Pantalla principal**: es el buscador global de alumnos (decisión 2026-06-12, §3.2 de `migration_improvements.md`). **No crear dashboards ni tarjetas de métricas sin sus Etapas 1–2** (queries Dapper y casos de uso reales primero).
+
 ## 5. Contexto técnico rápido
 
 - **Fuentes legacy**: `Esba.Delphi XE2/ESBA/` (solo lectura — referencia, jamás se modifican).

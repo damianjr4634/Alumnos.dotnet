@@ -1,6 +1,8 @@
 @page "/"
 @using Esba.Application.Abstractions
 @using Esba.Application.DTOs.Alumnos
+@using Esba.Domain.Enums
+@using Esba.Web.Components.Pages.Alumnos
 @using Esba.Web.Components.Shared
 @inject IAlumnosQuery AlumnosQuery
 @inject IDialogService DialogService
@@ -12,60 +14,95 @@
    principal del legacy (FrmEsba). Misma semántica: "apellido" o
    "apellido:nombre"; el término también busca en mail y código de alumno. *@
 
-<div class="d-flex align-center mb-4">
-    <MudText Typo="Typo.h5">Búsqueda de alumnos</MudText>
+<div class="d-flex align-center flex-wrap gap-2 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Búsqueda de alumnos</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Padrón general de todas las carreras
+        </MudText>
+    </div>
     <MudSpacer />
     <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PersonAdd"
                OnClick="NuevoAlumno">Nuevo alumno</MudButton>
 </div>
 
-<MudGrid Spacing="2" Class="mb-2">
-    <MudItem xs="12" sm="6" md="4">
-        <MudTextField T="string" @bind-Value="_texto" Label="Apellido[:Nombre], código o e-mail"
-                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
-                      OnKeyDown="BuscarSiEnter" autofocus />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
-                   OnClick="Buscar">Buscar</MudButton>
-    </MudItem>
-    <MudItem xs="12" md="5" Class="d-flex align-center gap-4">
-        <MudCheckBox T="bool" @bind-Value="_buscarBajas" Label="Buscar en bajas" Dense="true" />
-        <MudCheckBox T="bool" @bind-Value="_carrerasEnDesuso" Label="Incluir carreras en desuso" Dense="true" />
-    </MudItem>
-</MudGrid>
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="5">
+            <MudTextField T="string" @bind-Value="_texto" Label="Apellido[:Nombre], código o e-mail"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" Clearable="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          OnKeyDown="BuscarSiEnter" autofocus />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                       FullWidth="true" OnClick="Buscar">Buscar</MudButton>
+        </MudItem>
+        <MudItem xs="12" md="5" Class="d-flex align-center flex-wrap gap-4">
+            <MudCheckBox T="bool" @bind-Value="_buscarBajas" Label="Buscar en bajas" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="_carrerasEnDesuso" Label="Incluir carreras en desuso" Dense="true" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
-<MudDataGrid T="AlumnoListItemDto" @ref="_grilla" ServerData="CargarPagina" Dense="true" Hover="true"
-             RowClick="SeleccionarFila" RowsPerPage="25">
-    <Columns>
-        <PropertyColumn Property="a => a.NombreCarrera" Title="Carrera" />
-        <PropertyColumn Property="a => a.Codigo" Title="Código" />
-        <PropertyColumn Property="a => a.Matriz" Title="LM" />
-        <PropertyColumn Property="a => a.Apellido" Title="Apellido" />
-        <PropertyColumn Property="a => a.Nombre" Title="Nombre" />
-        <PropertyColumn Property="a => a.Mail" Title="E-Mail" />
-        <PropertyColumn Property="a => a.Modalidad" Title="Modalidad" />
-    </Columns>
-    <PagerContent>
-        <MudDataGridPager T="AlumnoListItemDto" RowsPerPageString="Filas por página:" />
-    </PagerContent>
-</MudDataGrid>
+<MudPaper Outlined="true" Class="overflow-hidden">
+    <MudDataGrid T="AlumnoListItemDto" @ref="_grilla" ServerData="CargarPagina" Dense="true" Hover="true"
+                 Striped="true" Elevation="0" RowClick="SeleccionarFila" RowsPerPage="25"
+                 RowClassFunc="ClaseFila">
+        <Columns>
+            <PropertyColumn Property="a => a.NombreCarrera" Title="Carrera" />
+            <PropertyColumn Property="a => a.Codigo" Title="Código" />
+            <PropertyColumn Property="a => a.Matriz" Title="LM"
+                            HeaderClass="d-none d-md-table-cell" CellClass="d-none d-md-table-cell" />
+            <PropertyColumn Property="a => a.Apellido" Title="Apellido" />
+            <PropertyColumn Property="a => a.Nombre" Title="Nombre" />
+            <PropertyColumn Property="a => a.Mail" Title="E-Mail"
+                            HeaderClass="d-none d-lg-table-cell" CellClass="d-none d-lg-table-cell" />
+            <TemplateColumn Title="Modalidad" HeaderClass="d-none d-md-table-cell" CellClass="d-none d-md-table-cell">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Item.Modalidad</MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Estado">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@ColorEstado(context.Item)">@TextoEstado(context.Item)</MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="AlumnoListItemDto" RowsPerPageString="Filas por página:" />
+        </PagerContent>
+    </MudDataGrid>
+</MudPaper>
 
 @if (_seleccionado is not null)
 {
-    <MudPaper Elevation="2" Class="pa-4 mt-4">
-        <MudText Typo="Typo.overline">Alumno seleccionado</MudText>
-        <MudText Typo="Typo.h6">@_seleccionado.Apellido, @_seleccionado.Nombre</MudText>
-        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-            @_seleccionado.Codigo — @_seleccionado.NombreCarrera (@_seleccionado.Modalidad)
-        </MudText>
-        @* Acciones sobre el alumno (sucesoras del panel ALUMNO SELECCIONADO de
-           FrmEsba): se habilitan a medida que se migran sus pantallas. *@
-        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-            <MudButton OnClick="AbrirFicha" StartIcon="@Icons.Material.Filled.Badge">Ficha</MudButton>
-            <MudButton Disabled="true">Inscripción de materias</MudButton>
-            <MudButton Disabled="true">Constancias</MudButton>
-        </MudButtonGroup>
+    <MudPaper Outlined="true" Class="pa-4 mt-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudAvatar Color="Color.Primary" Size="Size.Large">
+                @($"{_seleccionado.Apellido?.FirstOrDefault()}{_seleccionado.Nombre?.FirstOrDefault()}")
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.overline" Class="mud-text-secondary">Alumno seleccionado</MudText>
+                <MudText Typo="Typo.h6">@_seleccionado.Apellido, @_seleccionado.Nombre</MudText>
+                <div class="d-flex align-center flex-wrap gap-2 mt-1">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@ColorEstado(_seleccionado)">@TextoEstado(_seleccionado)</MudChip>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @_seleccionado.Codigo — @_seleccionado.NombreCarrera (@_seleccionado.Modalidad)
+                    </MudText>
+                </div>
+            </div>
+            <MudSpacer />
+            @* Acciones sobre el alumno (sucesoras del panel ALUMNO SELECCIONADO de
+               FrmEsba): se habilitan a medida que se migran sus pantallas. *@
+            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                <MudButton OnClick="AbrirFicha" StartIcon="@Icons.Material.Filled.Badge">Ficha</MudButton>
+                <MudButton Disabled="true">Inscripción de materias</MudButton>
+                <MudButton Disabled="true">Constancias</MudButton>
+            </MudButtonGroup>
+        </div>
     </MudPaper>
 }
 
@@ -110,6 +147,25 @@
 
     private void SeleccionarFila(DataGridRowClickEventArgs<AlumnoListItemDto> fila) =>
         _seleccionado = fila.Item;
+
+    private string ClaseFila(AlumnoListItemDto alumno, int _) =>
+        alumno == _seleccionado ? "cursor-pointer esba-fila-seleccionada" : "cursor-pointer";
+
+    private static string TextoEstado(AlumnoListItemDto alumno) => alumno switch
+    {
+        { Baja: true } => "Baja",
+        { Estado: { } estado } => FichaAlumnoModel.Etiqueta(estado),
+        _ => "Sin estado",
+    };
+
+    private static Color ColorEstado(AlumnoListItemDto alumno) => alumno switch
+    {
+        { Baja: true } => Color.Error,
+        { Estado: EstadoAlumno.Cursando } => Color.Success,
+        { Estado: EstadoAlumno.Egresado } => Color.Info,
+        { Estado: EstadoAlumno.Pase } => Color.Warning,
+        _ => Color.Default,
+    };
 
     private void AbrirFicha()
     {

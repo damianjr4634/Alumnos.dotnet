@@ -7,11 +7,14 @@
 @* Sucesor de sesion.pas. El form hace POST nativo a /auth/login porque la
    cookie de autenticación solo puede emitirse en una request HTTP real. *@
 
-<MudPaper Elevation="3" Class="pa-8 mx-auto" Style="width: 100%; max-width: 420px;">
-    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-1">ESBA</MudText>
-    <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-6 mud-text-secondary">
-        Gestión Académica — Inicio de sesión
-    </MudText>
+<MudPaper Elevation="6" Class="pa-8 rounded-xl" Style="width: 100%; max-width: 420px;">
+    <div class="d-flex flex-column align-center mb-6">
+        <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.School" />
+        </MudAvatar>
+        <MudText Typo="Typo.h5">ESBA</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Gestión Académica — Inicio de sesión</MudText>
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(Error))
     {
@@ -22,13 +25,19 @@
         <AntiforgeryToken />
         <div class="d-flex flex-column gap-4">
             <MudTextField T="string" Label="Usuario" name="usuario" Required="true"
-                          MaxLength="15" Variant="Variant.Outlined" autofocus />
+                          MaxLength="15" Variant="Variant.Outlined" autofocus
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
             <MudTextField T="string" Label="Contraseña" name="password" Required="true"
-                          InputType="InputType.Password" Variant="Variant.Outlined" />
+                          InputType="InputType.Password" Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" />
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
                        Size="Size.Large" FullWidth="true">Ingresar</MudButton>
         </div>
     </form>
+
+    <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-6 mud-text-secondary">
+        Instituto de Estudios Superiores de Buenos Aires — A-781
+    </MudText>
 </MudPaper>
 
 @code {

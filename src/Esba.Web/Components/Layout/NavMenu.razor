@@ -5,8 +5,10 @@
    2026-06-12, ver migration_improvements.md §3.2).
    Las opciones se habilitan a medida que se migran sus pantallas. *@
 
-<MudNavMenu>
+<MudNavMenu Rounded="true" Color="Color.Primary" Margin="Margin.Dense" Class="pa-2">
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Search">Búsqueda de alumnos</MudNavLink>
+
+    <MudDivider Class="my-2" />
 
     <MudNavGroup Title="Alumnos" Icon="@Icons.Material.Filled.People" Expanded="false">
         <MudNavLink Disabled="true">Inscripción de materias</MudNavLink>
