@@ -1,6 +1,11 @@
 using Esba.Application.Abstractions;
+using Esba.Application.Features.Administracion;
+using Esba.Application.Validators;
 using Esba.Infrastructure.Persistence;
+using Esba.Infrastructure.Persistence.Repositories;
 using Esba.Infrastructure.Queries;
+using Esba.Infrastructure.Security;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +28,19 @@ public static class DependencyInjection
 
         services.AddSingleton(new FbConnectionFactory(connectionString));
         services.AddScoped<IAlumnosQuery, AlumnosQuery>();
+
+        // DbContext scoped resuelto desde la factory (un contexto por scope/circuito).
+        services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<EsbaDbContext>>().CreateDbContext());
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+
+        // Seguridad (§2.7): hash nuevo + cifrado legacy solo para la transición.
+        services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddSingleton<ILegacyPasswordCipher, EncriptoCadena2Cipher>();
+
+        // Casos de uso y validadores de Application.
+        services.AddScoped<IValidator<IniciarSesionCommand>, IniciarSesionValidator>();
+        services.AddScoped<IniciarSesionHandler>();
 
         return services;
     }
