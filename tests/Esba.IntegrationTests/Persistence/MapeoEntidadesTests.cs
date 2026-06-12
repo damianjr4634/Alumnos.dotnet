@@ -50,6 +50,22 @@ public class MapeoEntidadesTests
     }
 
     [Fact]
+    public async Task Usuarios_MaterializaEntidadesConPermisos()
+    {
+        await using var contexto = CrearContexto();
+
+        var usuarios = await contexto.Usuarios.AsNoTracking()
+            .Include(u => u.Permisos)
+            .ToListAsync();
+
+        Assert.NotEmpty(usuarios);
+        Assert.All(usuarios, u => Assert.False(string.IsNullOrWhiteSpace(u.NombreUsuario)));
+        // Al menos un usuario no supervisor debe tener permisos en BARRA_SEGU
+        // (de eso depende el filtro del padrón).
+        Assert.Contains(usuarios, u => u.Permisos.Count > 0);
+    }
+
+    [Fact]
     public async Task Alumnos_JoinImplicitoConCarrera_Funciona()
     {
         await using var contexto = CrearContexto();

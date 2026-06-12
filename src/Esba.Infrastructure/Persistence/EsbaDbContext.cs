@@ -14,6 +14,10 @@ public class EsbaDbContext : DbContext
 
     public DbSet<Carrera> Carreras => Set<Carrera>();
 
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
+
+    public DbSet<PermisoUsuario> PermisosUsuario => Set<PermisoUsuario>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EsbaDbContext).Assembly);
