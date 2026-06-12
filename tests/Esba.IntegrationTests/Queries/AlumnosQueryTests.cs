@@ -17,16 +17,14 @@ public class AlumnosQueryTests
         Environment.GetEnvironmentVariable("ESBA_TEST_CONNECTION")
         ?? "database=localhost:/var/firebird/esba_restore.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
 
-    private static AlumnosQuery CrearQuery() =>
-        new(new FbConnectionFactory(ConnectionString));
+    private static DbContextOptions<EsbaDbContext> Opciones =>
+        new DbContextOptionsBuilder<EsbaDbContext>().UseFirebird(ConnectionString).Options;
 
-    private static EsbaDbContext CrearContexto()
-    {
-        var options = new DbContextOptionsBuilder<EsbaDbContext>()
-            .UseFirebird(ConnectionString)
-            .Options;
-        return new EsbaDbContext(options);
-    }
+    private static AlumnosQuery CrearQuery() =>
+        new(new FbConnectionFactory(ConnectionString),
+            new Microsoft.EntityFrameworkCore.Infrastructure.PooledDbContextFactory<EsbaDbContext>(Opciones));
+
+    private static EsbaDbContext CrearContexto() => new(Opciones);
 
     [Fact]
     public async Task BuscarPadron_SupervisorSinFiltros_DevuelvePaginaYTotal()

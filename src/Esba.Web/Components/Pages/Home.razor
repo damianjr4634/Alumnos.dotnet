@@ -1,7 +1,10 @@
 @page "/"
 @using Esba.Application.Abstractions
 @using Esba.Application.DTOs.Alumnos
+@using Esba.Web.Components.Shared
 @inject IAlumnosQuery AlumnosQuery
+@inject IDialogService DialogService
+@inject NavigationManager Navegacion
 
 <PageTitle>ESBA — Búsqueda de Alumnos</PageTitle>
 
@@ -9,7 +12,12 @@
    principal del legacy (FrmEsba). Misma semántica: "apellido" o
    "apellido:nombre"; el término también busca en mail y código de alumno. *@
 
-<MudText Typo="Typo.h5" Class="mb-4">Búsqueda de alumnos</MudText>
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h5">Búsqueda de alumnos</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="NuevoAlumno">Nuevo alumno</MudButton>
+</div>
 
 <MudGrid Spacing="2" Class="mb-2">
     <MudItem xs="12" sm="6" md="4">
@@ -54,7 +62,7 @@
         @* Acciones sobre el alumno (sucesoras del panel ALUMNO SELECCIONADO de
            FrmEsba): se habilitan a medida que se migran sus pantallas. *@
         <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-            <MudButton Disabled="true">Ficha</MudButton>
+            <MudButton OnClick="AbrirFicha" StartIcon="@Icons.Material.Filled.Badge">Ficha</MudButton>
             <MudButton Disabled="true">Inscripción de materias</MudButton>
             <MudButton Disabled="true">Constancias</MudButton>
         </MudButtonGroup>
@@ -102,4 +110,22 @@
 
     private void SeleccionarFila(DataGridRowClickEventArgs<AlumnoListItemDto> fila) =>
         _seleccionado = fila.Item;
+
+    private void AbrirFicha()
+    {
+        if (_seleccionado is not null)
+        {
+            Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/ficha");
+        }
+    }
+
+    private async Task NuevoAlumno()
+    {
+        var dialogo = await DialogService.ShowAsync<SeleccionarCarreraDialog>("Alta de alumno — Carrera");
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false, Data: string carrera })
+        {
+            Navegacion.NavigateTo($"/alumnos/{carrera}/ficha/nueva");
+        }
+    }
 }

@@ -1,0 +1,455 @@
+@page "/alumnos/{Carre}/ficha/nueva"
+@page "/alumnos/{Carre}/{Codigo}/ficha"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.Features.Alumnos
+@using Esba.Domain.Common
+@using Esba.Domain.Enums
+@using FluentValidation
+@inject IAlumnosQuery AlumnosQuery
+@inject CrearAlumnoHandler CrearAlumno
+@inject ActualizarAlumnoHandler ActualizarAlumno
+@inject IValidator<CrearAlumnoCommand> ValidadorCrear
+@inject IValidator<ActualizarAlumnoCommand> ValidadorActualizar
+@inject ISnackbar Snackbar
+@inject NavigationManager Navegacion
+
+<PageTitle>ESBA — Ficha del Alumno</PageTitle>
+
+@* Sucesora de FrmAltaAlumno (alta y modificación en la misma página, como el
+   legacy). Solo binding y llamadas a Application (§2.1): la lógica vive en
+   CrearAlumnoHandler/ActualizarAlumnoHandler. *@
+
+@if (_noEncontrado)
+{
+    <MudAlert Severity="MudBlazor.Severity.Warning">El alumno no existe.</MudAlert>
+}
+else if (_modelo is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <div class="d-flex align-center mb-4 gap-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" aria-label="Volver a la búsqueda" />
+        <div>
+            <MudText Typo="Typo.h5">@(EsAlta ? "Alta de alumno" : "Ficha del alumno")</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Carrera @Carre@(EsAlta ? "" : $" — {Codigo} — Libro matriz: {_detalle?.Matriz ?? "sin asignar"}")
+            </MudText>
+        </div>
+        <MudSpacer />
+        @if (_detalle?.Foto is not null)
+        {
+            <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(_detalle.Foto)}")"
+                      Alt="Foto del alumno" Width="80" Class="rounded" />
+        }
+    </div>
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">@_error</MudAlert>
+    }
+
+    <MudForm @ref="_form" Model="@_modelo" Validation="@ValidarCampo">
+        <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true">
+
+            <MudTabPanel Text="Datos personales">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4" md="2">
+                        <MudSelect T="string" @bind-Value="_modelo.TipoDocumento" Label="Tipo doc." Disabled="@(!EsAlta)"
+                                   For="@(() => _modelo.TipoDocumento)" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var t in new[] { "DNI", "CI", "LE", "PAS" })
+                            {
+                                <MudSelectItem Value="@t">@t</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="8" md="3">
+                        <MudTextField @bind-Value="_modelo.NumeroDocumento" Label="Número de documento" Disabled="@(!EsAlta)"
+                                      For="@(() => _modelo.NumeroDocumento)" MaxLength="8" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.DocumentoExpedidoPor" Label="Expedido por"
+                                      For="@(() => _modelo.DocumentoExpedidoPor)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="SituacionDni?" @bind-Value="_modelo.SituacionDni" Label="Actualización DNI" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (SituacionDni s in Enum.GetValues<SituacionDni>())
+                            {
+                                <MudSelectItem T="SituacionDni?" Value="@s">@FichaAlumnoModel.Etiqueta(s)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.Apellido" Label="Apellido" Required="true"
+                                      For="@(() => _modelo.Apellido)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.Nombre" Label="Nombres" Required="true"
+                                      For="@(() => _modelo.Nombre)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3" md="2">
+                        <MudSelect T="Sexo?" @bind-Value="_modelo.Sexo" Label="Sexo" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="Sexo?" Value="@(Sexo.Femenino)">Femenino</MudSelectItem>
+                            <MudSelectItem T="Sexo?" Value="@(Sexo.Masculino)">Masculino</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="6" sm="3" md="2">
+                        <MudSelect T="Genero?" @bind-Value="_modelo.Genero" Label="Género" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (Genero g in Enum.GetValues<Genero>())
+                            {
+                                <MudSelectItem T="Genero?" Value="@g">@g.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudSelect T="EstadoCivil?" @bind-Value="_modelo.EstadoCivil" Label="Estado civil" Clearable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (EstadoCivil e in Enum.GetValues<EstadoCivil>())
+                            {
+                                <MudSelectItem T="EstadoCivil?" Value="@e">@e.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudDatePicker @bind-Date="_fechaNacimiento" Label="Fecha de nacimiento" Editable="true"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudTextField @bind-Value="_modelo.LugarNacimiento" Label="Lugar de nacimiento"
+                                      For="@(() => _modelo.LugarNacimiento)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudTextField @bind-Value="_modelo.ProvinciaNacimiento" Label="Provincia"
+                                      For="@(() => _modelo.ProvinciaNacimiento)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudTextField @bind-Value="_modelo.Nacionalidad" Label="Nacionalidad"
+                                      For="@(() => _modelo.Nacionalidad)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="8" md="5">
+                        <MudTextField @bind-Value="_modelo.Domicilio" Label="Domicilio"
+                                      For="@(() => _modelo.Domicilio)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="4">
+                        <MudTextField @bind-Value="_modelo.Localidad" Label="Localidad"
+                                      For="@(() => _modelo.Localidad)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3" md="3">
+                        <MudNumericField T="short?" @bind-Value="_modelo.CodigoPostal" Label="Código postal"
+                                         For="@(() => _modelo.CodigoPostal)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3" md="2">
+                        <MudTextField @bind-Value="_modelo.CaracteristicaTelefono" Label="Caract."
+                                      For="@(() => _modelo.CaracteristicaTelefono)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudTextField @bind-Value="_modelo.Telefono" Label="Teléfono"
+                                      For="@(() => _modelo.Telefono)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudTextField @bind-Value="_modelo.Celular" Label="Celular"
+                                      For="@(() => _modelo.Celular)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.Mail" Label="E-mail" InputType="InputType.Email"
+                                      For="@(() => _modelo.Mail)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudDatePicker @bind-Date="_fechaIngreso" Label="Fecha de ingreso" Editable="true"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Estudios previos">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_modelo.ColegioPrimario" Label="Colegio primario"
+                                      For="@(() => _modelo.ColegioPrimario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="4" md="2">
+                        <MudTextField @bind-Value="_modelo.AnioPrimario" Label="Año" MaxLength="2"
+                                      For="@(() => _modelo.AnioPrimario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="8" md="4">
+                        <MudTextField @bind-Value="_modelo.TituloPrimario" Label="Título"
+                                      For="@(() => _modelo.TituloPrimario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_modelo.ColegioSecundario" Label="Colegio secundario"
+                                      For="@(() => _modelo.ColegioSecundario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="4" md="2">
+                        <MudTextField @bind-Value="_modelo.AnioSecundario" Label="Año" MaxLength="2"
+                                      For="@(() => _modelo.AnioSecundario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="8" md="4">
+                        <MudTextField @bind-Value="_modelo.TituloSecundario" Label="Título"
+                                      For="@(() => _modelo.TituloSecundario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_modelo.InstitucionTerciaria" Label="Institución terciaria"
+                                      For="@(() => _modelo.InstitucionTerciaria)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="4" md="2">
+                        <MudTextField @bind-Value="_modelo.AnioTerciario" Label="Año" MaxLength="2"
+                                      For="@(() => _modelo.AnioTerciario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="8" md="4">
+                        <MudTextField @bind-Value="_modelo.TituloTerciario" Label="Título"
+                                      For="@(() => _modelo.TituloTerciario)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Datos laborales">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.Empresa" Label="Empresa"
+                                      For="@(() => _modelo.Empresa)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.Rubro" Label="Rubro"
+                                      For="@(() => _modelo.Rubro)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.Cargo" Label="Cargo"
+                                      For="@(() => _modelo.Cargo)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudTextField @bind-Value="_modelo.Antiguedad" Label="Antigüedad"
+                                      For="@(() => _modelo.Antiguedad)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="5">
+                        <MudTextField @bind-Value="_modelo.DomicilioLaboral" Label="Domicilio laboral"
+                                      For="@(() => _modelo.DomicilioLaboral)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="8" sm="4" md="2">
+                        <MudTextField @bind-Value="_modelo.TelefonoLaboral" Label="Teléfono"
+                                      For="@(() => _modelo.TelefonoLaboral)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="4" sm="2" md="2">
+                        <MudTextField @bind-Value="_modelo.InternoLaboral" Label="Interno"
+                                      For="@(() => _modelo.InternoLaboral)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Documentación y estado">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="EstadoAlumno?" @bind-Value="_modelo.Estado" Label="Estado del alumno" Required="true"
+                                   RequiredError="Seleccione un estado al alumno." Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (EstadoAlumno e in Enum.GetValues<EstadoAlumno>())
+                            {
+                                <MudSelectItem T="EstadoAlumno?" Value="@e">@FichaAlumnoModel.Etiqueta(e)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    @if (!EsAlta)
+                    {
+                        <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                            <MudCheckBox T="bool" @bind-Value="_modelo.Baja" Label="Dado de baja" Color="Color.Error" />
+                        </MudItem>
+                    }
+                    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool?" @bind-Value="_modelo.NominaPase" Label="Nómina pase" />
+                    </MudItem>
+
+                    <MudItem xs="12"><MudDivider /></MudItem>
+
+                    <MudItem xs="6" sm="4" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool?" @bind-Value="_modelo.PresentoFoto" Label="Foto 4x4" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool?" @bind-Value="_modelo.PresentoPartidaNacimiento" Label="Partida de nacimiento" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool" @bind-Value="_modelo.PresentoCa" Label="CA" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool?" @bind-Value="_modelo.PresentoAptoFisico" Label="Apto físico" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudDatePicker @bind-Date="_fechaAptoFisico" Label="Fecha apto físico" Editable="true"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool?" @bind-Value="_modelo.PresentoLibreta" Label="Libreta" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudDatePicker @bind-Date="_fechaLibreta" Label="Fecha libreta" Editable="true"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="4" md="3" Class="d-flex align-center">
+                        <MudCheckBox T="bool" @bind-Value="_modelo.TieneCertificadoEnTramite" Label="Certificado en trámite" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" md="3">
+                        <MudDatePicker @bind-Date="_fechaCtt" Label="Fecha cert. en trámite" Editable="true"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12"><MudDivider /></MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudTextField @bind-Value="_modelo.UsuarioWeb" Label="Usuario web"
+                                      For="@(() => _modelo.UsuarioWeb)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_modelo.Observaciones" Label="Observaciones" Lines="4"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+
+        <div class="d-flex justify-end gap-2 mt-4">
+            <MudButton Href="/" Variant="Variant.Text">Cancelar</MudButton>
+            <MudButton OnClick="Guardar" Variant="Variant.Filled" Color="Color.Primary"
+                       Disabled="@_guardando" StartIcon="@Icons.Material.Filled.Save">
+                @if (_guardando)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Guardar
+            </MudButton>
+        </div>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string? Codigo { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private bool EsAlta => string.IsNullOrEmpty(Codigo);
+
+    private MudForm? _form;
+    private FichaAlumnoModel? _modelo;
+    private AlumnoDetailDto? _detalle;
+    private bool _noEncontrado;
+    private bool _guardando;
+    private string? _error;
+
+    // Puentes DateTime?<->DateOnly? para MudDatePicker.
+    private DateTime? _fechaNacimiento
+    {
+        get => _modelo?.FechaNacimiento?.ToDateTime(TimeOnly.MinValue);
+        set => _modelo!.FechaNacimiento = value is null ? null : DateOnly.FromDateTime(value.Value);
+    }
+
+    private DateTime? _fechaIngreso
+    {
+        get => _modelo?.FechaIngreso?.ToDateTime(TimeOnly.MinValue);
+        set => _modelo!.FechaIngreso = value is null ? null : DateOnly.FromDateTime(value.Value);
+    }
+
+    private DateTime? _fechaAptoFisico
+    {
+        get => _modelo?.FechaAptoFisico?.ToDateTime(TimeOnly.MinValue);
+        set => _modelo!.FechaAptoFisico = value is null ? null : DateOnly.FromDateTime(value.Value);
+    }
+
+    private DateTime? _fechaLibreta
+    {
+        get => _modelo?.FechaLibreta?.ToDateTime(TimeOnly.MinValue);
+        set => _modelo!.FechaLibreta = value is null ? null : DateOnly.FromDateTime(value.Value);
+    }
+
+    private DateTime? _fechaCtt
+    {
+        get => _modelo?.FechaCertificadoEnTramite?.ToDateTime(TimeOnly.MinValue);
+        set => _modelo!.FechaCertificadoEnTramite = value is null ? null : DateOnly.FromDateTime(value.Value);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (EsAlta)
+        {
+            _modelo ??= new FichaAlumnoModel();
+            return;
+        }
+
+        _detalle = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo!, CancellationToken.None);
+        if (_detalle is null)
+        {
+            _noEncontrado = true;
+            return;
+        }
+
+        _modelo = FichaAlumnoModel.Desde(_detalle);
+    }
+
+    // Validación por campo con el MISMO validador FluentValidation del caso de
+    // uso (§2.4/§3.4): el modelo se convierte al command y se valida la
+    // propiedad homónima.
+    private Func<object, string, Task<IEnumerable<string>>> ValidarCampo => async (modelo, propiedad) =>
+    {
+        var m = (FichaAlumnoModel)modelo;
+        FluentValidation.Results.ValidationResult resultado = EsAlta
+            ? await ValidadorCrear.ValidateAsync(ValidationContext<CrearAlumnoCommand>
+                .CreateWithOptions(m.ACrearCommand(Carre), o => o.IncludeProperties(propiedad)))
+            : await ValidadorActualizar.ValidateAsync(ValidationContext<ActualizarAlumnoCommand>
+                .CreateWithOptions(m.AActualizarCommand(Carre, Codigo!), o => o.IncludeProperties(propiedad)));
+
+        return resultado.IsValid ? [] : resultado.Errors.Select(e => e.ErrorMessage);
+    };
+
+    private async Task Guardar()
+    {
+        if (_form is null || _modelo is null)
+        {
+            return;
+        }
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var usuario = (await EstadoAutenticacion!).User.Identity?.Name ?? "desconocido";
+
+            var resultado = EsAlta
+                ? await CrearAlumno.HandleAsync(_modelo.ACrearCommand(Carre), usuario, CancellationToken.None)
+                : await ActualizarAlumno.HandleAsync(_modelo.AActualizarCommand(Carre, Codigo!), usuario, CancellationToken.None);
+
+            switch (resultado.Status)
+            {
+                case OperationStatus.Ok:
+                    Snackbar.Add(EsAlta ? "Alumno dado de alta." : "Cambios guardados.", MudBlazor.Severity.Success);
+                    if (EsAlta && resultado.Value is not null)
+                    {
+                        Navegacion.NavigateTo($"/alumnos/{Carre}/{resultado.Value}/ficha");
+                    }
+                    break;
+                case OperationStatus.Warning:
+                    Snackbar.Add(resultado.Message ?? "Guardado con advertencias.", MudBlazor.Severity.Warning);
+                    break;
+                default:
+                    _error = resultado.Message;
+                    break;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

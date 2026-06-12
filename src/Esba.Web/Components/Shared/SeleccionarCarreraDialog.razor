@@ -1,0 +1,43 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Carreras
+@inject ICarrerasQuery CarrerasQuery
+
+@* Patrón canónico "elegir carrera al entrar a la opción" (decisión 2026-06-12,
+   migration_improvements.md §3.2): solo las carreras permitidas al usuario. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="string" @bind-Value="_carrera" Label="Carrera" Variant="Variant.Outlined">
+            @foreach (var carrera in _carreras)
+            {
+                <MudSelectItem Value="@carrera.Codigo">@carrera.Nombre</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@(_carrera is null)"
+                   OnClick="@(() => MudDialog?.Close(DialogResult.Ok(_carrera)))">Continuar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private string? _carrera;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EstadoAutenticacion is null)
+        {
+            return;
+        }
+
+        var usuario = (await EstadoAutenticacion).User;
+        var permisos = usuario.EsSupervisor() ? null : usuario.Permisos();
+        _carreras = await CarrerasQuery.ListarParaMenuAsync(permisos, CancellationToken.None);
+    }
+}

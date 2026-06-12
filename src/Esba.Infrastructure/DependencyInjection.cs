@@ -1,5 +1,7 @@
 using Esba.Application.Abstractions;
+using Esba.Application.DTOs.Alumnos;
 using Esba.Application.Features.Administracion;
+using Esba.Application.Features.Alumnos;
 using Esba.Application.Validators;
 using Esba.Infrastructure.Persistence;
 using Esba.Infrastructure.Persistence.Repositories;
@@ -42,6 +44,12 @@ public static class DependencyInjection
         // Casos de uso y validadores de Application.
         services.AddScoped<IValidator<IniciarSesionCommand>, IniciarSesionValidator>();
         services.AddScoped<IniciarSesionHandler>();
+
+        services.AddScoped<IAlumnoRepository, AlumnoRepository>();
+        services.AddScoped<IValidator<CrearAlumnoCommand>, CrearAlumnoValidator>();
+        services.AddScoped<IValidator<ActualizarAlumnoCommand>, ActualizarAlumnoValidator>();
+        services.AddScoped<CrearAlumnoHandler>();
+        services.AddScoped<ActualizarAlumnoHandler>();
 
         return services;
     }

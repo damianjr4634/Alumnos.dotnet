@@ -10,4 +10,7 @@ namespace Esba.Application.Abstractions;
 public interface IAlumnosQuery
 {
     Task<PagedResult<AlumnoListItemDto>> BuscarPadronAsync(PadronAlumnosFiltro filtro, CancellationToken ct);
+
+    /// <summary>Ficha completa del alumno (carga de FrmAltaAlumno en modo edición). Null si no existe.</summary>
+    Task<AlumnoDetailDto?> ObtenerDetalleAsync(string codigoCarrera, string codigo, CancellationToken ct);
 }

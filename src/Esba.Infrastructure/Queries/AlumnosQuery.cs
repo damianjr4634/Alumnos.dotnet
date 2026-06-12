@@ -2,7 +2,9 @@ using Dapper;
 using Esba.Application.Abstractions;
 using Esba.Application.Common;
 using Esba.Application.DTOs.Alumnos;
+using Esba.Domain.Entities;
 using Esba.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Esba.Infrastructure.Queries;
 
@@ -30,11 +32,85 @@ public sealed class AlumnosQuery : IAlumnosQuery
         """;
 
     private readonly FbConnectionFactory _connectionFactory;
+    private readonly IDbContextFactory<EsbaDbContext> _contextFactory;
 
-    public AlumnosQuery(FbConnectionFactory connectionFactory)
+    public AlumnosQuery(FbConnectionFactory connectionFactory, IDbContextFactory<EsbaDbContext> contextFactory)
     {
         _connectionFactory = connectionFactory;
+        _contextFactory = contextFactory;
     }
+
+    /// <summary>
+    /// Detalle por EF Core en lugar de Dapper (justificación de la desviación
+    /// del default 🟡 §1.3: reutiliza los conversores de los patrones CHAR(1)
+    /// legacy — 'S'/'N', '*', enums por carácter — en vez de duplicarlos).
+    /// </summary>
+    public async Task<AlumnoDetailDto?> ObtenerDetalleAsync(string codigoCarrera, string codigo, CancellationToken ct)
+    {
+        await using var contexto = await _contextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var alumno = await contexto.Alumnos.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.CodigoCarrera == codigoCarrera && a.Codigo == codigo, ct)
+            .ConfigureAwait(false);
+
+        return alumno is null ? null : MapearDetalle(alumno);
+    }
+
+    private static AlumnoDetailDto MapearDetalle(Alumno a) => new()
+    {
+        Codigo = a.Codigo.TrimEnd(),
+        CodigoCarrera = a.CodigoCarrera.TrimEnd(),
+        Matriz = a.Matriz?.TrimEnd(),
+        Apellido = a.Apellido?.TrimEnd(),
+        Nombre = a.Nombre?.TrimEnd(),
+        DocumentoExpedidoPor = a.DocumentoExpedidoPor?.TrimEnd(),
+        Sexo = a.Sexo,
+        Nacionalidad = a.Nacionalidad?.TrimEnd(),
+        EstadoCivil = a.EstadoCivil,
+        FechaNacimiento = a.FechaNacimiento,
+        LugarNacimiento = a.LugarNacimiento?.TrimEnd(),
+        ProvinciaNacimiento = a.ProvinciaNacimiento?.TrimEnd(),
+        Domicilio = a.Domicilio?.TrimEnd(),
+        Localidad = a.Localidad?.TrimEnd(),
+        CodigoPostal = a.CodigoPostal,
+        CaracteristicaTelefono = a.CaracteristicaTelefono?.TrimEnd(),
+        Telefono = a.Telefono?.TrimEnd(),
+        Celular = a.Celular?.TrimEnd(),
+        Mail = a.Mail?.TrimEnd(),
+        FechaIngreso = a.FechaIngreso,
+        ColegioPrimario = a.ColegioPrimario?.TrimEnd(),
+        AnioPrimario = a.AnioPrimario?.TrimEnd(),
+        TituloPrimario = a.TituloPrimario?.TrimEnd(),
+        ColegioSecundario = a.ColegioSecundario?.TrimEnd(),
+        AnioSecundario = a.AnioSecundario?.TrimEnd(),
+        TituloSecundario = a.TituloSecundario?.TrimEnd(),
+        InstitucionTerciaria = a.InstitucionTerciaria?.TrimEnd(),
+        AnioTerciario = a.AnioTerciario?.TrimEnd(),
+        TituloTerciario = a.TituloTerciario?.TrimEnd(),
+        Empresa = a.Empresa?.TrimEnd(),
+        Rubro = a.Rubro?.TrimEnd(),
+        Cargo = a.Cargo?.TrimEnd(),
+        Antiguedad = a.Antiguedad?.TrimEnd(),
+        DomicilioLaboral = a.DomicilioLaboral?.TrimEnd(),
+        TelefonoLaboral = a.TelefonoLaboral?.TrimEnd(),
+        InternoLaboral = a.InternoLaboral?.TrimEnd(),
+        TieneCertificadoEnTramite = a.TieneCertificadoEnTramite,
+        FechaCertificadoEnTramite = a.FechaCertificadoEnTramite,
+        SituacionDni = a.SituacionDni,
+        PresentoCa = a.PresentoCa,
+        Baja = a.Baja,
+        Observaciones = a.Observaciones,
+        PresentoFoto = a.PresentoFoto,
+        PresentoAptoFisico = a.PresentoAptoFisico,
+        FechaAptoFisico = a.FechaAptoFisico,
+        UsuarioWeb = a.UsuarioWeb?.TrimEnd(),
+        Foto = a.Foto,
+        PresentoPartidaNacimiento = a.PresentoPartidaNacimiento,
+        PresentoLibreta = a.PresentoLibreta,
+        FechaLibreta = a.FechaLibreta,
+        Estado = a.Estado,
+        Genero = a.Genero,
+        NominaPase = a.NominaPase,
+    };
 
     public async Task<PagedResult<AlumnoListItemDto>> BuscarPadronAsync(PadronAlumnosFiltro filtro, CancellationToken ct)
     {
