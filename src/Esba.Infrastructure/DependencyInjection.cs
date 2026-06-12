@@ -1,4 +1,6 @@
+using Esba.Application.Abstractions;
 using Esba.Infrastructure.Persistence;
+using Esba.Infrastructure.Queries;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,9 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Falta la cadena de conexión 'Esba' en la configuración.");
 
         services.AddDbContextFactory<EsbaDbContext>(options => options.UseFirebird(connectionString));
+
+        services.AddSingleton(new FbConnectionFactory(connectionString));
+        services.AddScoped<IAlumnosQuery, AlumnosQuery>();
 
         return services;
     }
