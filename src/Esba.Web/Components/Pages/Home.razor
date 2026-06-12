@@ -1,8 +1,105 @@
 @page "/"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Alumnos
+@inject IAlumnosQuery AlumnosQuery
 
-<PageTitle>ESBA — Inicio</PageTitle>
+<PageTitle>ESBA — Búsqueda de Alumnos</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2">Bienvenido/a</MudText>
-<MudText Typo="Typo.body1" Class="mud-text-secondary">
-    Seleccioná una carrera en el menú para trabajar con sus alumnos.
-</MudText>
+@* Buscador global de alumnos sin importar carrera: el centro de la pantalla
+   principal del legacy (FrmEsba). Misma semántica: "apellido" o
+   "apellido:nombre"; el término también busca en mail y código de alumno. *@
+
+<MudText Typo="Typo.h5" Class="mb-4">Búsqueda de alumnos</MudText>
+
+<MudGrid Spacing="2" Class="mb-2">
+    <MudItem xs="12" sm="6" md="4">
+        <MudTextField T="string" @bind-Value="_texto" Label="Apellido[:Nombre], código o e-mail"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                      OnKeyDown="BuscarSiEnter" autofocus />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                   OnClick="Buscar">Buscar</MudButton>
+    </MudItem>
+    <MudItem xs="12" md="5" Class="d-flex align-center gap-4">
+        <MudCheckBox T="bool" @bind-Value="_buscarBajas" Label="Buscar en bajas" Dense="true" />
+        <MudCheckBox T="bool" @bind-Value="_carrerasEnDesuso" Label="Incluir carreras en desuso" Dense="true" />
+    </MudItem>
+</MudGrid>
+
+<MudDataGrid T="AlumnoListItemDto" @ref="_grilla" ServerData="CargarPagina" Dense="true" Hover="true"
+             RowClick="SeleccionarFila" RowsPerPage="25">
+    <Columns>
+        <PropertyColumn Property="a => a.NombreCarrera" Title="Carrera" />
+        <PropertyColumn Property="a => a.Codigo" Title="Código" />
+        <PropertyColumn Property="a => a.Matriz" Title="LM" />
+        <PropertyColumn Property="a => a.Apellido" Title="Apellido" />
+        <PropertyColumn Property="a => a.Nombre" Title="Nombre" />
+        <PropertyColumn Property="a => a.Mail" Title="E-Mail" />
+        <PropertyColumn Property="a => a.Modalidad" Title="Modalidad" />
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="AlumnoListItemDto" RowsPerPageString="Filas por página:" />
+    </PagerContent>
+</MudDataGrid>
+
+@if (_seleccionado is not null)
+{
+    <MudPaper Elevation="2" Class="pa-4 mt-4">
+        <MudText Typo="Typo.overline">Alumno seleccionado</MudText>
+        <MudText Typo="Typo.h6">@_seleccionado.Apellido, @_seleccionado.Nombre</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            @_seleccionado.Codigo — @_seleccionado.NombreCarrera (@_seleccionado.Modalidad)
+        </MudText>
+        @* Acciones sobre el alumno (sucesoras del panel ALUMNO SELECCIONADO de
+           FrmEsba): se habilitan a medida que se migran sus pantallas. *@
+        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+            <MudButton Disabled="true">Ficha</MudButton>
+            <MudButton Disabled="true">Inscripción de materias</MudButton>
+            <MudButton Disabled="true">Constancias</MudButton>
+        </MudButtonGroup>
+    </MudPaper>
+}
+
+@code {
+    private MudDataGrid<AlumnoListItemDto>? _grilla;
+    private string? _texto;
+    private bool _buscarBajas;
+    private bool _carrerasEnDesuso;
+    private AlumnoListItemDto? _seleccionado;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private async Task<GridData<AlumnoListItemDto>> CargarPagina(GridState<AlumnoListItemDto> estado, CancellationToken ct)
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+
+        var pagina = await AlumnosQuery.BuscarPadronAsync(
+            new PadronAlumnosFiltro
+            {
+                Texto = _texto,
+                BuscarDadosDeBaja = _buscarBajas,
+                IncluirCarrerasEnDesuso = _carrerasEnDesuso,
+                EsSupervisor = usuario.EsSupervisor(),
+                CodigoUsuario = usuario.CodigoUsuario(),
+                Skip = estado.Page * estado.PageSize,
+                Take = estado.PageSize,
+            },
+            ct);
+
+        return new GridData<AlumnoListItemDto> { Items = pagina.Items, TotalItems = pagina.Total };
+    }
+
+    private Task Buscar()
+    {
+        _seleccionado = null;
+        return _grilla?.ReloadServerData() ?? Task.CompletedTask;
+    }
+
+    private Task BuscarSiEnter(KeyboardEventArgs e) =>
+        e.Key == "Enter" ? Buscar() : Task.CompletedTask;
+
+    private void SeleccionarFila(DataGridRowClickEventArgs<AlumnoListItemDto> fila) =>
+        _seleccionado = fila.Item;
+}

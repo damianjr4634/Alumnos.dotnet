@@ -1,48 +1,44 @@
-@using Esba.Application.Abstractions
-@using Esba.Application.DTOs.Carreras
-@inject ICarrerasQuery CarrerasQuery
-
-@* Menú por carrera: sucesor de Carreras.pas / dxNavBar de FrmEsba, generado
-   desde la tabla CARRERA y filtrado por los permisos BARRA_SEGU del usuario
-   (la UI oculta, el servidor deniega — migration_improvements.md §3.2). *@
+@* Menú general por área funcional (espejo de Application/Features), sucesor
+   del "Main Menu" dxBar de FrmEsba. El diseño por carrera fue descartado en el
+   propio legacy: con muchas carreras era molesto buscarlas una por una. La
+   carrera se elige al entrar a cada opción que la necesite (decisión
+   2026-06-12, ver migration_improvements.md §3.2).
+   Las opciones se habilitan a medida que se migran sus pantallas. *@
 
 <MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Inicio</MudNavLink>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Search">Búsqueda de alumnos</MudNavLink>
 
-    @foreach (var grupo in _carreras.GroupBy(c => c.Grupo))
-    {
-        @* TODO-migrar CARRE_GRP: mostrar la descripción del grupo, no el código. *@
-        <MudNavGroup Title="@grupo.Key" Expanded="false" Icon="@Icons.Material.Filled.School">
-            @foreach (var carrera in grupo)
-            {
-                <MudNavLink Href="@($"/alumnos/{carrera.Codigo}")">
-                    @(string.IsNullOrWhiteSpace(carrera.NombreCorto) ? carrera.Nombre : carrera.NombreCorto)
-                </MudNavLink>
-            }
-        </MudNavGroup>
-    }
+    <MudNavGroup Title="Alumnos" Icon="@Icons.Material.Filled.People" Expanded="false">
+        <MudNavLink Disabled="true">Inscripción de materias</MudNavLink>
+        <MudNavLink Disabled="true">Regularización</MudNavLink>
+        <MudNavLink Disabled="true">Permisos de exámenes</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Académica" Icon="@Icons.Material.Filled.MenuBook" Expanded="false">
+        <MudNavLink Disabled="true">Materias</MudNavLink>
+        <MudNavLink Disabled="true">Comisiones</MudNavLink>
+        <MudNavLink Disabled="true">Cuatrimestres</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Asistencias" Icon="@Icons.Material.Filled.EventAvailable" Expanded="false">
+        <MudNavLink Disabled="true">Carga de inasistencias</MudNavLink>
+        <MudNavLink Disabled="true">Planillas de asistencia</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Exámenes" Icon="@Icons.Material.Filled.Grading" Expanded="false">
+        <MudNavLink Disabled="true">Mesas de exámenes</MudNavLink>
+        <MudNavLink Disabled="true">Notas de finales</MudNavLink>
+        <MudNavLink Disabled="true">Actas</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Certificados" Icon="@Icons.Material.Filled.Description" Expanded="false">
+        <MudNavLink Disabled="true">Constancias</MudNavLink>
+        <MudNavLink Disabled="true">Equivalencias</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+        <MudNavLink Disabled="true">Usuarios</MudNavLink>
+        <MudNavLink Disabled="true">Profesores</MudNavLink>
+        <MudNavLink Disabled="true">Configuración</MudNavLink>
+    </MudNavGroup>
 </MudNavMenu>
-
-@code {
-    private IReadOnlyList<CarreraListItemDto> _carreras = [];
-
-    [CascadingParameter]
-    private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (EstadoAutenticacion is null)
-        {
-            return;
-        }
-
-        var usuario = (await EstadoAutenticacion).User;
-        if (usuario.Identity?.IsAuthenticated != true)
-        {
-            return;
-        }
-
-        var permisos = usuario.EsSupervisor() ? null : usuario.Permisos();
-        _carreras = await CarrerasQuery.ListarParaMenuAsync(permisos, CancellationToken.None);
-    }
-}
