@@ -1,0 +1,321 @@
+SET TERM ^ ;
+
+ALTER PROCEDURE XXX_CONSTANCIA_TERCIARIA (CODALU VARCHAR(11) CHARACTER SET NONE,
+CARRE VARCHAR(6) CHARACTER SET NONE)
+RETURNS (CUATRIM INTEGER,
+CODMAT CHAR(2) CHARACTER SET NONE,
+SIGLA VARCHAR(30) CHARACTER SET NONE,
+DESCRIPCI VARCHAR(65) CHARACTER SET NONE,
+CONDICION VARCHAR(15) CHARACTER SET NONE,
+CUAANIO VARCHAR(3) CHARACTER SET NONE,
+NOTA NUMERIC(5, 2),
+FECHA DATE,
+INSTITUTO VARCHAR(30) CHARACTER SET NONE,
+CARACT VARCHAR(10) CHARACTER SET NONE,
+ACTINT VARCHAR(15) CHARACTER SET NONE,
+ACTDEGP VARCHAR(15) CHARACTER SET NONE,
+ACTSNE VARCHAR(10) CHARACTER SET NONE,
+ANUAL CHAR(1) CHARACTER SET NONE,
+CUTUCO INTEGER,
+COLOR INTEGER,
+FONTCOLOR INTEGER,
+ACTFIN VARCHAR(10) CHARACTER SET NONE,
+VENCIM VARCHAR(20) CHARACTER SET NONE,
+EXIMDESC VARCHAR(200) CHARACTER SET NONE,
+HTMLCOLOR VARCHAR(20) CHARACTER SET NONE,
+HTMLFONTCOLOR VARCHAR(20) CHARACTER SET NONE,
+PERMISO BOOLEAN,
+INSCRIPCION BOOLEAN,
+TIENEPERMISO BOOLEAN)
+AS 
+declare variable EQUIVALE char(2);
+declare variable ESTADO char(1);
+declare variable ORDEN smallint;
+declare variable ACOLOR integer;
+declare variable BCOLOR integer;
+declare variable VCOLOR integer;
+declare variable RCOLOR integer;
+declare variable NCOLOR integer;
+declare variable ZCOLOR integer;
+declare variable VICOLOR integer;
+declare variable HTMLACOLOR varchar(20);
+declare variable HTMLBCOLOR varchar(20);
+declare variable HTMLVCOLOR varchar(20);
+declare variable HTMLRCOLOR varchar(20);
+declare variable HTMLNCOLOR varchar(20);
+declare variable HTMLZCOLOR varchar(20);
+declare variable HTMLVICOLOR varchar(20);
+declare variable TIPO varchar(3);
+declare variable INDICEALUMNO integer;
+declare variable HAB_INSC varchar(10);
+declare variable HAB_FINALES varchar(10);
+declare variable HAB_INSC_hasta varchar(20);
+declare variable HAB_FINALES_hasta varchar(20);
+declare variable XDATE date;
+begin
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='BLANCO' INTO :BCOLOR,:htmlbcolor;
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='AMARILLO' INTO :ACOLOR,:htmlacolor;
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='AZUL' INTO :ZCOLOR,:htmlzcolor;
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='VERDE' INTO :VCOLOR,:htmlvcolor;
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='ROJO' INTO :RCOLOR,:htmlrcolor;
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='NEGRO' INTO :NCOLOR,:htmlncolor;
+SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='VIOLETA' INTO :VICOLOR,:htmlvicolor;
+SELECT TIPO FROM CARRERA WHERE CARRE=:CARRE INTO :TIPO;
+SELECT upper(VALOR) FROM XXX_CONF WHERE PARAME='Web_HabilitaInscripcion' INTO :HAB_INSC;
+SELECT upper(VALOR) FROM XXX_CONF WHERE PARAME='Web_HabiltaFinales' INTO :HAB_FINALES;
+select valor from xxx_conf where parame='Web_FechaHastaFinales' into :HAB_FINALES_HASTA;
+SELECT VALOR FROM XXX_CONF WHERE PARAME='Web_FechaHastaInscripcion' INTO :HAB_INSC_HASTA;
+
+if (HAB_FINALES = 'TRUE') then begin
+   if (cast(COALESCE(HAB_FINALES_HASTA,CURRENT_DATE) as date) < current_date) then begin
+     HAB_FINALES = 'FALSE';
+
+   end
+   WHEN ANY DO
+       HAB_FINALES = 'FALSE';
+end
+if (HAB_INSC = 'TRUE') then begin
+   if (cast(COALESCE(HAB_INSC_HASTA, CURRENT_DATE) as date) < current_date) then begin
+     HAB_INSC = 'FALSE';
+
+   end
+   WHEN ANY DO
+       HAB_INSC = 'FALSE';
+end
+
+IF (TIPO='TER' AND CARRE<>'ADM') THEN
+    BEGIN
+          FOR SELECT CODMATERI, TRIM(DESCRIPCI), CASE ANUAL WHEN 'S' THEN '*' ELSE '' END, CUATRIM,
+                     SUBSTRING(TRIM(IIF(COALESCE(SIGLA,'')='',DESCRIPCI,SIGLA)) FROM 1 FOR 30),
+                     CAST(CASE COALESCE(ORDEN,0) WHEN 0 THEN CODMATERI ELSE ORDEN END AS INTEGER)
+          FROM MATERIAS
+          WHERE CODCARRE=:CARRE AND ESTADO='Y'
+          ORDER BY CUATRIM, 6
+          INTO :CODMAT, :DESCRIPCI, :ANUAL, :CUATRIM, :SIGLA, :orden
+          DO BEGIN
+             permiso=false ;
+             INSCRIPCION=false ;
+             TIENEPERMISO=FALSE;
+             CUTUCO=NULL;
+             SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='BLANCO' INTO :COLOR,:htmlcolor;
+             SELECT CODIGO,HTMLCODE FROM TBL_COLOR WHERE COLOR='NEGRO' INTO :FONTCOLOR, :htmlFONTCOLOR;
+             VENCIM=NULL;
+             select INDICE FROM ALUMNOS WHERE COD_ALU=:CODALU AND CARRE=:CARRE INTO :INDICEALUMNO;
+             SELECT CUA_ANIO, TRIM(CONDICION), CUTUCO
+             FROM CURSADA
+             WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+             INTO :CUAANIO, :CONDICION, :CUTUCO;
+             IF (CONDICION IS NULL) THEN BEGIN
+                 SELECT A.CUA_ANIO, A.NOTA_MAT, A.FEC_FINAL, A.INSTITUT, A.CARAC,
+                        A.ACTINT, A.ACTDGE, A.ACTSNE, TRIM(A.CONDICION),
+                        A.FACTFIN, A.fexdescri
+                 FROM ANALITIC A
+                 WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+                 INTO :CUAANIO, :NOTA, :FECHA, :INSTITUTO, :CARACT, :ACTINT, :ACTDEGP, :ACTSNE, :CONDICION, :ACTFIN, :EXIMDESC;
+                 IF (CONDICION IS NULL) THEN begin
+                   CONDICION='* ADEUDA *';
+                   INSCRIPCION= CASE WHEN HAB_INSC = 'TRUE' THEN TRUE ELSE FALSE END;
+                 end
+             END
+             ELSE BEGIN
+                IF (EXISTS(SELECT 1 FROM ANALITIC A WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT)) THEN BEGIN
+                   EXCEPTION E_CUSTOM_ERR 'La materia '||:SIGLA||', esta en condicion de '||CONDICION||' y en el analitico, verifique.';
+                END
+             END
+             IF (CONDICION IN ('* ADEUDA *','LIBRE')) THEN BEGIN
+                COLOR=RCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLRCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+                INSCRIPCION=CASE WHEN HAB_INSC = 'TRUE' THEN TRUE ELSE FALSE END;
+             END
+             ELSE IF (CONDICION IN ('REGULAR')) THEN BEGIN
+                permiso=CASE WHEN HAB_FINALES = 'TRUE' THEN TRUE ELSE FALSE END;
+                HTMLCOLOR='cornflowerblue';
+                HTMLFONTCOLOR=htmlbcolor;
+
+                if (EXISTS(SELECT 1
+                            FROM WEB_PERMEXA W
+                            WHERE w.permexa_id is null and  W.alumno_id=:INDICEALUMNO AND W.carre=:CARRE AND W.cod_mat=:codmat)) then BEGIN
+
+                    TIENEPERMISO=TRUE;
+                END
+                if (EXISTS(SELECT 1
+                            FROM WEB_PERMEXA W
+                            INNER JOIN PERMEXA P ON P.indice=W.permexa_id
+                            WHERE W.alumno_id=:INDICEALUMNO AND W.carre=:CARRE AND W.cod_mat=:codmat)) then BEGIN
+
+                    TIENEPERMISO=TRUE;
+                END
+                SELECT VENCIM FROM XXX_VENCIM_MAT(:CUAANIO) INTO :VENCIM;
+
+                if (VENCIM IS NOT NULL AND VENCIM <> '') then BEGIN
+                    XDATE=CAST('20'||REPLACE(VENCIM, 'MAR-','')||'-03-31' AS DATE);
+                    if (XDATE<CURRENT_DATE) then begin
+                        COLOR=RCOLOR;
+                        FONTCOLOR=BCOLOR;
+                    end
+                END
+             END
+             ELSE IF (CONDICION = 'CURSANDO') THEN BEGIN
+                COLOR=VCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLVCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             ELSE IF (CONDICION = 'RECURSANDO') THEN BEGIN
+                COLOR=ZCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLZCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             ELSE IF (CONDICION = 'RECURSA') THEN BEGIN
+                COLOR=VICOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLVICOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+                INSCRIPCION=CASE WHEN HAB_INSC = 'TRUE' THEN TRUE ELSE FALSE END;
+             END
+             ELSE IF (CONDICION = 'EXIMIDO') THEN BEGIN
+                COLOR=NCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLNCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+
+             IF (TRIM(CUAANIO) = '') THEN
+                CUAANIO=NULL;
+
+             IF (INSCRIPCION = TRUE AND EXISTS(SELECT 1 FROM WEB_INSCRIPCIONES W WHERE
+                                                    W.CARRERA=:CARRE AND W.ALUMNO=:INDICEALUMNO AND W.MATERIA=:CODMAT AND W.INDCURSADA IS NULL AND W.ESTADO='PENDIENTE')) THEN BEGIN
+                CONDICION = '**INSCRIPTO**';
+                HTMLCOLOR = 'darkorange';
+             end
+             SUSPEND;
+             CONDICION=NULL;
+             CUAANIO=NULL;
+             NOTA=NULL;
+             FECHA=NULL;
+             INSTITUTO=NULL;
+             CARACT=NULL;
+             ACTINT=NULL;
+             ACTDEGP=NULL;
+             ACTSNE=NULL;
+             ACTFIN=NULL;
+             EXIMDESC=NULL;
+          END
+    END
+  ELSE IF (TIPO='TER' AND CARRE='ADM') THEN
+    BEGIN
+       FOR SELECT CUATRIM, CODMAT, SIGLA, DESCRIPCI, CONDICION, CUAANIO, NOTA, FECHA, INSTITUTO, CARACT, ACTINT, ACTDEGP, ACTSNE, ANUAL, CUTUCO, COLOR, FONTCOLOR, ACTFIN
+       FROM XXX_CONSTANCIA_ADM(:CODALU, :CARRE)
+       ORDER BY 1,2
+       INTO :CUATRIM, :CODMAT, :SIGLA, :DESCRIPCI, :CONDICION, :CUAANIO, :NOTA, :FECHA, :INSTITUTO, :CARACT, :ACTINT, :ACTDEGP, :ACTSNE, :ANUAL, :CUTUCO, :COLOR, :FONTCOLOR, :ACTFIN
+       DO BEGIN
+          permiso=false ;
+          INSCRIPCION=false;
+          IF (CONDICION IN ('REGULAR')) THEN BEGIN
+               SELECT VENCIM FROM XXX_VENCIM_MAT(:CUAANIO) INTO :VENCIM;
+               permiso=CASE WHEN HAB_FINALES = 'TRUE' THEN TRUE ELSE FALSE END;
+          END
+          SUSPEND;
+       END
+    END
+  ELSE IF (TIPO IN ('BAC','BAD')) THEN
+    BEGIN
+          FOR SELECT CODMATERI, TRIM(DESCRIPCI), CASE ANUAL WHEN 'S' THEN '*' ELSE '' END, CUATRIM, SUBSTRING(TRIM(DESCRIPCI) FROM 1 FOR 30), EQUIVALE,
+                     ESTADO, ORDEN
+          FROM MATERIAS M
+          WHERE CODCARRE=:CARRE AND M.ESTADO='Y' AND
+                NOT EXISTS(SELECT 1 FROM CURSADA C WHERE C.CARRE=M.CODCARRE AND C.COD_ALU=:CODALU AND C.COD_MAT=M.EQUIVALE) AND
+                NOT EXISTS(SELECT 1 FROM ANALITIC A WHERE A.CARRE=M.CODCARRE AND A.COD_ALU=:CODALU AND A.COD_MAT=M.EQUIVALE)
+          UNION
+          SELECT CODMATERI, TRIM(DESCRIPCI), CASE ANUAL WHEN 'S' THEN '*' ELSE '' END, CUATRIM, TRIM(SIGLA), EQUIVALE,
+                     ESTADO, ORDEN
+          FROM MATERIAS M
+          WHERE CODCARRE=:CARRE AND M.ESTADO='B' AND
+                (EXISTS(SELECT 1 FROM CURSADA C WHERE C.CARRE=M.CODCARRE AND C.COD_ALU=:CODALU AND C.COD_MAT=M.CODMATERI) OR
+                EXISTS(SELECT 1 FROM ANALITIC A WHERE A.CARRE=M.CODCARRE AND A.COD_ALU=:CODALU AND A.COD_MAT=M.CODMATERI))
+          ORDER BY 4, 8
+          INTO :CODMAT, :DESCRIPCI, :ANUAL, :CUATRIM, :SIGLA, :EQUIVALE, :ESTADO, :ORDEN
+          DO BEGIN
+             permiso=false ;
+             INSCRIPCION=false ;
+             CUTUCO=NULL;
+             CONDICION=NULL;
+             COLOR=BCOLOR;
+             FONTCOLOR=NCOLOR;
+             HTMLCOLOR=HTMLBCOLOR;
+             HTMLFONTCOLOR=HTMLNCOLOR;
+             SELECT CUA_ANIO,TRIM(CONDICION),CUTUCO FROM CURSADA WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT INTO :CUAANIO, :CONDICION, :CUTUCO;
+             IF (CONDICION IS NULL) THEN  BEGIN
+                 SELECT IIF(TRIM(A.CUA_ANIO)='',NULL,A.CUA_ANIO), A.NOTA_MAT, A.FEC_FINAL, A.INSTITUT, A.CARAC, A.ACTINT, A.ACTDGE, A.ACTSNE, TRIM(A.CONDICION),
+                        A.FACTFIN, A.fexdescri
+                 FROM ANALITIC A
+                 WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+                 INTO :CUAANIO, :NOTA, :FECHA, :INSTITUTO, :CARACT, :ACTINT, :ACTDEGP, :ACTSNE, :CONDICION,:ACTFIN, :EXIMDESC;
+             END
+             ELSE BEGIN
+                IF (EXISTS(SELECT 1 FROM ANALITIC A WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT)) THEN BEGIN
+                   EXCEPTION E_CUSTOM_ERR 'La materia '||:SIGLA||', esta en condicion de '||CONDICION||' y en el analitico, verifique.';
+                END
+             END
+             IF (CONDICION IS NULL) THEN BEGIN
+                 CONDICION='* ADEUDA *';
+                 INSCRIPCION=CASE WHEN HAB_INSC = 'TRUE' THEN TRUE ELSE FALSE END ;
+             END
+             IF (CONDICION IN ('* ADEUDA *')) then BEGIN
+                COLOR=RCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLRCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             ELSE if (NOTA IS NULL AND CONDICION IN ('LIBRES','PREVIO','PREVIA','DICIEMBRE','MARZO','P/EQUIVALEN')) then
+             BEGIN
+                permiso=CASE WHEN HAB_FINALES = 'TRUE' THEN TRUE ELSE FALSE END;
+                COLOR=RCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLRCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             ELSE IF (CONDICION = 'CURSANDO') THEN BEGIN
+                COLOR=VCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLVCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             ELSE IF (CONDICION = 'RECURSANDO') THEN BEGIN
+                COLOR=ZCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLZCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             ELSE IF (CONDICION IN ('A/REGULAR')) THEN BEGIN
+                COLOR=ACOLOR;
+                FONTCOLOR=NCOLOR;
+                HTMLCOLOR=HTMLACOLOR;
+                HTMLFONTCOLOR=HTMLNCOLOR;
+             END
+             ELSE IF (CONDICION = 'EXIMIDO') THEN BEGIN
+                COLOR=NCOLOR;
+                FONTCOLOR=BCOLOR;
+                HTMLCOLOR=HTMLNCOLOR;
+                HTMLFONTCOLOR=HTMLBCOLOR;
+             END
+             SUSPEND;
+             CONDICION=NULL;
+             CUAANIO=NULL;
+             NOTA=NULL;
+             FECHA=NULL;
+             INSTITUTO=NULL;
+             CARACT=NULL;
+             ACTINT=NULL;
+             ACTDEGP=NULL;
+             ACTSNE=NULL;
+             ACTFIN=NULL;
+             EXIMDESC=NULL;
+          END
+    END
+end ^
+
+SET TERM ; ^

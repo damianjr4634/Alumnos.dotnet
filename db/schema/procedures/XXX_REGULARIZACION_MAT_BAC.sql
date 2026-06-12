@@ -1,0 +1,83 @@
+SET TERM ^ ;
+
+ALTER PROCEDURE XXX_REGULARIZACION_MAT_BAC (CARRE VARCHAR(6) CHARACTER SET NONE,
+CODALU VARCHAR(11) CHARACTER SET NONE,
+CODMAT VARCHAR(2) CHARACTER SET NONE,
+CONDIORG VARCHAR(20) CHARACTER SET NONE,
+USUARIO INTEGER)
+RETURNS (FERRCOD INTEGER,
+FERRMSG VARCHAR(3000) CHARACTER SET NONE)
+AS 
+declare variable condicion varchar(15);
+declare variable continasbac varchar(15);
+declare variable tot_horas smallint;
+declare variable inasist smallint;
+declare variable justif smallint;
+declare variable resul float;
+declare variable mtot_horas float;
+declare variable minasist float;
+declare variable cutuco integer;
+declare variable cua_anio char(3);
+begin
+
+SELECT TRIM(CONDICION), TOT_HORAS, INASIST, JUSTIF, X.cutuco, X.cua_anio
+FROM "$$$CURSADA" X
+WHERE COD_ALU=:CODALU AND X.COD_MAT=:CODMAT AND X.USUARIO=:USUARIO
+INTO :CONDICION, :TOT_HORAS, :INASIST, :JUSTIF, :CUTUCO, :CUA_ANIO;
+
+---- FALTAS
+CONTINASBAC='CURSANDO';
+RESUL=0;
+MTOT_HORAS=COALESCE(TOT_HORAS,0);
+MINASIST=COALESCE(INASIST,0);
+IF (MTOT_HORAS > 0) THEN
+     RESUL= ROUND((MINASIST * 100)/ MTOT_HORAS);
+IF (MTOT_HORAS = 0) THEN
+     CONTINASBAC = 'CURSANDO';
+ELSE BEGIN
+      IF (RESUL>=0 AND RESUL <= 25)  THEN
+          CONTINASBAC = 'REGULAR';
+      IF (RESUL >= 26 AND RESUL <= 40) THEN
+          CONTINASBAC = 'CONSEJO';
+      IF (RESUL > 40) THEN
+          CONTINASBAC = 'LIBRES';
+END
+IF (CONTINASBAC='REGULAR') THEN BEGIN
+    FERRCOD=0;
+    FERRMSG='Segun las faltas el alumno queda en condicion de. '||CONTINASBAC;
+    if (condiorg='RECURSANDO') THEN
+        CONDICION='RECURSANDO';
+    ELSE
+        CONDICION='CURSANDO';
+END
+ELSE IF (CONTINASBAC='CONSEJO') THEN BEGIN
+    FERRCOD=0;
+    FERRMSG='Segun las faltas el alumno queda en condicion de '||CONTINASBAC;
+    CONDICION='CONSEJO';
+END
+ELSE IF (CONTINASBAC='LIBRES') THEN BEGIN
+    FERRCOD=0;
+    FERRMSG='Segun las faltas el alumno queda en condicion de '||CONTINASBAC;
+    CONDICION='LIBRES';
+END
+ELSE BEGIN
+    FERRCOD=0;
+    FERRMSG='Segun las faltas el alumno queda en condicion de '||CONTINASBAC;
+    if (condiorg='RECURSANDO') THEN
+        CONDICION='RECURSANDO';
+    ELSE
+        CONDICION='CURSANDO';
+END
+
+IF (CONDICION='CURSANDO' AND CONDIORG<>'CURSANDO') THEN BEGIN
+    IF (EXISTS(SELECT 1 FROM RECURSA R WHERE R.COD_ALU=:CODALU AND R.CARRE=:CARRE AND R.CUTUCO=:CUTUCO
+                AND R.COD_MAT=:CODMAT AND R.CUA_ANIO=:CUA_ANIO)) THEN
+    CONDICION='RECURSANDO';
+END
+--exception e_custom_err condicion||CUTUCO||CUA_ANIO;
+
+UPDATE "$$$CURSADA" X SET X.CONDICION=:CONDICION WHERE COD_ALU=:CODALU AND X.COD_MAT=:CODMAT AND X.USUARIO=:USUARIO;
+SUSPEND;
+END ^
+
+SET TERM ; ^

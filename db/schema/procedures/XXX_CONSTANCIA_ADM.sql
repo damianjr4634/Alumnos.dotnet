@@ -1,0 +1,312 @@
+SET TERM ^ ;
+
+ALTER PROCEDURE XXX_CONSTANCIA_ADM (CODALU VARCHAR(11) CHARACTER SET NONE,
+CARRE VARCHAR(6) CHARACTER SET NONE)
+RETURNS (CUATRIM INTEGER,
+CODMAT CHAR(2) CHARACTER SET NONE,
+SIGLA VARCHAR(30) CHARACTER SET NONE,
+DESCRIPCI VARCHAR(65) CHARACTER SET NONE,
+CONDICION VARCHAR(15) CHARACTER SET NONE,
+CUAANIO INTEGER,
+NOTA NUMERIC(5, 2),
+FECHA DATE,
+INSTITUTO VARCHAR(30) CHARACTER SET NONE,
+CARACT VARCHAR(10) CHARACTER SET NONE,
+ACTINT VARCHAR(10) CHARACTER SET NONE,
+ACTDEGP VARCHAR(10) CHARACTER SET NONE,
+ACTSNE VARCHAR(10) CHARACTER SET NONE,
+ANUAL CHAR(1) CHARACTER SET NONE,
+CUTUCO INTEGER,
+COLOR INTEGER,
+FONTCOLOR INTEGER,
+ACTFIN VARCHAR(10) CHARACTER SET NONE)
+AS 
+DECLARE VARIABLE CODMAT2 CHAR(2);
+DECLARE VARIABLE CONDICION1 VARCHAR(15);
+DECLARE VARIABLE CUAANIO1 INTEGER;
+DECLARE VARIABLE NOTA1 NUMERIC(5,2);
+DECLARE VARIABLE FECHA1 DATE;
+DECLARE VARIABLE INSTITUTO1 VARCHAR(30);
+DECLARE VARIABLE CARACT1 VARCHAR(10);
+DECLARE VARIABLE ACTINT1 VARCHAR(10);
+DECLARE VARIABLE ACTDEGP1 VARCHAR(10);
+DECLARE VARIABLE ACTSNE1 VARCHAR(10);
+DECLARE VARIABLE CUTUCO1 INTEGER;
+DECLARE VARIABLE CONDICION2 VARCHAR(15);
+DECLARE VARIABLE CUAANIO2 INTEGER;
+DECLARE VARIABLE NOTA2 NUMERIC(5,2);
+DECLARE VARIABLE FECHA2 DATE;
+DECLARE VARIABLE INSTITUTO2 VARCHAR(30);
+DECLARE VARIABLE CARACT2 VARCHAR(10);
+DECLARE VARIABLE ACTINT2 VARCHAR(10);
+DECLARE VARIABLE ACTDEGP2 VARCHAR(10);
+DECLARE VARIABLE ACTSNE2 VARCHAR(10);
+DECLARE VARIABLE CUTUCO2 INTEGER;
+DECLARE VARIABLE ACTFIN1 VARCHAR(10);
+DECLARE VARIABLE ACTFIN2 VARCHAR(10);
+DECLARE VARIABLE VALE INTEGER;
+begin
+    --08-27
+    --16-25
+    --17-21
+ FOR SELECT CODMATERI, TRIM(DESCRIPCI),
+            CASE ANUAL WHEN 'S' THEN '*' ELSE '' END, CUATRIM, SUBSTRING(TRIM(DESCRIPCI) FROM 1 FOR 30)
+     FROM MATERIAS
+     WHERE CODCARRE=:CARRE AND ESTADO='Y' AND CODMATERI NOT IN ('01','08','27','16','25','17','21')
+     ORDER BY CUATRIM, 1
+     INTO :CODMAT, :DESCRIPCI, :ANUAL, :CUATRIM, :SIGLA
+     DO BEGIN
+           CUTUCO=NULL; COLOR=16777215; FONTCOLOR=0;
+
+           SELECT CUA_ANIO,TRIM(CONDICION), CUTUCO
+           FROM CURSADA
+           WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+           INTO :CUAANIO, :CONDICION, :CUTUCO;
+
+           IF (CONDICION IS NULL) THEN  BEGIN
+                 SELECT A.CUA_ANIO, A.NOTA_MAT, A.FEC_FINAL, A.INSTITUT, A.CARAC, A.ACTINT, A.ACTDGE,
+                        A.ACTSNE, TRIM(A.CONDICION), A.FACTFIN
+                 FROM ANALITIC A
+                 WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+                 INTO :CUAANIO, :NOTA, :FECHA, :INSTITUTO, :CARACT, :ACTINT, :ACTDEGP, :ACTSNE, :CONDICION, :ACTFIN;
+                 IF (CONDICION IS NULL) THEN
+                    CONDICION='* ADEUDA *';
+            END
+
+            IF (CONDICION IN ('* ADEUDA *','LIBRE')) THEN BEGIN
+                COLOR=255;
+                FONTCOLOR=16777215;
+            END
+            SUSPEND;
+            CONDICION=NULL;
+            CUAANIO=NULL;
+            NOTA=NULL;
+            FECHA=NULL;
+            INSTITUTO=NULL;
+            CARACT=NULL;
+            ACTINT=NULL;
+            ACTDEGP=NULL;
+            ACTSNE=NULL;
+            ACTFIN=NULL;
+    END
+
+    FOR SELECT CODMATERI, TRIM(DESCRIPCI),
+            CASE ANUAL WHEN 'S' THEN '*' ELSE '' END, CUATRIM, SUBSTRING(TRIM(DESCRIPCI) FROM 1 FOR 30)
+     FROM MATERIAS
+     WHERE CODCARRE=:CARRE AND ESTADO='Y' AND CODMATERI IN ('01','08','16','17'/*,'21','25','27'*/)
+     ORDER BY CUATRIM, 1
+     INTO :CODMAT, :DESCRIPCI, :ANUAL, :CUATRIM, :SIGLA
+     DO BEGIN
+           CUTUCO=NULL; COLOR=9999999; FONTCOLOR=0;
+
+
+           IF (CODMAT='01') THEN BEGIN
+              SELECT CUA_ANIO,TRIM(CONDICION), CUTUCO
+              FROM CURSADA
+              WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+              INTO :CUAANIO, :CONDICION, :CUTUCO;
+
+              IF (CONDICION IS NULL) THEN  BEGIN
+                    SELECT A.CUA_ANIO, A.NOTA_MAT, A.FEC_FINAL, A.INSTITUT, A.CARAC, A.ACTINT, A.ACTDGE,
+                           A.ACTSNE, TRIM(A.CONDICION), A.FACTFIN
+                    FROM ANALITIC A
+                    WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+                    INTO :CUAANIO, :NOTA, :FECHA, :INSTITUTO, :CARACT, :ACTINT, :ACTDEGP, :ACTSNE, :CONDICION, :ACTFIN;
+              END
+
+              IF (CONDICION IS NULL) THEN
+                  CONDICION='* ADEUDA *';
+              IF (CONDICION IN ('* ADEUDA *','LIBRE')) THEN BEGIN
+                 COLOR=255;
+                 FONTCOLOR=16777215;
+              END
+
+              SUSPEND;
+              ANUAL='';
+              CODMAT='99';
+              CUATRIM='2';
+              SUSPEND;
+
+              CONDICION=NULL;
+              CUAANIO=NULL;
+              NOTA=NULL;
+              FECHA=NULL;
+              INSTITUTO=NULL;
+              CARACT=NULL;
+              ACTINT=NULL;
+              ACTDEGP=NULL;
+              ACTSNE=NULL;
+              ACTFIN=NULL;
+           END
+           ELSE BEGIN
+              SELECT CUA_ANIO,TRIM(CONDICION), CUTUCO
+              FROM CURSADA
+              WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+              INTO :CUAANIO1, :CONDICION1, :CUTUCO1;
+
+              IF (CONDICION1 IS NULL) THEN  BEGIN
+                    SELECT A.CUA_ANIO, A.NOTA_MAT, A.FEC_FINAL, A.INSTITUT, A.CARAC, A.ACTINT, A.ACTDGE,
+                           A.ACTSNE, TRIM(A.CONDICION), A.FACTFIN
+                    FROM ANALITIC A
+                    WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT
+                    INTO :CUAANIO1, :NOTA1, :FECHA1, :INSTITUTO1, :CARACT1, :ACTINT1, :ACTDEGP1, :ACTSNE1, :CONDICION1, :ACTFIN1;
+              END
+              VALE=0;
+              CODMAT2='';
+              CODMAT2=CASE CODMAT WHEN '08' THEN '27' WHEN '16' THEN '25' WHEN '17' THEN '21' END;
+
+              SELECT CUA_ANIO, TRIM(CONDICION), CUTUCO
+              FROM CURSADA
+              WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT2
+              INTO :CUAANIO2, :CONDICION2, :CUTUCO2;
+
+              IF (CONDICION2 IS NULL) THEN  BEGIN
+                    SELECT A.CUA_ANIO, A.NOTA_MAT, A.FEC_FINAL, A.INSTITUT, A.CARAC, A.ACTINT, A.ACTDGE,
+                           A.ACTSNE, TRIM(A.CONDICION), A.FACTFIN
+                    FROM ANALITIC A
+                    WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT2
+                    INTO :CUAANIO2, :NOTA2, :FECHA2, :INSTITUTO2, :CARACT2, :ACTINT2, :ACTDEGP2, :ACTSNE2, :CONDICION2, :ACTFIN2;
+              END
+
+              IF (CONDICION1 IS NULL AND CONDICION2 IS NULL) THEN
+                  CONDICION='* ADEUDA *';
+
+              IF (CONDICION1 IN ('* ADEUDA *','LIBRE') AND CONDICION2 IN ('* ADEUDA *','LIBRE')) THEN BEGIN
+                 COLOR=255;
+                 FONTCOLOR=16777215;
+                 VALE=1;
+              END
+              ELSE IF (CONDICION1 IN ('* ADEUDA *','LIBRE') AND CONDICION2 IS NULL) THEN BEGIN
+                 COLOR=255;
+                 FONTCOLOR=16777215;
+                 VALE=1;
+              END
+              ELSE IF (CONDICION1='CURSANDO' AND CONDICION2 IS NULL) THEN BEGIN
+                  VALE=1;
+              END
+              ELSE IF (CONDICION2='CURSANDO' AND CONDICION1 IS NULL) THEN BEGIN
+                  VALE=2;
+              END
+              ELSE IF (CONDICION1='EQUIVALENCIA') THEN
+                  VALE=1;
+              ELSE IF (CONDICION2='EQUIVALENCIA') THEN
+                  VALE=2;
+              ELSE IF (CONDICION1 IN ('FINAL') AND COALESCE(CONDICION2,'') NOT IN ('FINAL') ) THEN
+                   VALE=1;
+              ELSE IF (COALESCE(CONDICION1,'') NOT IN ('FINAL') AND CONDICION2 IN ('FINAL') ) THEN
+                   VALE=2;
+              ELSE IF (CONDICION1 IN ('REGULAR') AND CONDICION2 IN ('REGULAR') ) THEN
+                   VALE=1;
+              ELSE IF (CONDICION1 IN ('REGULAR') AND COALESCE(CONDICION2,'') IN ('LIBRE','')) THEN BEGIN
+                   VALE=3;
+                   CONDICION2='* ADEUDA *';
+              END
+              ELSE IF (CONDICION1='REGULAR' AND CONDICION2='CURSANDO') THEN BEGIN
+                   VALE=3;
+              END
+              IF (VALE=1) THEN BEGIN
+                  CONDICION=CONDICION1;
+                  CUAANIO=CUAANIO1;
+                  NOTA=NOTA1;
+                  FECHA=FECHA1;
+                  INSTITUTO=INSTITUTO1;
+                  CARACT=CARACT1;
+                  ACTINT=ACTINT1;
+                  ACTDEGP=ACTDEGP1;
+                  ACTSNE=ACTSNE1;
+                  ACTFIN=ACTFIN1;
+                  SUSPEND;
+                  ANUAL='';
+                  CODMAT=CODMAT2;
+                  CUATRIM=CUATRIM+1;
+                  SUSPEND;
+              END
+              ELSE IF (VALE=2) THEN BEGIN
+                  CONDICION=CONDICION2;
+                  CUAANIO=CUAANIO2;
+                  NOTA=NOTA2;
+                  FECHA=FECHA2;
+                  INSTITUTO=INSTITUTO2;
+                  CARACT=CARACT2;
+                  ACTINT=ACTINT2;
+                  ACTDEGP=ACTDEGP2;
+                  ACTSNE=ACTSNE2;
+                  ACTFIN=ACTFIN2;
+                  SUSPEND;
+                  ANUAL='';
+                  CODMAT=CODMAT2;
+                  CUATRIM=CUATRIM+1;
+                  SUSPEND;
+              END
+              ELSE IF (VALE=3) THEN BEGIN
+                  CONDICION=CONDICION1;
+                  CUAANIO=CUAANIO1;
+                  NOTA=NOTA1;
+                  FECHA=FECHA1;
+                  INSTITUTO=INSTITUTO1;
+                  CARACT=CARACT1;
+                  ACTINT=ACTINT1;
+                  ACTDEGP=ACTDEGP1;
+                  ACTSNE=ACTSNE1;
+                  ACTFIN=ACTFIN1;
+                  CUTUCO=CUTUCO1;
+                  SUSPEND;
+                  ANUAL='';
+                  CODMAT=CODMAT2;
+                  CUATRIM=CUATRIM+1;
+                  CONDICION=CONDICION2;
+                  IF (CONDICION2 IN ('* ADEUDA *','LIBRE')) THEN BEGIN
+                      COLOR=255;
+                      FONTCOLOR=16777215;
+                  END
+                  CUAANIO=CUAANIO2;
+                  NOTA=NOTA2;
+                  FECHA=FECHA2;
+                  INSTITUTO=INSTITUTO2;
+                  CARACT=CARACT2;
+                  ACTINT=ACTINT2;
+                  ACTDEGP=ACTDEGP2;
+                  ACTSNE=ACTSNE2;
+                  ACTFIN=ACTFIN2;
+                  CUTUCO=CUTUCO2;
+                  SUSPEND;
+              END
+              CONDICION=NULL;
+              CUAANIO=NULL;
+              NOTA=NULL;
+              FECHA=NULL;
+              INSTITUTO=NULL;
+              CARACT=NULL;
+              ACTINT=NULL;
+              ACTDEGP=NULL;
+              ACTSNE=NULL;
+              ACTFIN=NULL;
+              CONDICION1=NULL;
+              CUAANIO1=NULL;
+              NOTA1=NULL;
+              FECHA1=NULL;
+              INSTITUTO1=NULL;
+              CARACT1=NULL;
+              ACTINT1=NULL;
+              ACTDEGP1=NULL;
+              ACTSNE1=NULL;
+              ACTFIN1=NULL;
+              CONDICION2=NULL;
+              CUAANIO2=NULL;
+              NOTA2=NULL;
+              FECHA2=NULL;
+              INSTITUTO2=NULL;
+              CARACT2=NULL;
+              ACTINT2=NULL;
+              ACTDEGP2=NULL;
+              ACTSNE2=NULL;
+              ACTFIN2=NULL;
+           END
+
+
+
+
+    END
+end ^
+
+SET TERM ; ^
