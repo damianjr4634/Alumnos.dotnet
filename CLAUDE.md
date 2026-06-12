@@ -77,5 +77,34 @@ Decisiones del rediseño visual (2026-06-12). Toda pantalla nueva las respeta; c
 
 - **Fuentes legacy**: `Esba.Delphi XE2/ESBA/` (solo lectura — referencia, jamás se modifican).
 - **Solución destino**: `Esba.sln` con `src/Esba.Domain`, `src/Esba.Application`, `src/Esba.Infrastructure`, `src/Esba.Web` y `tests/` (estructura definida en `migration_improvements.md` §1.2; si aún no existe, la Fase 1 de fundaciones la crea).
-- **Base de datos**: Firebird; el DDL versionado va en `db/schema/`. Si no está, extraerlo es prerrequisito (ver apéndice de `migration_prompts.md`).
+- **Base de datos**: Firebird; el DDL versionado va en `db/schema/`. Si no está, extraerlo es prerrequisito (ver apéndice de `migration_prompts.md`). Base de desarrollo local: `/var/firebird/esba_restore.gdb` (Firebird 3.0.11, los tests de integración la usan).
 - **Verificación**: `dotnet build` sin warnings y `dotnet test` en verde antes de dar por terminada cualquier tarea (tests de integración excluibles con `--filter Category!=Integration`).
+
+## 6. Hoja de ruta de la migración (orden acordado, 2026-06-12)
+
+**Esta sección es el estado canónico del proyecto.** Al completar un hito, marcarlo acá
+(✅ + fecha) en el mismo commit. Las tareas se encaran EN ESTE ORDEN salvo pedido explícito
+del usuario; cada hito sigue las etapas 1→4 de `migration_prompts.md` y sus checklists.
+Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
+
+| # | Hito | Estado |
+|---|---|---|
+| 1 | **Fundaciones**: solución .NET 10, DDL versionado, `Result<T>`, login con re-hash gradual (`$E1$`), cookie+claims, shell MudBlazor con buscador central y tema (`EsbaTheme`) | ✅ 2026-06-12 |
+| 2 | **Vertical slice Alumnos**: buscador global (query padrón 1.B) + ficha alta/edición + wrapper `XXX_CAMBIA_DNI_LM` (patrón 2.B canónico) | ✅ 2026-06-12 |
+| 3 | **Académica — modelo de datos** (Etapa 1): `MATERIAS`, `COMARM`, `CURSADA`, `TBL_CUAT/TRIM` | ✅ 2026-06-12 |
+| 4 | **Inscripción de materias** (Académica Etapas 2+3): caso de uso sobre `CURSADA` (sucesor de `InscripcionDeMaterias.pas`), pantalla de cursada del alumno, acción real en el panel del buscador | ⬜ siguiente |
+| 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ⬜ |
+| 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ⬜ |
+| 7 | **Asistencias**: `TBL_FERIADOS`, carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas | ⬜ |
+| 8 | **Exámenes**: `MESAS`, `PERMEXA` (permisos individuales y masivos), notas de finales, actas (wrapper `XXX_MATERIAS_FINALES`) | ⬜ |
+| 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias | ⬜ |
+| 10 | **Administración**: ABM usuarios y permisos, cambio de contraseña forzado (`CAMPASS`) y blanqueo, profesores, configuración, correo por comisión (MailKit) | ⬜ |
+| 11 | **Integración Web** (inscripciones/permisos web): confirmar vigencia con el usuario antes de migrar | ⬜ |
+| 12 | **Endurecimiento para producción**: usuario Firebird de mínimos privilegios + secretos fuera del repo, políticas de autorización por área (mapa de `BARRA_OPC`), validación de sesión única en middleware, Serilog completo, deploy | ⬜ |
+| 13 | **Fase 5 — retiro de SPs `XXX_*`**: portar PSQL a C# con tests de equivalencia, un SP por vez (empezar por los de mayor riesgo/uso) | ⬜ |
+
+**Deuda transversal registrada** (resolver dentro del hito que la toque, no dejar crecer):
+subida/cambio de foto del alumno (hito 4 o 5) · descripciones de grupos de menú `CARRE_GRP`
+(hito 12) · botón "Cambiar DNI/LM" en la ficha usando el wrapper ya hecho (hito 4) ·
+normalización de `CURSADA.CONDICION` (hito 13, con el usuario) · preferencia de modo
+claro/oscuro persistida en BD (hito 10).
