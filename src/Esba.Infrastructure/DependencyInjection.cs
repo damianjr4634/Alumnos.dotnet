@@ -7,6 +7,7 @@ using Esba.Infrastructure.Persistence;
 using Esba.Infrastructure.Persistence.Repositories;
 using Esba.Infrastructure.Queries;
 using Esba.Infrastructure.Security;
+using Esba.Infrastructure.StoredProcedures;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -50,6 +51,9 @@ public static class DependencyInjection
         services.AddScoped<IValidator<ActualizarAlumnoCommand>, ActualizarAlumnoValidator>();
         services.AddScoped<CrearAlumnoHandler>();
         services.AddScoped<ActualizarAlumnoHandler>();
+
+        // Wrappers de SP legacy (§1.3: única vía de invocación de los XXX_*).
+        services.AddScoped<ICambioDniLibroMatrizProcedure, CambioDniLibroMatrizProcedure>();
 
         return services;
     }
