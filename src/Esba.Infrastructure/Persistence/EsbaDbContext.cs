@@ -18,6 +18,16 @@ public class EsbaDbContext : DbContext
 
     public DbSet<PermisoUsuario> PermisosUsuario => Set<PermisoUsuario>();
 
+    public DbSet<Materia> Materias => Set<Materia>();
+
+    public DbSet<Comision> Comisiones => Set<Comision>();
+
+    public DbSet<Cursada> Cursadas => Set<Cursada>();
+
+    public DbSet<CicloCuatrimestral> CiclosCuatrimestrales => Set<CicloCuatrimestral>();
+
+    public DbSet<CicloTrimestral> CiclosTrimestrales => Set<CicloTrimestral>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EsbaDbContext).Assembly);
