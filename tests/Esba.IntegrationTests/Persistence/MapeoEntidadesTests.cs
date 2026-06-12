@@ -66,6 +66,20 @@ public class MapeoEntidadesTests
     }
 
     [Fact]
+    public async Task UsuarioRepository_BusquedaPorNombre_EsInsensibleAMayusculas()
+    {
+        // Regresión: el login legacy forzaba mayúsculas en la UI (ecUpperCase);
+        // "administrador" en minúsculas debe encontrar a ADMINISTRADOR.
+        await using var contexto = CrearContexto();
+        var repositorio = new Infrastructure.Persistence.Repositories.UsuarioRepository(contexto);
+
+        var usuario = await repositorio.ObtenerPorNombreConPermisosAsync("administrador", CancellationToken.None);
+
+        Assert.NotNull(usuario);
+        Assert.Equal("ADMINISTRADOR", usuario.NombreUsuario.Trim());
+    }
+
+    [Fact]
     public async Task Alumnos_JoinImplicitoConCarrera_Funciona()
     {
         await using var contexto = CrearContexto();

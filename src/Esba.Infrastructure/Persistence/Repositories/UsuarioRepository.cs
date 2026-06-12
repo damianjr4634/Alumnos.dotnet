@@ -13,8 +13,16 @@ public sealed class UsuarioRepository : IUsuarioRepository
         _contexto = contexto;
     }
 
-    public Task<Usuario?> ObtenerPorNombreConPermisosAsync(string nombreUsuario, CancellationToken ct) =>
-        _contexto.Usuarios
+    public Task<Usuario?> ObtenerPorNombreConPermisosAsync(string nombreUsuario, CancellationToken ct)
+    {
+        // Insensible a mayúsculas: el login legacy forzaba ecUpperCase en el
+        // TEdit (sesion.dfm) antes de su comparación exacta — acá se resuelve
+        // en la consulta (UPPER en ambos lados).
+        var nombre = nombreUsuario.ToUpperInvariant();
+#pragma warning disable CA1304, CA1311, CA1862 // ToUpper() no se ejecuta en .NET: EF lo traduce a UPPER() de Firebird.
+        return _contexto.Usuarios
             .Include(u => u.Permisos)
-            .FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario, ct);
+            .FirstOrDefaultAsync(u => u.NombreUsuario.ToUpper() == nombre, ct);
+#pragma warning restore CA1304, CA1311, CA1862
+    }
 }
