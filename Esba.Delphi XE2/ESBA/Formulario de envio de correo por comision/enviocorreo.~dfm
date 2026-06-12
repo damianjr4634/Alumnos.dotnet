@@ -1,0 +1,338 @@
+object Frmenviomail: TFrmenviomail
+  Left = 423
+  Top = 29
+  BorderStyle = bsDialog
+  Caption = 'Envio de correo electronico por comisi'#243'n'
+  ClientHeight = 672
+  ClientWidth = 586
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object poneuno: TSpeedButton
+    Left = 289
+    Top = 91
+    Width = 23
+    Height = 22
+    Hint = 'Pasa uno'
+    Caption = '>'
+    Flat = True
+    OnClick = poneunoClick
+  end
+  object ponetodos: TSpeedButton
+    Left = 289
+    Top = 130
+    Width = 23
+    Height = 22
+    Hint = 'Pasan todos'
+    Caption = '>>'
+    Flat = True
+    OnClick = ponetodosClick
+  end
+  object sacauno: TSpeedButton
+    Left = 289
+    Top = 169
+    Width = 23
+    Height = 22
+    Hint = 'Saca uno'
+    Caption = '<'
+    Flat = True
+    OnClick = sacaunoClick
+  end
+  object sacatodos: TSpeedButton
+    Left = 289
+    Top = 209
+    Width = 23
+    Height = 22
+    Hint = 'Sacan todos'
+    Caption = '<<'
+    Flat = True
+    OnClick = sacatodosClick
+  end
+  object Label3: TLabel
+    Left = 8
+    Top = 465
+    Width = 40
+    Height = 13
+    Caption = 'Mensaje'
+  end
+  object Label4: TLabel
+    Left = 8
+    Top = 421
+    Width = 33
+    Height = 13
+    Caption = 'Asunto'
+  end
+  object Label5: TLabel
+    Left = 8
+    Top = 367
+    Width = 85
+    Height = 13
+    Caption = 'Archivos Adjuntos'
+  end
+  object Label6: TLabel
+    Left = 8
+    Top = 328
+    Width = 88
+    Height = 13
+    Caption = 'Direcciones Extras'
+  end
+  object GroupBox1: TGroupBox
+    Left = 3
+    Top = 67
+    Width = 278
+    Height = 126
+    Caption = 'Alumnos con E-Mail'
+    TabOrder = 0
+    object Conmail: TListBox
+      Left = 5
+      Top = 16
+      Width = 268
+      Height = 105
+      ItemHeight = 13
+      MultiSelect = True
+      Sorted = True
+      TabOrder = 0
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 3
+    Top = 196
+    Width = 278
+    Height = 125
+    Caption = 'Alumnos sin E-Mail'
+    TabOrder = 1
+    object Sinmail: TListBox
+      Left = 5
+      Top = 15
+      Width = 268
+      Height = 105
+      ItemHeight = 13
+      TabOrder = 0
+    end
+  end
+  object GroupBox3: TGroupBox
+    Left = 320
+    Top = 67
+    Width = 260
+    Height = 254
+    Caption = 'Dirigido a'
+    TabOrder = 2
+    object aquien: TListBox
+      Left = 5
+      Top = 16
+      Width = 249
+      Height = 233
+      ItemHeight = 13
+      MultiSelect = True
+      Sorted = True
+      TabOrder = 0
+    end
+  end
+  object GroupBox4: TGroupBox
+    Left = 0
+    Top = 0
+    Width = 586
+    Height = 57
+    Align = alTop
+    Caption = 'Comisi'#243'n'
+    TabOrder = 3
+    object Label1: TLabel
+      Left = 9
+      Top = 29
+      Width = 96
+      Height = 13
+      Caption = 'N'#250'mero de comisi'#243'n'
+    end
+    object Label2: TLabel
+      Left = 224
+      Top = 32
+      Width = 90
+      Height = 13
+      Caption = 'Cuatrimestre actual'
+    end
+    object comision: TEdit
+      Left = 118
+      Top = 23
+      Width = 69
+      Height = 21
+      MaxLength = 3
+      TabOrder = 0
+    end
+    object buscar: TBitBtn
+      Left = 498
+      Top = 24
+      Width = 75
+      Height = 25
+      Caption = '&Buscar'
+      TabOrder = 1
+      OnClick = buscarClick
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+        333333333333333333FF33333333333330003FF3FFFFF3333777003000003333
+        300077F777773F333777E00BFBFB033333337773333F7F33333FE0BFBF000333
+        330077F3337773F33377E0FBFBFBF033330077F3333FF7FFF377E0BFBF000000
+        333377F3337777773F3FE0FBFBFBFBFB039977F33FFFFFFF7377E0BF00000000
+        339977FF777777773377000BFB03333333337773FF733333333F333000333333
+        3300333777333333337733333333333333003333333333333377333333333333
+        333333333333333333FF33333333333330003333333333333777333333333333
+        3000333333333333377733333333333333333333333333333333}
+      NumGlyphs = 2
+    end
+  end
+  object enviar: TBitBtn
+    Left = 414
+    Top = 641
+    Width = 75
+    Height = 25
+    Caption = '&Enviar'
+    TabOrder = 4
+    OnClick = enviarClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+      3333333333333333333333333333333333333FFFFFFFFFFFFFFF000000000000
+      000077777777777777770FFFFFFFFFFFFFF07F3333FFF33333370FFFF777FFFF
+      FFF07F333777333333370FFFFFFFFFFFFFF07F3333FFFFFF33370FFFF777777F
+      FFF07F33377777733FF70FFFFFFFFFFF99907F3FFF33333377770F777FFFFFFF
+      9CA07F77733333337F370FFFFFFFFFFF9A907FFFFFFFFFFF7FF7000000000000
+      0000777777777777777733333333333333333333333333333333333333333333
+      3333333333333333333333333333333333333333333333333333333333333333
+      3333333333333333333333333333333333333333333333333333}
+    NumGlyphs = 2
+  end
+  object salir: TBitBtn
+    Left = 502
+    Top = 641
+    Width = 75
+    Height = 25
+    Caption = '&Salir'
+    TabOrder = 5
+    OnClick = salirClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00330000000000
+      03333377777777777F333301BBBBBBBB033333773F3333337F3333011BBBBBBB
+      0333337F73F333337F33330111BBBBBB0333337F373F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337FF3337F33330111B0BBBB
+      0333337F337733337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F3F7F33337F333301E10BBBBB0333337F7F7F33337F333301EE0BBBBB
+      0333337F777FFFFF7F3333000000000003333377777777777333}
+    NumGlyphs = 2
+  end
+  object Mensaje: TMemo
+    Left = 8
+    Top = 482
+    Width = 569
+    Height = 153
+    TabOrder = 6
+  end
+  object Asunto: TEdit
+    Left = 8
+    Top = 438
+    Width = 569
+    Height = 21
+    TabOrder = 7
+  end
+  object ArchAdj: TListBox
+    Left = 8
+    Top = 383
+    Width = 481
+    Height = 33
+    ItemHeight = 13
+    TabOrder = 8
+    OnKeyUp = ArchAdjKeyUp
+  end
+  object Examinar: TBitBtn
+    Left = 504
+    Top = 383
+    Width = 75
+    Height = 25
+    Caption = '&Examinar'
+    TabOrder = 9
+    OnClick = ExaminarClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00300000000000
+      0000377777777777777707FFFFFFFFFFFF70773FF33333333F770F77FFFFFFFF
+      77F07F773FFFFFFF77F70FFF7700000000007F337777777777770FFFFF0BBBBB
+      BBB07F333F7F3FF33FF70FFF700B00BB00B07F3F777F77F377370F707F0BB0B0
+      0BB07F77337F37F77337007EEE0BB0B0BBB077FFFF7F37F7F3370777770EE000
+      EEE07777777F3777F3F7307EEE0E0E00E0E03773FF7F7377F73733707F0EE000
+      0EE03337737F377773373333700EEE00EEE03333377F3377FF373333330EEEE0
+      0EE03333337F33377F373333330EEEE00EE03333337F333773373333330EEEEE
+      EEE03333337FFFFFFFF733333300000000003333337777777777}
+    NumGlyphs = 2
+  end
+  object DirecExtras: TEdit
+    Left = 8
+    Top = 344
+    Width = 569
+    Height = 21
+    TabOrder = 10
+    OnChange = DirecExtrasChange
+  end
+  object Configurar: TBitBtn
+    Left = 329
+    Top = 642
+    Width = 75
+    Height = 25
+    Caption = '&Configurar'
+    TabOrder = 11
+    OnClick = ConfigurarClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555550FF0559
+      1950555FF75F7557F7F757000FF055591903557775F75557F77570FFFF055559
+      1933575FF57F5557F7FF0F00FF05555919337F775F7F5557F7F700550F055559
+      193577557F7F55F7577F07550F0555999995755575755F7FFF7F5570F0755011
+      11155557F755F777777555000755033305555577755F75F77F55555555503335
+      0555555FF5F75F757F5555005503335505555577FF75F7557F55505050333555
+      05555757F75F75557F5505000333555505557F777FF755557F55000000355557
+      07557777777F55557F5555000005555707555577777FF5557F55553000075557
+      0755557F7777FFF5755555335000005555555577577777555555}
+    NumGlyphs = 2
+  end
+  object DlgAbrir: TOpenDialog
+    Left = 448
+    Top = 367
+  end
+  object IdSMTP: TIdSMTP
+    MaxLineAction = maException
+    ReadTimeout = 0
+    Port = 25
+    AuthenticationType = atNone
+    Left = 376
+    Top = 583
+  end
+  object IdMessage: TIdMessage
+    AttachmentEncoding = 'MIME'
+    BccList = <>
+    CCList = <>
+    Encoding = meMIME
+    Recipients = <>
+    ReplyTo = <>
+    Left = 336
+    Top = 583
+  end
+end

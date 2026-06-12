@@ -1,0 +1,14 @@
+program Project1;
+
+uses
+  Forms,
+  ModifAnalitico in 'ModifAnalitico.pas' {AMAnalitico},
+  Funciones in 'g:\New Pailot\PRG\ESBA\Funciones.pas';
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TAMAnalitico, AMAnalitico);
+  Application.Run;
+end.

@@ -1,0 +1,518 @@
+unit MesasExamen;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, StdCtrls, Buttons, ComCtrls, DataModuleZeosLib,FuncionesConfiguracion, FuncionesDB, FuncionesExcel,
+  FuncionesSystem, FuncionesText, FuncionesVariant, FuncionesPrint,
+  Mask, RXToolEdit,StrUtils, DB, Variants, kbmMemTable,
+  ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset;
+
+type
+  Tmesasexamenes = class(TForm)
+    GroupBox1: TGroupBox;
+    Grilla: TDBGrid;
+    NuevaMesa: TBitBtn;
+    modificaMesa: TBitBtn;
+    eliminaMesa: TBitBtn;
+    salir: TBitBtn;
+    GroupBox2: TGroupBox;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    DataSource1: TDataSource;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    ComboMaterias2: TComboEdit;
+    NombreMat: TLabel;
+    ComboTitular: TComboEdit;
+    Combovocal1: TComboEdit;
+    ComboVocal2: TComboEdit;
+    Labeltitular: TLabel;
+    LabelVocal1: TLabel;
+    LabelVocal2: TLabel;
+    hora: TComboEdit;
+    llamado: TComboEdit;
+    Aula: TComboEdit;
+    comision1: TComboEdit;
+    comision2: TComboEdit;
+    comision3: TComboEdit;
+    Mesa: TComboEdit;
+    Fecha: TDateEdit;
+    Label13: TLabel;
+    CbTipo: TComboEdit;
+    LCbTipo: TLabel;
+    MT: TkbmMemTable;
+    procedure FormActivate(Sender: TObject);
+    procedure NuevaMesaClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrabamesaClick(Sender: TObject);
+    procedure modificaMesaClick(Sender: TObject);
+    procedure eliminaMesaClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure comision1KeyPress(Sender: TObject; var Key: Char);
+    procedure FormCreate(Sender: TObject);
+    procedure GrillaKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboMaterias2ButtonClick(Sender: TObject);
+    procedure ComboMaterias2Exit(Sender: TObject);
+    procedure ComboTitularButtonClick(Sender: TObject);
+    procedure ComboTitularExit(Sender: TObject);
+    procedure Combovocal1ButtonClick(Sender: TObject);
+    procedure Combovocal1Exit(Sender: TObject);
+    procedure ComboVocal2ButtonClick(Sender: TObject);
+    procedure ComboVocal2Exit(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure MesaExit(Sender: TObject);
+    procedure MesaKeyPress(Sender: TObject; var Key: Char);
+    procedure CbTipoButtonClick(Sender: TObject);
+    procedure CbTipoExit(Sender: TObject);
+  private
+    { Private declarations }
+    procedure LoadTable;
+  public
+    { Public declarations }
+    procedure Excepciones(Sender: TObject; E: Exception);
+  end;
+
+var
+  mesasexamenes: Tmesasexamenes;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+  Function VerificoSiEsta(Combo:TComboBox;Codigo:AnsiString;princi, cont:Integer):Boolean;
+implementation
+
+uses IBExternals, uMensajesError, carreras;
+
+{$R *.DFM}
+
+Function VerificoSiEsta(Combo:TComboBox;Codigo:AnsiString;princi, cont:Integer):Boolean;
+Var
+  x : Integer;
+Begin
+  VerificoSiEsta := False;
+  For x:=0 To (Combo.Items.Count - 1) Do
+   Begin
+     If Princi = 0 Then
+       Begin
+         If codigo = Copy(Combo.Items.Strings[x],Length(Combo.Items.Strings[x])-2,cont) Then
+           Begin
+             VerificoSiEsta := True;
+             Combo.ItemIndex := x;
+           End
+       End
+     Else
+       Begin
+         If codigo = Copy(Combo.Items.Strings[x],1,cont) Then
+          Begin
+            VerificoSiEsta := True;
+            Combo.ItemIndex := x;
+          End
+       End;
+   End;
+End;
+
+procedure Tmesasexamenes.eliminaMesaClick(Sender: TObject);
+begin
+
+  if MessageDlg(Pchar(VNombreUsuario + ', esta segura/o de borrar la mesa Nº ' + IntToStr(mt.FieldByName('MESA').AsInteger)+'.'),mtConfirmation,[mbyes,mbno],0,mbno)=mryes  Then
+    Begin
+      funcionesDb.ExecQuery_Params('DELETE FROM MESAS WHERE CARRE=:FCARRE AND MESA=:FMESA',
+          ['FCARRE','FMESA'], [VCarrera, mt.FieldByName('MESA').Value]);
+
+    End;
+end;
+
+
+procedure Tmesasexamenes.LoadTable;
+begin
+  funcionesdb.Carga_MemTable('SELECT M.COD_MAT, A.SIGLA, M.CARRE,M.MESA,M.LLAMADO,M.FECH_EXA,M.HORA,M.TITULAR,M.VOCAL1, '+
+                                           '       M.VOCAL2,M.AULA,M.CUATRIM,M.COMI1,M.COMI2,M.COMI3,M.USUARIO,M.NREG, '+
+                                           '       M.TIPMES, T.DESCRI '+
+                                           'FROM MESAS M '+
+                                           'LEFT OUTER JOIN MATERIAS A ON A.CODMATERI=M.COD_MAT AND A.CODCARRE=M.CARRE '+
+                                           'LEFT OUTER JOIN MESA_TIPO T ON T.CODIGO=M.TIPMES '+
+                                           'WHERE M.CARRE = '''+vcarrera+''' '+
+                                           'ORDER BY M.MESA,M.COD_MAT ',mt,true);
+
+  If mt.RecordCount = 0 Then
+   Begin
+     ModificaMesa.Enabled := False;
+     EliminaMesa.Enabled := False;
+   End;
+end;
+procedure Tmesasexamenes.FormActivate(Sender: TObject);
+begin
+   MesasExamenes.Height := 405;
+end;
+
+procedure Tmesasexamenes.NuevaMesaClick(Sender: TObject);
+begin
+   GrabaMesa.Enabled := True;
+   Salir.Enabled := False;
+   Grilla.Enabled := False;
+   NuevaMesa.Enabled := False;
+   ModificaMesa.Enabled := False;
+   EliminaMesa.Enabled := False;
+   MesasExamenes.Height := 590;
+   ComboMaterias2.Enabled := True;
+   ComboTitular.Enabled := True;
+   ComboVocal1.Enabled := True;
+   ComboVocal2.Enabled := True;
+   ComboTitular.Text := '';
+   ComboVocal1.Text := '';
+   ComboVocal2.Text := '';
+   combomaterias2.Text := '';
+   Llamado.text := '';
+   Hora.text := '';
+   Mesa.text := '';
+   Fecha.Date := Date();
+   Aula.text := '';
+   Comision1.text := '';
+   Comision2.text := '';
+   Comision3.text := '';
+   ComboMaterias2.SetFocus;
+   Modificacion := False;
+   NombreMat.Caption:='';
+   LabelTitular.Caption:='';
+   LabelVocal1.Caption:='';
+   LabelVocal2.Caption:='';
+   LCbTipo.Caption:='';
+   CbTipo.Text:='';
+end;
+
+procedure Tmesasexamenes.CancelaGrabacionClick(Sender: TObject);
+begin
+   NuevaMesa.Enabled := True;
+   ModificaMesa.Enabled := True;
+   EliminaMesa.Enabled := True;
+   MesasExamenes.Height := 405;
+   Grilla.Enabled := True;
+   Grilla.SetFocus;
+   Modificacion := False;
+   Salir.Enabled := True;
+end;
+
+procedure Tmesasexamenes.GrabamesaClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  if CbTipo.Text='' then begin
+    ShowMessage('Falta tipo de mesa');
+    exit;
+  end;
+
+
+  if MessageDlg(Pchar(VNombreUsuario + ', grabas la mesa de examen?'),mtConfirmation,[mbyes,mbno],0,mbno)=mryes Then
+    Begin
+      With CustomerData Do
+        Begin
+          IBUpVarios.SQL.Clear;
+          If Modificacion Then Begin
+
+              IBUpVarios.SQL.Text := 'UPDATE MESAS SET COD_MAT=:COD_MAT,CARRE=:CARRE,MESA=:MESA,LLAMADO=:LLAMADO, '+
+                                     'FECH_EXA=:FECH_EXA,HORA=:HORA,                                              '+
+                                     'TITULAR=:TITULAR,VOCAL1=:VOCAL1,VOCAL2=:VOCAL2,AULA=:AULA,CUATRIM=:CUATRIM, '+
+                                     'COMI1=:COMI1,COMI2=:COMI2,COMI3=:COMI3,USUARIO=:USUARIO,NREG=:NREG, TIPMES=:TIPMES '+
+                                     'WHERE CARRE = :FCARRE AND MESA = :FMESA;';
+              IBUpVarios.ParamByName('FCARRE').AsString      := VCARRERA;
+              IBUpVarios.ParamByName('FMESA').AsInteger      := IBDsVarios.FieldByName('MESA').AsInteger;
+           End
+          Else
+              IBUpVarios.SQL.Text := 'INSERT INTO MESAS (COD_MAT,CARRE,MESA,LLAMADO,FECH_EXA,HORA, '+
+                                     '                    TITULAR,VOCAL1,VOCAL2,AULA,CUATRIM, '+
+                                     '                    COMI1,COMI2,COMI3,USUARIO,NREG,TIPMES) '+
+                                     ' VALUES (:COD_MAT,:CARRE,:MESA,:LLAMADO,:FECH_EXA,:HORA, '+
+                                     ' :TITULAR,:VOCAL1,:VOCAL2,:AULA,:CUATRIM, '+
+                                     ' :COMI1,:COMI2,:COMI3,:USUARIO,:NREG, :TIPMES);';
+          IBUpVarios.ParamByName('COD_MAT').AsString    := Combomaterias2.Text;
+          IBUpVarios.ParamByName('CARRE').AsString      := VCARRERA;
+          IBUpVarios.ParamByName('MESA').AsInteger      := StrToInt(Mesa.Text);
+          IBUpVarios.ParamByName('LLAMADO').AsInteger   := StrToInt(Llamado.Text);
+          IBUpVarios.ParamByName('FECH_EXA').AsDateTime := Fecha.Date;
+          if (hora.Text <> '') then
+             IBUpVarios.ParamByName('HORA').Asinteger      := strtoint(Hora.Text);
+          IBUpVarios.ParamByName('TITULAR').AsString    := ComboTitular.Text;
+          IBUpVarios.ParamByName('VOCAL1').AsString     := ComboVocal1.Text;
+          IBUpVarios.ParamByName('VOCAL2').AsString     := ComboVocal2.Text;
+          if (aula.text<>'') then
+              IBUpVarios.ParamByName('AULA').AsInteger      := StrToInt(Aula.Text);
+          if (trim(comision1.text)<>'') then
+              IBUpVarios.ParamByName('COMI1').AsInteger     := StrToInt(Comision1.Text);
+          if (trim(comision2.text)<>'') then
+              IBUpVarios.ParamByName('COMI2').AsInteger     := StrToInt(Comision2.Text);
+          if (trim(comision3.text)<>'') then
+              IBUpVarios.ParamByName('COMI3').AsInteger     := StrToInt(Comision3.Text);
+          IBUpVarios.ParamByName('USUARIO').AsInteger     := FuncionesConfiguracion.CodUsu;
+          IBUpVarios.ParamByName('TIPMES').AsString     := CbTipo.Text;
+          Try
+             TRUpVarios.Active := True;
+             IbUpVarios.ExecQuery;
+             TRUpVarios.Commit;
+          Finally
+             If TRUpVarios.Active Then TrUpVarios.Rollback;
+             TRUpVarios.Active := False;
+             IF (TRQrVarios.Active) Then TrQrVarios.RollBack;
+             TRQrVarios.Active := False;
+             IBDsVarios.Active := False;
+             TRQrVarios.Active := True;
+             IBDsVarios.Active := True;
+             CancelaGrabacionClick(Sender);
+           End;
+        End; // With
+   End;
+   }
+end;
+
+procedure Tmesasexamenes.modificaMesaClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  NuevaMesaClick(Sender);
+  With CustomerData Do
+    Begin
+      ComboMaterias2.Text := IBDsVarios.FieldByName('COD_MAT').AsString;
+      Mesa.Text           := IntToStr(IBDsVarios.FieldByName('MESA').AsInteger);
+      Llamado.Text        := IntToStr(IBDSVarios.FieldByName('LLAMADO').AsInteger);
+      Fecha.Date          := IBDSVarios.FieldByName('FECH_EXA').AsDateTime;
+      Hora.Text           := IntToStr(IBDSVarios.FieldByName('HORA').AsInteger);
+      comboTitular.Text   := IBDSVarios.FieldByName('TITULAR').AsString;
+      comboVocal1.Text    := IBDSVarios.FieldByName('VOCAL1').AsString;
+      comboVocal2.Text    := IBDSVarios.FieldByName('VOCAl2').AsString;
+      Aula.Text           := IntToStr(IBDsVarios.FieldByName('AULA').AsInteger);
+      Comision1.Text      := IntToStr(IBDSVarios.FieldByName('COMI1').AsInteger);
+      Comision2.Text      := IntToStr(IBDSVarios.FieldByName('COMI2').AsInteger);
+      Comision3.Text      := IntToStr(IBDsVarios.FieldByName('COMI3').AsInteger);
+      CbTipo.Text         := IBDSVarios.FieldByName('TIPMES').AsString;
+      CbTipo.OnExit(self);
+      ComboMaterias2.OnExit(sender);
+      Combotitular.OnExit(sender);
+      Combovocal1.OnExit(sender);
+      Combovocal2.OnExit(sender);
+      Modificacion := True;
+   End;
+   }
+End;
+
+procedure Tmesasexamenes.salirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+
+procedure Tmesasexamenes.comision1KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)])) Then
+     Key := #0;
+  If Key = #13 Then
+    Begin
+     If comision1.text = '' Then
+        Comision1.Text := '0';
+     Comision2.SetFocus;
+    End
+end;
+
+procedure Tmesasexamenes.Excepciones(Sender: TObject; E: Exception);
+begin
+  if not MostrarMensajeIB(E,'') then
+       Application.ShowException(E);
+end;
+
+procedure Tmesasexamenes.FormCreate(Sender: TObject);
+begin
+ Application.OnException:= Excepciones;
+end;
+
+procedure Tmesasexamenes.GrillaKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key=#13 Then
+   modificaMesaClick(Sender);
+end;
+
+procedure Tmesasexamenes.CbTipoButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODIGO, DESCRI FROM MESA_TIPO WHERE CARRE CONTAINING '''+carreras.CarreIndexOf(vcarrera).tipo+'''',['Codigo','Nombre'],b,True);
+  CbTipo.Text:=b[0];
+  LCbTipo.Caption:=b[1];
+end;
+
+procedure Tmesasexamenes.CbTipoExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (CbTipo.Text<>'') Then Begin
+      CbTipo.Text:=Lpad(CbTipo.Text,2,'0');
+      FuncionesDB.combobusqueda('SELECT CODIGO, DESCRI FROM MESA_TIPO WHERE CARRE CONTAINING '''+carreras.CarreIndexOf(vcarrera).tipo+'''  AND CODIGO='''+Cbtipo.Text+'''',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         CbTipo.SetFocus;
+      end
+      else begin
+         CbTipo.Text:=b[0];
+         LCbTipo.Caption:=b[1];
+      end
+  end
+end;
+
+procedure Tmesasexamenes.ComboMaterias2ButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+VCARRERA+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias2.Text:=b[0];
+  NombreMat.Caption:=b[1];
+end;
+
+procedure Tmesasexamenes.ComboMaterias2Exit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboMaterias2.Text<>'') Then Begin
+      ComBoMaterias2.Text:=Lpad(ComboMaterias2.Text,2,'0');
+      FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+VCARRERA+#39+' AND CODMATERI='+#39+ComboMaterias2.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboMaterias2.SetFocus;
+      end
+      else begin
+         ComboMaterias2.Text:=b[0];
+         NombreMat.Caption:=b[1];
+      end
+  end
+end;
+
+procedure Tmesasexamenes.ComboTitularButtonClick(Sender: TObject);
+Var b:variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL ORDER BY 1',['Codigo','Nombre'],b,True);
+  ComboTitular.Text:=b[0];
+  LabelTitular.Caption:=b[1];
+end;
+
+procedure Tmesasexamenes.ComboTitularExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboTitular.Text<>'') Then Begin
+      ComBotitular.Text:=Lpad(Combotitular.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL AND CODPROFES='''+comboTitular.Text+''' ORDER BY 1',['Codigo','Nombre'],b,False);
+      If (varToStr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboTitular.SetFocus;
+      end
+      else begin
+         Combotitular.Text:=b[0];
+         LabelTitular.Caption:=b[1];
+      end
+  end
+end;
+
+procedure Tmesasexamenes.Combovocal1ButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL ORDER BY 1',['Codigo','Nombre'],b,True);
+  ComboVocal1.Text:=b[0];
+  LabelVocal1.Caption:=b[1];
+end;
+
+procedure Tmesasexamenes.Combovocal1Exit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboVocal1.Text<>'') Then Begin
+      ComBoVocal1.Text:=Lpad(ComboVocal1.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL AND CODPROFES='''+combovocal1.Text+''' ORDER BY 1',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboVocal1.SetFocus;
+      end
+      else begin
+         ComboVocal1.Text:=b[0];
+         LabelVocal1.Caption:=b[1];
+      end
+  end
+end;
+
+
+procedure Tmesasexamenes.ComboVocal2ButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL ORDER BY 1',['Codigo','Nombre'],b,True);
+  ComboVocal2.Text:=b[0];
+  LabelVocal2.Caption:=b[1];
+end;
+
+procedure Tmesasexamenes.ComboVocal2Exit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboVocal2.Text<>'') Then Begin
+      ComBoVocal2.Text:=Lpad(ComboVocal2.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL AND CODPROFES='''+combovocal2.Text+''' ORDER BY 1',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboVocal2.SetFocus;
+      end
+      else begin
+         ComboVocal2.Text:=b[0];
+         LabelVocal2.Caption:=b[1];
+      end
+  end
+end;
+
+procedure Tmesasexamenes.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key=#13 Then
+     If not (ActiveControl is TDBGrid) then begin
+        Key:=#0;
+        Perform(WM_NEXTDLGCTL,0,0);
+     end
+     else if (activecontrol is TDbgrid) then
+            With TDBGRID(ActiveControl) do
+               If Selectedindex < (Fieldcount-1) then
+                  SelectedIndex := SelectedIndex+1
+               else
+                  SelectedIndex :=0;
+end;
+
+procedure Tmesasexamenes.MesaExit(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+   If Mesa.Text = '' Then begin
+      MessageDlg(Pchar(VNombreUsuario + ', ingrese un número de mesa!'),mtError,[mbok],0,mbok);
+      Mesa.SetFocus;
+   end
+   Else
+      Begin
+        If ((Modificacion) And (StrToInt(Mesa.Text) <> CustomerData.IBdsVarios.FieldByName('MESA').AsInteger)) Or
+           (Not Modificacion) Then
+          Begin
+               CustomerData.IBValidacion.Sql.Clear;
+               CustomerData.IBValidacion.SQL.Text := 'SELECT ERRCOD, ERRMSG FROM XXX_VALIDO_MESA(:MESA,:CARRE);';
+               CustomerData.IBValidacion.ParamByName('MESA').Value := Mesa.Text;
+               CustomerData.IBValidacion.ParamByName('CARRE').Value := VCarrera ;
+               CustomerData.TRValidacion.Active := True;
+               CustomerData.IBValidacion.Execquery;
+               If (CustomerData.IBValidacion.FieldByName('ERRCOD').Value <> 0) Then
+                    MessageDlg(Pchar(VNombreUsuario+', '+CustomerData.IBValidacion.FieldByName('ERRMSG').AsString),mtError,[mbok],0,mbok);
+               CustomerData.TRValidacion.Rollback;
+          End
+      End;
+      }
+end;
+
+procedure Tmesasexamenes.MesaKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Not (charinset(key,['0'..'9'])) Then
+    Key := #0;
+end;
+
+End.

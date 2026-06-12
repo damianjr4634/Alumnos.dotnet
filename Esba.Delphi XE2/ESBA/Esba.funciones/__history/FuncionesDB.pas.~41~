@@ -1,0 +1,301 @@
+unit FuncionesDB;
+
+interface
+
+Uses
+  SysUtils, Printers, Windows, Messages, Classes, Controls,
+  Dialogs, Db, DBGrids, busqueda, Variants, kbmMemTable, DataModuleZeosLib,
+  ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset;
+
+
+function ExecScript(const query:String):Integer;
+function ExecScriptMsg(const query:String):boolean;
+function ExecQuery_Params(const query:String; const params: array of string; const valores: Array of variant; const FConnection:TZConnection=nil):integer;
+function SqlValidate(const query: string):boolean;
+procedure Consulta(const query:String; var datos:Variant);
+Procedure ConsultaArray(const query:String; var datos:Variant);
+procedure Carga_MemTable(const query:String; var MemTable:TKbmMemtable; GenFld:Boolean);
+function combobusqueda(const query:string; const Titulos:array of string; var Campos:variant; const Show:boolean):boolean;
+
+implementation
+
+Procedure ConsultaArray(const query:String; var datos:Variant);
+Var
+  x:Integer;
+  ZConn: TZConnection;
+  ZQuery: TZReadOnlyQuery;
+begin
+  ZQuery:= TZReadOnlyQuery.Create(nil);
+  try
+    zconn:= DataModuleZlib.GetConnection();
+    ZQuery.Connection:= zconn;
+    ZQuery.Sql.Text:=Query;
+    ZQuery.Open;
+    datos:=null;
+    datos := VarArrayCreate([0,ZQuery.RecordCount, 0, ZQuery.FieldCount], varVariant);
+    ZQuery.First;
+    while not ZQuery.Eof do begin
+      for x := 0 to ZQuery.FieldCount-1 do
+        datos[ZQuery.RecNo-1,x]:= ZQuery.Fields.Fields[x].Value;
+      ZQuery.Next;
+    end;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+
+function ExecScriptMsg(const query:String):boolean;
+Var x:Integer;
+    ZConn: TZConnection;
+    ZQuery: TZQuery;
+begin
+  ZQuery:= TZQuery.Create(nil);
+  Result:=False;
+  try
+    zconn:= DataModuleZlib.GetConnection();
+    ZQuery.Connection:= zconn;
+    zConn.StartTransaction;
+    ZQuery.Sql.Text:=Query;
+    ZQuery.ExecSQL;
+    if (ZQuery.FieldCount>0) and (ZQuery.Fields.FindField('ERRCOD')<>nil) then begin
+      if (ZQuery.FieldByName('ERRCOD').Value=2) then begin
+        MessageDlg(ZQuery.FieldByName('ERRMSG').Value,mtError,[mbok],0,mbok);
+        zConn.Rollback;
+      end
+      else if (ZQuery.FieldByName('ERRCOD').Value=1) then begin
+        If MessageDlg(ZQuery.FieldByName('ERRMSG').Value,mtConfirmation,[mbyes,mbno],0,mbyes) = mrNo Then
+          zConn.Rollback
+        else begin
+          zConn.Commit;
+          Result:=true;
+        end;
+      end
+      else if (ZQuery.FieldByName('ERRCOD').Value=0) and not ZQuery.FieldByName('ERRMSG').IsNull then begin
+        MessageDlg(ZQuery.FieldByName('ERRMSG').Value,mtError,[mbok],0,mbok);
+        zConn.Commit;
+        Result:=true;
+      end
+      else begin
+        zConn.Commit;
+        Result:=true;
+      end;
+    end;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+function SqlValidate(const query: string):boolean;
+Var
+   ZConn: TZConnection;
+   ZQuery: TZReadOnlyQuery;
+begin
+  ZQuery:= TZReadOnlyQuery.Create(nil);
+  Result:=False;
+  try
+    zconn:= DataModuleZlib.GetConnection();
+    ZQuery.Connection:= zconn;
+    ZQuery.Sql.Text:=Query;
+    ZQuery.ExecSQL;
+    if zQuery.RowsAffected>0 then
+       Result:=true;
+    zconn.Commit;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+Function ExecScript(const query:String):Integer;
+Var x:Integer;
+    ZConn: TZConnection;
+    ZQuery: TZQuery;
+begin
+  ZQuery:= TZQuery.Create(nil);
+  result:=0;
+  try
+    zconn:= DataModuleZlib.GetConnection();
+    zconn.StartTransaction;
+    ZQuery.Connection:= zconn;
+    ZQuery.Sql.Text:=Query;
+    ZQuery.ExecSQL;
+    result:=ZQuery.RowsAffected;
+    zconn.Commit;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+function ExecQuery_Params(const query:String; const params: array of string; const valores: Array of variant; const FConnection:TZConnection=nil):integer;
+Var
+    ZConn: TZConnection;
+    ZQuery: TZQuery;
+    i: integer;
+begin
+  ZQuery:= TZQuery.Create(nil);
+  try
+    result := 0;
+    if not Assigned(FConnection) then begin
+      zconn:= DataModuleZlib.GetConnection();
+      ZQuery.Connection:= zconn;
+      zconn.StartTransaction;
+    end
+    else
+      ZQuery.Connection:= FConnection;
+
+    ZQuery.Sql.Text:=Query;
+
+
+    ZQuery.Prepare;
+    for I := 0 to Length(params)-1 do begin
+      try
+          ZQuery.ParamByName(Params[i]).Value:= valores[i];
+      except
+        on e: exception do
+          raise Exception.Create('Error al asignar parametro '+ params[i]+' valor '+valores[i]);
+      end;
+    end;
+    Zquery.ExecSQL;
+    result:=Zquery.RowsAffected;
+
+  finally
+    if not Assigned(FConnection) then begin
+      if zConn.Connected then begin
+        zConn.Commit;
+        zQuery.Close;
+        zConn.Disconnect;
+      end;
+      zconn.Free;
+    end;
+    ZQuery.Free;
+  end;
+end;
+
+Procedure Consulta(const query:String; var datos:Variant);
+Var
+  x:Integer;
+  ZConn: TZConnection;
+  ZQuery: TZReadOnlyQuery;
+begin
+  ZQuery:= TZReadOnlyQuery.Create(nil);
+  try
+    zconn:= DataModuleZlib.GetConnection();
+    ZQuery.Connection:= zconn;
+    ZQuery.Sql.Text:=Query;
+    ZQuery.Open;
+    datos:=null;
+    datos := VarArrayCreate([0, ZQuery.RecordCount], varVariant);
+    for x := 0 to ZQuery.RecordCount-1 do
+      datos[x]:=ZQuery.Fields.Fields[x].Value;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+Procedure Carga_MemTable(const query:String; var MemTable:TKbmMemtable; GenFld:Boolean);
+Var
+  x:Integer;
+  ZConn: TZConnection;
+  ZQuery: TZReadOnlyQuery;
+begin
+  ZQuery:= TZReadOnlyQuery.Create(nil);
+  try
+    zconn:= DataModuleZlib.GetConnection();
+    ZQuery.Connection:= zconn;
+    ZQuery.Sql.Text:=Query;
+    ZQuery.Open;
+
+    if MemTable.Active then
+      MemTable.Active:=False;
+    if GenFld then begin
+       if MemTable.FieldCount<>0 then
+           MemTable.FieldDefs.Clear;
+       for x := 0 to ZQuery.FieldCount-1 do Begin
+           MemTable.FieldDefs.Add(ZQuery.Fields.Fields[x].FullName,ZQuery.Fields.Fields[x].DataType,ZQuery.Fields.Fields[x].Size,False);
+       end;
+       MemTable.CreateTable;
+    end;
+    ZQuery.First;
+    MemTable.Active:=True;
+    while not ZQuery.Eof do begin
+      MemTable.Append;
+      for x := 0 to ZQuery.FieldCount-1 do
+         MemTable.Fields.fields[x].Value:=ZQuery.FieldByName(MemTable.Fields.fields[x].fullname).Value;
+      MemTable.Post;
+      ZQuery.Next;
+    end;
+    ZQuery.Close;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+Function combobusqueda(const query:string; const Titulos:array of string; var Campos:variant; const Show:boolean):boolean;
+var x:integer;
+    Bsq:TFrmBusqueda;
+    ZConn: TZConnection;
+    ZQuery: TZReadOnlyQuery;
+Begin
+  Result:=true;
+  Bsq := TFrmBusqueda.Create(nil);
+
+  SetLength(Busqueda.Titulos,high(titulos)+1);
+  Carga_MemTable(Query,Bsq.MemTable,true);
+  for x:=0 to high(Titulos) do begin
+     Bsq.Dbgrid1.Columns.Add;
+     Bsq.DbGrid1.Columns.Items[x].Field:=Bsq.MemTable.Fields.Fields[x];
+     Bsq.DbGrid1.Columns.Items[x].Field.DisplayLabel:=Titulos[x];
+     Bsq.DbGrid1.Columns.Items[x].Field.DisplayWidth:=Bsq.MemTable.Fields.Fields[x].DisplayWidth;
+     Busqueda.Titulos[x]:=Titulos[x];
+  end;
+  Bsq.Width:=50;
+  For x:=0 to High(Titulos) Do
+      Bsq.Width:=Bsq.Width+Bsq.dbgrid1.Columns.Items[x].Width;
+  Bsq.TxtBsq.Width:=Bsq.Width-30;
+  Bsq.Button1.Left:=Bsq.Width-Bsq.Button1.Width-10;
+  Bsq.Button2.Left:=Bsq.Width-Bsq.Button2.Width-Bsq.Button1.Width-20;
+  campos := VarArrayCreate([0, Bsq.MemTable.FieldCount], varVariant);
+  If Show Then
+     Bsq.ShowModal;
+  If Bsq.MemTable.Active Then Begin
+     For x:=0 to Bsq.MemTable.FieldCount-1 do
+       campos[x]:=Bsq.MemTable.Fields.Fields[x].Value;
+     Bsq.MemTable.Active:=False;
+  End
+  else
+    Result:=False;
+  Bsq.Free;
+  Bsq:=nil;
+End;
+end.

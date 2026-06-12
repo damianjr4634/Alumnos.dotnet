@@ -1,0 +1,15 @@
+program Project1;
+
+uses
+  Forms,
+  enviocorreo in 'enviocorreo.pas' {Frmenviomail},
+  Funciones in '..\esba\funciones.pas',
+  FrmdeEspera in 'c:\New Pailot\PRG\Formulario Video de espera\FrmdeEspera.pas' {VideoEspera};
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TFrmenviomail, Frmenviomail);
+  Application.Run;
+end.

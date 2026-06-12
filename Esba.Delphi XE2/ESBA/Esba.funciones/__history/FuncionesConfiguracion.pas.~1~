@@ -1,0 +1,23 @@
+unit FuncionesConfiguracion;
+
+interface
+
+const
+    CARPETA_PLANTILLA='\Plantillas';
+    CARPETA_FIRMAS='\Firmas';
+    CARPETA_NOTAS='\Notas';
+    CARPETA_CORREO='\archivos_correo';
+
+Var
+   CodUsu : Integer;
+   Rector,Secretaria, DniRector, DniSecre, DniDirEst, DirEst, Path, NomUsu: String;
+   FS:TFormatSettings;
+
+
+implementation
+
+
+initialization
+ FS.DecimalSeparator:='.';
+
+end.

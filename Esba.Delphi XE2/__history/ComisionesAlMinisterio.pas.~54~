@@ -1,0 +1,381 @@
+unit ComisionesAlMinisterio;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, FIBDatabase, pFIBDatabase, DB, FIBDataSet, pFIBDataSet, Mask,
+  RXToolEdit, StdCtrls, Buttons,
+  Imprimir, GmTypes, GmPreview, FuncionesText, FuncionesConfiguracion, FuncionesExcel, Printers,
+  ComCtrls, DBCtrls, DataModule, RXSpin, RXCurrEdit;
+
+type
+  TFrmComAlMinisterio = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    NombreMat: TLabel;
+    comision: TEdit;
+    cuatrimestre: TEdit;
+    Imprimir: TBitBtn;
+    salir: TBitBtn;
+    PrintSetup: TPrinterSetupDialog;
+    SqlComi: TpFIBDataSet;
+    IbTr: TpFIBTransaction;
+    SqlDatos: TpFIBDataSet;
+    PrintDialog1: TPrintDialog;
+    CBmembrete: TCheckBox;
+    Label3: TLabel;
+    MargenSup: TCurrencyEdit;
+    RxSpinButton1: TRxSpinButton;
+    BitBtn1: TBitBtn;
+    CBEdad: TCheckBox;
+    procedure ImprimirClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure RxSpinButton1BottomClick(Sender: TObject);
+    procedure RxSpinButton1TopClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmComAlMinisterio: TFrmComAlMinisterio;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  VCarreraLarga : String; //Trae el nombre completo de la carrera
+  UnidadPrograma : String;
+
+implementation
+
+{$R *.dfm}
+uses
+  FuncionesSystem, Carreras, FuncionesDB;
+
+procedure TFrmComAlMinisterio.FormCreate(Sender: TObject);
+begin
+  IbTr.BeforeStart:=CustomerData.BaseBeforeStart;
+end;
+
+procedure TFrmComAlMinisterio.ImprimirClick(Sender: TObject);
+var
+  largopagina:real;
+  contareg:integer;
+  sw : integer;
+  Cutuco_Aux : Integer;
+  CodigoMateria_Aux : Integer;
+  verti:real;
+  x:integer;
+  Anio, mes, dia : Word;
+  Imagen : TMetaFile;
+begin
+ sw := 0;
+ contareg:=1;
+ if ibtr.Active then
+     ibtr.Rollback;
+ ibtr.Active:=False;
+ sqldatos.Active:=false;
+ SqlComi.Active:=False;
+ SqlComi.SQLs.SelectSQL.Clear;
+ If (Comision.Text<>'') then
+  Begin
+     SqlComi.SQLs.SelectSQL.Text:= 'SELECT DISTINCT C.CUTUCO '+
+                                   'FROM COMARM C '+
+                                   'WHERE C.CARRE = :CARRERA AND C.CUTUCO = :CUTUCO  AND  C.CUA_ANIO = :CUA_ANIO ORDER BY 1';
+     SqlComi.ParamByName('CUTUCO').AsInteger := StrToint(Comision.Text);
+  end;
+ If (Comision.Text='') then
+   SqlComi.SQLs.SelectSQL.Text:= 'SELECT DISTINCT C.CUTUCO '+
+                                 'FROM COMARM C '+
+                                 'WHERE C.CARRE = :CARRERA AND C.CUA_ANIO = :CUA_ANIO '+
+                                 'ORDER BY 1';
+ SqlComi.ParamByName('CARRERA').AsString := VCarrera;
+ If (Length(Cuatrimestre.text)=3) Then
+   SqlComi.ParamByName('CUA_ANIO').AsString := Cuatrimestre.Text
+ Else
+   SqlComi.ParamByName('CUA_ANIO').AsString := Copy(Cuatrimestre.text,1,1)+Copy(Cuatrimestre.Text,3,4);
+ SqlComi.Active := True;
+ SqlComi.FetchAll;
+ IbTr.Active:=True;
+ If SqlComi.RecordCount = 0 Then
+   Begin
+    MessageDlg(Pchar(VnombreUsuario+', no hay datos para mostrar'),mtError,[mbok],0,mbok);
+    Comision.SetFocus;
+    SqlComi.Active := False;
+    IbTr.RollBack;
+    IbTr.Active:=False;
+   End
+ Else
+  If PrintDialog1.execute then
+   Begin
+    FormPreview:=tFormPreview.create(self);
+    if (CBmembrete.Checked) then begin
+      Imagen := TMetaFile.Create;
+      Imagen.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\membrete_con_direccion.wmf');
+    end;
+    largopagina:= MargenSup.Value;
+    While not SqlComi.eof do
+     begin
+      if not sqldatos.active then
+        begin
+         Sqldatos.Active:=False;
+         SqlDatos.SQLs.SelectSQL.Text:='SELECT DISTINCT A.COD_ALU, TRIM(A.APELLIDO) AS APELLIDO, TRIM(A.NOM_APE) AS NOM_APE, TRIM(C.CONDICION) AS CONDICION, C.CUTUCO, SUBSTRING(A.COD_ALU FROM 1 FOR 3)||'+#39+' '+#39+'||SUBSTRING(A.COD_ALU FROM 4 FOR 2)||'+#39+'.'+#39+'||SUBSTRING(A.COD_ALU FROM 6 FOR 3)||'+#39+'.'+#39+'||SUBSTRING(A.COD_ALU FROM 9 FOR 3) AS DOCUM, '+
+                                       '       SUBSTRING(A.MATRIZ FROM 1 FOR 2)||''/''||SUBSTRING(A.MATRIZ FROM 3 FOR 3) AS MATRIZ, '+
+                                       '       A.NACIONAL,TRUNC((CURRENT_DATE-A.FEC_NAC)/365) AS EDAD '+
+                                       ' FROM  CURSADA C '+
+                                       ' LEFT OUTER JOIN ALUMNOS A  ON C.COD_ALU = A.COD_ALU AND C.CARRE=A.CARRE '+
+                                       ' WHERE C.CUTUCO = '+IntToStr(SqlComi.FieldByName('CUTUCO').AsInteger)+' AND C.CUA_ANIO =  '+#39+Cuatrimestre.Text+#39+
+                                       '       AND TRIM(C.CONDICION) IN  ('+#39+'CURSANDO'+#39+','+#39+'RECURSANDO'+#39+') AND C.CARRE='+#39+VCarrera+#39+' AND A.BAJA='+#39+'N'+#39+
+                                       ' ORDER BY C.CUTUCO, C.CONDICION, A.APELLIDO, A.NOM_APE ';
+         SqlDatos.Active:=True;
+         SqlDatos.FetchAll;
+        end;
+      FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+      if CBMembrete.Checked then
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+      FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+      if CBEdad.Checked then
+        FormPreview.VistaPrevia1.Canvas.Font.Size := 9
+      else
+        FormPreview.VistaPrevia1.Canvas.Font.Size := 10;
+      FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+      FormPreview.VistaPrevia1.Canvas.Textout( 1.50,LargoPagina,'Carrera: '+Vcarreralarga,gmcentimeters);
+      LargoPagina:=LargoPagina+0.5;
+      DecodeDate(Date(),Anio,mes,dia);
+      FormPreview.VistaPrevia1.Canvas.TextOut( 1.50,LargoPagina,'Curso Lectivo: '+IntToStr(anio),gmcentimeters);
+      LargoPagina:=LargoPagina+0.5;
+      FormPreview.VistaPrevia1.Canvas.TextOut( 1.50,LargoPagina,'Cuat.: '+(Copy(IntToStr(SqlComi.FieldByName('CUTUCO').AsInteger),1,1))+'    Turno: '+Turnos(StrtoInt(Copy(IntToStr(SqlComi.FieldByName('CUTUCO').AsInteger),2,1)))+'     División: '+Division(StrtoInt(Copy(IntToStr(SqlComi.FieldByName('CUTUCO').AsInteger),3,1))),GmCentimeters);
+      LargoPagina:=LargoPagina+0.5;
+      FormPreview.VistaPrevia1.Canvas.TextOut(8.50,LargoPagina,'NOMINA DE ALUMNOS',GmCentimeters);
+      LargoPagina:=LargoPagina+0.5;
+      FormPreview.VistaPrevia1.Canvas.TextOut(8.00,LargoPagina,'INSCRIPTOS AL: '+DateToStr(Date()),GmCentimeters);
+      LargoPagina:=LargoPagina+1;
+      FormPreview.VistaPrevia1.Canvas.TextOut( 1.50,largopagina,' N° ',gmcentimeters);
+      FormPreview.VistaPrevia1.Canvas.TextOut( 2.50,largopagina,' APELLIDO Y NOMBRE ',gmcentimeters);
+      if CBEdad.Checked then begin
+        FormPreview.VistaPrevia1.Canvas.TextOut(12.00,largopagina,' DOCUMENTO ',gmcentimeters);
+        FormPreview.VistaPrevia1.Canvas.TextOut(15.00,largopagina,' MATRIZ ',gmcentimeters);
+        FormPreview.VistaPrevia1.Canvas.TextOut(16.50,largopagina,' NACIONALIDAD ',gmcentimeters);
+        FormPreview.VistaPrevia1.Canvas.TextOut(19.50,largopagina,' EDAD ',gmcentimeters);
+      end
+      else begin
+        FormPreview.VistaPrevia1.Canvas.TextOut(13.00,largopagina,' DOCUMENTO ',gmcentimeters);
+        FormPreview.VistaPrevia1.Canvas.TextOut(17.00,largopagina,' MATRIZ ',gmcentimeters);
+      end;
+
+      LargoPagina:=LargoPagina+0.5;
+      // **** INICIO DEL DETALLE ***//
+      FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+      if CBEdad.Checked then
+        FormPreview.VistaPrevia1.Canvas.Font.Size := 8
+      else
+        FormPreview.VistaPrevia1.Canvas.Font.Size := 9;
+      FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+      //llenar los parametro de sqlcursada y ejecutarlo
+      While (not SqlDatos.eof) and  (largopagina<=25)  do
+       begin
+           if (SqlDatos.FieldByName('CONDICION').AsString = 'RECURSANDO') and (sw=0) then begin
+                 FormPreview.VistaPrevia1.Canvas.MoveTo(1.5,largopagina-0.1,gmcentimeters);
+                 FormPreview.VistaPrevia1.Canvas.LineTo(20.4,largopagina-0.1,gmcentimeters);
+                 sw := 1;
+                 //FORMATO DEL ENCABEZADO DE RECURSANTES
+                 FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+                 if CBEdad.Checked then
+                    FormPreview.VistaPrevia1.Canvas.Font.Size := 9
+                 else
+                    FormPreview.VistaPrevia1.Canvas.Font.Size := 10;
+                 FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+                 FormPreview.VistaPrevia1.Canvas.TextOut(8.5,largopagina+0.25,'RECURSANTES',GmCentimeters);
+                 FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+                 if CBEdad.Checked then
+                    FormPreview.VistaPrevia1.Canvas.Font.Size := 8
+                 else
+                    FormPreview.VistaPrevia1.Canvas.Font.Size := 9;
+                 FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+                 // FIN FORMATO ENCABEZADO DE RECURSANTES
+                 LargoPagina := LargoPagina + 1;
+                 contareg:=1;
+           end;
+           If Contareg < 10 then
+              FormPreview.VistaPrevia1.Canvas.TextOut(1.55,largopagina,IntToStr(Contareg),gmcentimeters)
+           else
+              FormPreview.VistaPrevia1.Canvas.TextOut(1.50,largopagina,IntToStr(Contareg),gmcentimeters);
+           contareg:=contareg+1;
+           //TOMA DATOS DE LA BD
+           FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+           if CBEdad.Checked then
+             FormPreview.VistaPrevia1.Canvas.Font.Size := 8
+           else
+             FormPreview.VistaPrevia1.Canvas.Font.Size := 9;
+           FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+           if CBEdad.Checked then begin
+             FormPreview.VistaPrevia1.Canvas.TextOut( 2.50,largopagina,SqlDatos.FieldByName('APELLIDO').AsString + ', ' + SqlDatos.FieldByName('NOM_APE').AsString ,gmcentimeters);
+             FormPreview.VistaPrevia1.Canvas.TextOut(12.10,largopagina,SqlDatos.FieldByName('DOCUM').AsString,gmcentimeters);
+             FormPreview.VistaPrevia1.Canvas.TextOut(15.10,largopagina,SqlDatos.FieldByName('MATRIZ').AsString,gmcentimeters);
+             FormPreview.VistaPrevia1.Canvas.TextOut(16.60,largopagina,SqlDatos.FieldByName('NACIONAL').AsString,gmcentimeters);
+             FormPreview.VistaPrevia1.Canvas.TextOut(19.60,largopagina,IntToStr(SqlDatos.FieldByName('EDAD').AsInteger),gmcentimeters);
+           end
+           else begin
+             FormPreview.VistaPrevia1.Canvas.TextOut(2.50,largopagina,SqlDatos.FieldByName('APELLIDO').AsString + ', ' + SqlDatos.FieldByName('NOM_APE').AsString ,gmcentimeters);
+             FormPreview.VistaPrevia1.Canvas.TextOut(13.20,largopagina,SqlDatos.FieldByName('DOCUM').AsString,gmcentimeters);
+             FormPreview.VistaPrevia1.Canvas.TextOut(17.10,largopagina,SqlDatos.FieldByName('MATRIZ').AsString,gmcentimeters);
+           end;
+           FormPreview.VistaPrevia1.Canvas.SetPenValues(4,clblack,psSolid);
+           FormPreview.VistaPrevia1.Canvas.MoveTo(1.5,largopagina-0.1,gmcentimeters);
+           FormPreview.VistaPrevia1.Canvas.LineTo(20.4,largopagina-0.1,gmcentimeters);
+           LargoPagina := LargoPagina + 0.5;
+           SqlDatos.next;
+       end;
+       FormPreview.VistaPrevia1.Canvas.SetPenValues(4,clblack,psSolid);
+       FormPreview.VistaPrevia1.Canvas.MoveTo(1.5,largopagina-0.1,gmcentimeters);
+       FormPreview.VistaPrevia1.Canvas.LineTo(20.4,largopagina-0.1,gmcentimeters);
+       FormPreview.VistaPrevia1.EndUpdate;
+       if SqlDatos.eof then
+         Begin
+           SqlDatos.Active:=False;
+           SqlComi.Next;
+           sw:=0;
+           contareg:=1;
+         end;
+        if (not sqlcomi.Eof) or (largopagina>25) then
+          FormPreview.VistaPrevia1.Newpage;
+        LargoPagina := MargenSup.Value;
+     end; //end del while sqlcomi
+     FormPreview.VistaPrevia1.CurrentPage := 1;
+     FormPreview.ShowModal;
+     FormPreview.Free;
+     Comision.SetFocus;
+  end;
+  SqlDatos.Active:=False;
+  SqlComi.Active:=False;
+  If IbTr.Active then
+      IbTr.RollBack;
+  IbTr.Active:=False;
+end;
+
+procedure TFrmComAlMinisterio.salirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmComAlMinisterio.BitBtn1Click(Sender: TObject);
+begin
+  if ibtr.Active then
+    ibtr.Rollback;
+  ibtr.Active:=False;
+  sqldatos.Active:=false;
+  SqlComi.Active:=False;
+  SqlComi.SQLs.SelectSQL.Clear;
+  if (Length(Cuatrimestre.text)=4) then
+    Cuatrimestre.text := Copy(Cuatrimestre.text,1,1)+Copy(Cuatrimestre.Text,3,4);
+
+  if Carreras.CarreIndexOf(VCarrera).tipo='TER'  then
+    SqlComi.SQLs.SelectSQL.Text:= ' SELECT DISTINCT R.resolucion, '+
+                           'IIF(UPPER(R.descarre) STARTING ''TECNICATURA'',''TC'','''') AS ORIENTACION, '+
+                           ' ''G'' AS TIPOCARRE, '+
+                           ' IIF(R.DISTANCIA=''S'',''D'',''P'') AS MODALIDAD, '+
+                           ' IIF(R.DISTANCIA=''S'',''TD'',CASE SUBSTRING(C.CUTUCO FROM 2 FOR 1) WHEN 1 THEN ''TM'' WHEN 2 THEN ''TT'' WHEN 3 THEN ''TV'' WHEN 4 THEN ''TN'' END) AS TURNO, '+
+                           ' CASE WHEN SUBSTRING(C.CUTUCO FROM 1 FOR 1) BETWEEN 1 AND 2 THEN 1 '+
+                           '     WHEN SUBSTRING(C.CUTUCO FROM 1 FOR 1) BETWEEN 3 AND 4 THEN 2 '+
+                           '    WHEN SUBSTRING(C.CUTUCO FROM 1 FOR 1) BETWEEN 5 AND 6 THEN 3 END ANIO, '+
+                           ' SUBSTRING(C.CUTUCO FROM 1 FOR 1) AS CUAT, '+
+                           ' CASE SUBSTRING(C.CUTUCO FROM 3 FOR 1) WHEN 1 THEN ''A'' WHEN 2 THEN ''B'' WHEN 3 THEN ''C'' WHEN 4 THEN ''D'' END AS DIVI, '+
+                           ' TRIM(B.APELLIDO) AS APELLIDO, TRIM(B.NOM_APE) AS NOMBRE, '+
+                           ' SUBSTRING(B.COD_ALU FROM 1 FOR 3) AS TIPDOC, '+
+                           ' SUBSTRING(B.COD_ALU FROM 4 FOR 2)||''.''||SUBSTRING(B.COD_ALU FROM 6 FOR 3)||''.''||SUBSTRING(B.COD_ALU FROM 9 FOR 3) AS DOCUM, '+
+                           ' IIF(B.sexo=''F'',''MUJER'',''VARON'') AS SEX0, B.FEC_NAC, B.NACIONAL, B.LUG_NAC, '+
+                           ' B.domi, NULL AS PISO,  B.cod_pos, B.locali, NULL AS COMUNA, NULL AS PARTIDO, '+
+                           ' IIF(TRIM(C.CONDICION)=''RECURSANDO'',''RC'',''R'') AS CR, '+
+                           ' COALESCE(B.CSECU,'''')||'' ''||COALESCE(B.TSECU,'''') AS TITULO, '+
+                           ' R.CARRE||''-''||C.CUTUCO AS NOMHOJA, C.CUTUCO '
+  else
+    SqlComi.SQLs.SelectSQL.Text:= 'SELECT DISTINCT R.resolucion, iif(r.tipo=''BAC'',''C'',''A'') as modalidad, '+
+                      ' IIF(R.DISTANCIA=''S'',''TD'',CASE SUBSTRING(C.CUTUCO FROM 2 FOR 1) WHEN 1 THEN ''TM'' WHEN 2 THEN ''TT'' WHEN 3 THEN ''TV'' WHEN 4 THEN ''TN'' END) AS TURNO, '+
+                      ' CASE WHEN SUBSTRING(C.CUTUCO FROM 1 FOR 1) BETWEEN 1 AND 2 THEN 1 '+
+                      '     WHEN SUBSTRING(C.CUTUCO FROM 1 FOR 1) BETWEEN 3 AND 4 THEN 2 '+
+                      '    WHEN SUBSTRING(C.CUTUCO FROM 1 FOR 1) BETWEEN 5 AND 6 THEN 3 END ANIO, '+
+                      ' CASE SUBSTRING(C.CUTUCO FROM 3 FOR 1) WHEN 1 THEN ''A'' WHEN 2 THEN ''B'' WHEN 3 THEN ''C'' WHEN 4 THEN ''D'' END AS DIVI, '+
+                      ' TRIM(B.APELLIDO) as apellido,  TRIM(B.NOM_APE) AS NOM_APE, '+
+                      ' SUBSTRING(B.COD_ALU FROM 1 FOR 3) AS TIPDOC, '+
+                      ' SUBSTRING(B.COD_ALU FROM 4 FOR 2)||''.''||SUBSTRING(B.COD_ALU FROM 6 FOR 3)||''.''||SUBSTRING(B.COD_ALU FROM 9 FOR 3) AS DOCUM, '+
+                      ' IIF(B.sexo=''F'',''MUJER'',''VARON'') AS SEX0, B.FEC_NAC, B.NACIONAL, B.LUG_NAC, '+
+                      ' null as ppi1, null as ppi2, null as ppi3, '+
+                      ' B.domi, NULL AS PISO,  B.cod_pos, B.locali, NULL AS COMUNA, NULL AS PARTID, null as provincia, '+
+                      ' (select T.fapellido from tutores t where t.cod_alu = c.cod_alu and t.carre = c.carre and UPPER(t.fparent) in (''PADRE'',''MADRE'',''TUTOR'') ORDER BY T.FPARENT) AS APELLIDOTUTOR, '+
+                      ' (select T.fNOMBRE from tutores t where t.cod_alu = c.cod_alu and t.carre = c.carre and UPPER(t.fparent) in (''PADRE'',''MADRE'',''TUTOR'') ORDER BY T.FPARENT) AS NOMBRETUTOR, '+
+                      ' IIF(NOT EXISTS(select 1 from tutores t where t.cod_alu = c.cod_alu and t.carre = c.carre and UPPER(t.fparent) in (''PADRE'',''MADRE'',''TUTOR'')),NULL,''DNI'') AS TIPDOCTUTOR, '+
+                      ' (select T.fdni from tutores t where t.cod_alu = c.cod_alu and t.carre = c.carre and UPPER(t.fparent) in (''PADRE'',''MADRE'',''TUTOR'') ORDER BY T.FPARENT) AS DNITUTOR, '+
+                      ' R.CARRE||''-''||C.CUTUCO AS NOMHOJA, C.CUTUCO ';
+
+  SqlComi.SQLs.SelectSQL.Text:= SqlComi.SQLs.SelectSQL.Text +' FROM  CURSADA C '+
+                                ' LEFT OUTER JOIN CARRERA R ON R.CARRE=C.CARRE '+
+                                ' LEFT OUTER JOIN ALUMNOS B  ON C.COD_ALU = B.COD_ALU AND C.CARRE=B.CARRE ';
+
+  if (Comision.Text<>'') then
+    SqlComi.SQLs.SelectSQL.Text:= SqlComi.SQLs.SelectSQL.Text+' WHERE C.CUTUCO = '+Comision.Text+' AND C.CUA_ANIO =  '+#39+Cuatrimestre.Text+#39+
+                                '       AND TRIM(C.CONDICION) IN  ('+#39+'CURSANDO'+#39+','+#39+'RECURSANDO'+#39+') AND B.BAJA='+#39+'N'+#39
+  else
+    SqlComi.SQLs.SelectSQL.Text:= SqlComi.SQLs.SelectSQL.Text+' WHERE C.CUA_ANIO =  '+#39+Cuatrimestre.Text+#39+
+                                '       AND TRIM(C.CONDICION) IN  ('+#39+'CURSANDO'+#39+','+#39+'RECURSANDO'+#39+') AND B.BAJA='+#39+'N'+#39;
+
+  SqlComi.SQLs.SelectSQL.Text:= SqlComi.SQLs.SelectSQL.Text+'AND C.CARRE='+#39+VCarrera+#39;
+
+  SqlComi.SQLs.SelectSQL.Text:= SqlComi.SQLs.SelectSQL.Text+' ORDER BY C.CARRE, C.CUTUCO, C.CONDICION, B.APELLIDO, B.NOM_APE ';
+  SqlComi.Active := True;
+  SqlComi.FetchAll;
+  IbTr.Active:=True;
+  if SqlComi.RecordCount = 0 Then begin
+    MessageDlg(Pchar(VnombreUsuario+', no hay datos para mostrar'),mtError,[mbok],0,mbok);
+    Comision.SetFocus;
+    SqlComi.Active := False;
+    IbTr.RollBack;
+    IbTr.Active:=False;
+  end
+  else begin
+    Case FuncionesSystem.CustomMessageDialog('Como exporta las comisiones, Todas en una hoja o cada hoja una comision', mtConfirmation,
+          [mbNo, mbYes], ['Juntas', 'Separadas']) of
+       mrYes: FuncionesExcel.Exportar_Excel_DS(SqlComi);
+       mrNo: begin
+        if Carreras.CarreIndexOf(VCarrera).tipo='TER'  then
+          FuncionesExcel.Exportar_Excel_DS_Hojas(SqlComi,'CUTUCO','NOMHOJA',
+                                                 ['RESOLUCION','ORIENTACION','TIPOCARRE','MODALIDAD','TURNO','ANIO','CUAT','DIVI','APELLIDO','NOMBRE','TIPDOC','DOCUM','SEX0','FEC_NAC','NACIONAL','LUG_NAC','DOMI','PISO','COD_POS','LOCALI','COMUNA','PARTIDO','CR','TITULO'],
+                                                 ['NÚMERO DE RESOLUCION DEL PLAN','ORIENTACION DE LA CARRERA (TS=TECNICO SUPERIOR)','TIPO DE CARRERA (G=GRADO)','MODALIDAD (P=PRESENCIAL, D=DISTANCIA)','TURNO (M=MAÑANA, N=NOCHE, NC=NO CORRESPONDE)','AÑO DE ESTUDIO (1,2,3)','CUATRIMESTRE (1,2,3,4,5,6)	DIVISION (A,B,C)	APELLIDO	NOMBRES	TIPO DE DOCUMENTO (DNI, PASS,ETC)	NRO. DOCUMENTO	GENERO (VARON/MUJER)	FECHA DE NACIMIENTO (DD/MM/AA)	PAIS DE NACIMIENTO	JURISDICCION/PROVINCIA DE NACIMIENTO	DOMICILIO	PISO Y DEPTO.	CODIGO POSTAL	BARRIO/LOCALIDAD	COMUNA/PARTIDO	BARRIO/JURISDICCION	CONDICION (R=REGULAR, C=CONDICIONAL, RC=RECURSANTE)	TITULO CON EL QUE INGRESA])
+        else
+          FuncionesExcel.Exportar_Excel_DS_Hojas(SqlComi,'CUTUCO','NOMHOJA',['RESOLUCION','MODALIDAD','TURNO','ANIO','DIVI','APELLIDO','NOM_APE','TIPDOC','DOCUM','SEX0','FEC_NAC','NACIONAL','LUG_NAC','PPI1','PPI2','PPI3','DOMI','PISO','COD_POS','LOCALI','COMUNA','PARTID','PROVINCIA','APELLIDOTUTOR','NOMBRETUTOR','TIPDOCTUTOR','DNITUTOR']);
+       end;
+    else exit;
+    End;
+ end;
+end;
+
+procedure TFrmComAlMinisterio.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if ibtr.Active then
+     ibtr.Rollback;
+  ibtr.Active:=False;
+  sqldatos.Active:=false;
+  SqlComi.Active:=False;
+  SqlComi.SQLs.SelectSQL.Clear;
+end;
+
+procedure TFrmComAlMinisterio.RxSpinButton1BottomClick(Sender: TObject);
+begin
+  MargenSup.Value:=MargenSup.Value-0.5;
+end;
+
+procedure TFrmComAlMinisterio.RxSpinButton1TopClick(Sender: TObject);
+begin
+   MargenSup.Value:=MargenSup.Value+0.5;
+end;
+
+end.

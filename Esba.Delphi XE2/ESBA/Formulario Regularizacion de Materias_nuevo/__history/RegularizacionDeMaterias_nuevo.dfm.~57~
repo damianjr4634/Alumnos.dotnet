@@ -1,0 +1,1756 @@
+object regularizacionMaterias_nuevo: TregularizacionMaterias_nuevo
+  Left = 550
+  Top = 49
+  BorderStyle = bsDialog
+  Caption = 'Regularizaci'#243'n de Materias'
+  ClientHeight = 603
+  ClientWidth = 593
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  OnClose = FormClose
+  PixelsPerInch = 96
+  TextHeight = 13
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 0
+    Width = 593
+    Height = 97
+    Align = alTop
+    Caption = 'Datos Acad'#233'micos del Alumno'
+    TabOrder = 0
+    object Label1: TLabel
+      Left = 6
+      Top = 32
+      Width = 88
+      Height = 13
+      Caption = 'C'#243'digo del Alumno'
+    end
+    object Label3: TLabel
+      Left = 6
+      Top = 64
+      Width = 85
+      Height = 13
+      Caption = 'Apellido y Nombre'
+    end
+    object Label2: TLabel
+      Left = 338
+      Top = 32
+      Width = 85
+      Height = 13
+      Caption = 'Carrera que Cursa'
+    end
+    object Label4: TLabel
+      Left = 346
+      Top = 64
+      Width = 54
+      Height = 13
+      Caption = 'Libro Matriz'
+    end
+    object MateriasCodigoAlumno: TEdit
+      Left = 102
+      Top = 24
+      Width = 121
+      Height = 21
+      ReadOnly = True
+      TabOrder = 0
+    end
+    object MateriasApellidoyNombre: TEdit
+      Left = 102
+      Top = 56
+      Width = 203
+      Height = 21
+      ReadOnly = True
+      TabOrder = 1
+    end
+    object MateriasCarreraCursa: TEdit
+      Left = 438
+      Top = 24
+      Width = 121
+      Height = 21
+      ReadOnly = True
+      TabOrder = 2
+    end
+    object MateriasLibroMatriz: TEdit
+      Left = 438
+      Top = 57
+      Width = 121
+      Height = 21
+      ReadOnly = True
+      TabOrder = 3
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 0
+    Top = 97
+    Width = 593
+    Height = 177
+    Align = alTop
+    Caption = 'Estado de Materias'
+    TabOrder = 1
+    object MateriasCursando: TDBGrid
+      Left = 2
+      Top = 15
+      Width = 589
+      Height = 160
+      Align = alClient
+      DataSource = DataSource1
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit]
+      TabOrder = 0
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Style = []
+      OnDblClick = modificacursadaClick
+      OnKeyPress = MateriasCursandoKeyPress
+      Columns = <
+        item
+          Expanded = False
+          FieldName = 'MATRIZ'
+          Title.Alignment = taCenter
+          Title.Caption = 'Matriz'
+          Width = 60
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CUTUCO'
+          Title.Alignment = taCenter
+          Title.Caption = 'Comisi'#243'n'
+          Width = 71
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'COD_MAT'
+          Title.Alignment = taCenter
+          Title.Caption = 'C'#243'd. Mat.'
+          Width = 60
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'SIGLA'
+          Title.Caption = 'Materia'
+          Width = 100
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CUA_ANIO'
+          Title.Alignment = taCenter
+          Title.Caption = 'Cuatrimestre/A'#241'o'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CONDICION'
+          Title.Alignment = taCenter
+          Title.Caption = 'Condici'#243'n'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TP_EVA'
+          Title.Caption = 'Evaluaci'#243'n 1'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TP_EVA2'
+          Title.Caption = 'Evaluaci'#243'n 2'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'RECUP'
+          Title.Caption = 'Recuperatorio'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'REGULAR'
+          Title.Caption = 'Nota regular'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TOT_HORAS'
+          Title.Caption = 'Total de horas'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'INASIST'
+          Title.Caption = 'Inasistencias'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FINAL1'
+          Title.Caption = 'Final N'#186' 1'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECHA1'
+          Title.Caption = 'Fecha Final N'#186' 1'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FINAL2'
+          Title.Caption = 'Final N'#186' 2'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECHA2'
+          Title.Caption = 'Fecha Final N'#186' 2'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FINAL3'
+          Title.Caption = 'Final N'#186' 3'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECHA3'
+          Title.Caption = 'Fecha Final N'#186' 3'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FINAL4'
+          Title.Caption = 'Final N'#186' 4'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECHA4'
+          Title.Caption = 'Fecha Final N'#186' 4'
+          Visible = True
+        end>
+    end
+  end
+  object GroupBox3: TGroupBox
+    Left = 0
+    Top = 328
+    Width = 593
+    Height = 274
+    Caption = 'Regularizaci'#243'n de Materias'
+    TabOrder = 2
+    Visible = False
+    object NomMate: TLabel
+      Left = 6
+      Top = 222
+      Width = 60
+      Height = 16
+      Caption = 'MATERIA'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clRed
+      Font.Height = -13
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label42: TLabel
+      Left = 323
+      Top = 248
+      Width = 118
+      Height = 13
+      Caption = '99: ALUMNO AUSENTE'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlue
+      Font.Height = -12
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label43: TLabel
+      Left = 444
+      Top = 248
+      Width = 130
+      Height = 13
+      Caption = '1-10: NOTA DEL ALUMNO'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlue
+      Font.Height = -12
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Condicion: TLabel
+      Left = 386
+      Top = 222
+      Width = 58
+      Height = 16
+      Caption = 'condicion'
+      Color = clBtnFace
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clRed
+      Font.Height = -13
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentColor = False
+      ParentFont = False
+    end
+    object Label46: TLabel
+      Left = 209
+      Top = 248
+      Width = 112
+      Height = 13
+      Caption = '0: ALUMNO SIN NOTA'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlue
+      Font.Height = -12
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Carreras: TPageControl
+      Left = 2
+      Top = 16
+      Width = 577
+      Height = 200
+      ActivePage = T333
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      HotTrack = True
+      MultiLine = True
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+      OnChange = CarrerasChange
+      object ASC: TTabSheet
+        Caption = 'ASC'
+        Enabled = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ParentFont = False
+        object Label5: TLabel
+          Left = 8
+          Top = 16
+          Width = 90
+          Height = 13
+          Caption = 'Nota Primer Parcial'
+        end
+        object Label6: TLabel
+          Left = 8
+          Top = 48
+          Width = 104
+          Height = 13
+          Caption = 'Nota Segundo Parcial'
+        end
+        object Label7: TLabel
+          Left = 217
+          Top = 48
+          Width = 117
+          Height = 13
+          Caption = 'Recuperatorio integrador'
+        end
+        object Label8: TLabel
+          Left = 8
+          Top = 80
+          Width = 111
+          Height = 13
+          Caption = 'Total de horas dictadas'
+        end
+        object Label9: TLabel
+          Left = 8
+          Top = 112
+          Width = 118
+          Height = 13
+          Caption = 'Inasistencias sin justificar'
+        end
+        object Label10: TLabel
+          Left = 217
+          Top = 112
+          Width = 116
+          Height = 13
+          Caption = 'Inasistencias justificadas'
+        end
+        object GrabaMateriaAsc: TBitBtn
+          Left = 437
+          Top = 96
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 6
+          OnClick = GrabaMateriaAscClick
+        end
+        object CancelaGrabacionAsc: TBitBtn
+          Left = 437
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 7
+          OnClick = CancelaGrabacionBACClick
+        end
+        object NotaPrimerParcialASC: TEdit
+          Left = 137
+          Top = 13
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 0
+          OnKeyPress = NotaPrimerParcialASCKeyPress
+        end
+        object NotaSegundoParcialASC: TEdit
+          Left = 137
+          Top = 45
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 1
+          OnKeyPress = NotaSegundoParcialASCKeyPress
+        end
+        object TotalHorasASC: TEdit
+          Left = 137
+          Top = 77
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 3
+          OnKeyPress = TotalHorasASCKeyPress
+        end
+        object SinjustificarASC: TEdit
+          Left = 137
+          Top = 109
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 4
+          OnKeyPress = SinjustificarASCKeyPress
+        end
+        object RecuperatorioASC: TEdit
+          Left = 340
+          Top = 45
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 2
+          OnKeyPress = RecuperatorioASCKeyPress
+        end
+        object JustificadasASC: TEdit
+          Left = 340
+          Top = 109
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 5
+          OnKeyPress = JustificadasASCKeyPress
+        end
+      end
+      object ADM: TTabSheet
+        Caption = 'ADM/TAE'
+        Enabled = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ImageIndex = 1
+        ParentFont = False
+        object Label11: TLabel
+          Left = 8
+          Top = 16
+          Width = 90
+          Height = 13
+          Caption = 'Nota Primer Parcial'
+        end
+        object Label12: TLabel
+          Left = 8
+          Top = 48
+          Width = 104
+          Height = 13
+          Caption = 'Nota Segundo Parcial'
+        end
+        object Label13: TLabel
+          Left = 217
+          Top = 48
+          Width = 117
+          Height = 13
+          Caption = 'Recuperatorio integrador'
+        end
+        object Label14: TLabel
+          Left = 8
+          Top = 80
+          Width = 111
+          Height = 13
+          Caption = 'Total de horas dictadas'
+        end
+        object Label15: TLabel
+          Left = 8
+          Top = 112
+          Width = 118
+          Height = 13
+          Caption = 'Inasistencias sin justificar'
+        end
+        object Label16: TLabel
+          Left = 217
+          Top = 112
+          Width = 116
+          Height = 13
+          Caption = 'Inasistencias justificadas'
+        end
+        object GrabaMateriaADM: TBitBtn
+          Left = 437
+          Top = 96
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 0
+          OnClick = GrabaMateriaADMClick
+        end
+        object CancelaGrabacionADM: TBitBtn
+          Left = 437
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 1
+          OnClick = CancelaGrabacionBACClick
+        end
+        object NotaPrimerParcialADM: TEdit
+          Left = 137
+          Top = 8
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 2
+          OnKeyPress = NotaPrimerParcialADMKeyPress
+        end
+        object NotaSegundoParcialADM: TEdit
+          Left = 137
+          Top = 40
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 3
+          OnKeyPress = NotaSegundoParcialADMKeyPress
+        end
+        object RecuperatorioADM: TEdit
+          Left = 346
+          Top = 40
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 4
+          OnKeyPress = RecuperatorioADMKeyPress
+        end
+        object TotalHorasADM: TEdit
+          Left = 137
+          Top = 72
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 5
+          OnKeyPress = TotalHorasADMKeyPress
+        end
+        object SinJustificarADM: TEdit
+          Left = 137
+          Top = 104
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 6
+          OnKeyPress = SinJustificarADMKeyPress
+        end
+        object JustificadasADM: TEdit
+          Left = 346
+          Top = 104
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 7
+          OnKeyPress = JustificadasADMKeyPress
+        end
+      end
+      object BAC: TTabSheet
+        Caption = 'BAC'
+        Enabled = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ImageIndex = 4
+        ParentFont = False
+        object Label17: TLabel
+          Left = 8
+          Top = 50
+          Width = 122
+          Height = 13
+          Caption = 'Promedio del Cuatrimestre'
+        end
+        object Label18: TLabel
+          Left = 8
+          Top = 82
+          Width = 115
+          Height = 13
+          Caption = 'Nota examen A/Regular'
+        end
+        object Label19: TLabel
+          Left = 217
+          Top = 82
+          Width = 30
+          Height = 13
+          Caption = 'Fecha'
+        end
+        object Label20: TLabel
+          Left = 8
+          Top = 114
+          Width = 111
+          Height = 13
+          Caption = 'Total de horas dictadas'
+        end
+        object Label21: TLabel
+          Left = 8
+          Top = 146
+          Width = 118
+          Height = 13
+          Caption = 'Inasistencias sin justificar'
+        end
+        object Label22: TLabel
+          Left = 217
+          Top = 50
+          Width = 88
+          Height = 13
+          Caption = 'Nota recuperatorio'
+        end
+        object Label44: TLabel
+          Left = 8
+          Top = 19
+          Width = 79
+          Height = 13
+          Caption = 'Nota 1'#176' Bimestre'
+        end
+        object Label45: TLabel
+          Left = 217
+          Top = 17
+          Width = 79
+          Height = 13
+          Caption = 'Nota 2'#176' Bimestre'
+        end
+        object Label41: TLabel
+          Left = 392
+          Top = 48
+          Width = 89
+          Height = 13
+          Caption = 'Promedio definitivo'
+        end
+        object GrabaMateriaBac: TBitBtn
+          Left = 437
+          Top = 97
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 9
+          OnClick = GrabaMateriaBacClick
+        end
+        object CancelaGrabacionBAC: TBitBtn
+          Left = 437
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 10
+          OnClick = CancelaGrabacionBACClick
+        end
+        object NotaDefinitivaBAC: TEdit
+          Left = 489
+          Top = 43
+          Width = 65
+          Height = 21
+          Enabled = False
+          MaxLength = 4
+          ReadOnly = True
+          TabOrder = 8
+        end
+        object NotaRegularBAC: TEdit
+          Left = 137
+          Top = 74
+          Width = 65
+          Height = 21
+          MaxLength = 2
+          TabOrder = 3
+          OnExit = NotaRegularBACExit
+          OnKeyPress = NotaRegularBACKeyPress
+        end
+        object TotalHorasBAC: TEdit
+          Left = 137
+          Top = 106
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 5
+          OnKeyPress = TotalHorasBACKeyPress
+        end
+        object SinjustificarBAC: TEdit
+          Left = 137
+          Top = 134
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 6
+          OnKeyPress = SinjustificarBACKeyPress
+        end
+        object RecuperatorioBAC: TEdit
+          Left = 311
+          Top = 43
+          Width = 65
+          Height = 21
+          MaxLength = 2
+          TabOrder = 2
+          OnExit = RecuperatorioBACExit
+          OnKeyPress = RecuperatorioBACKeyPress
+        end
+        object Bimestre1: TEdit
+          Left = 137
+          Top = 10
+          Width = 65
+          Height = 21
+          MaxLength = 2
+          TabOrder = 0
+          OnKeyPress = Bimestre1KeyPress
+        end
+        object Bimestre2: TEdit
+          Left = 311
+          Top = 9
+          Width = 65
+          Height = 21
+          MaxLength = 2
+          TabOrder = 1
+          OnExit = Bimestre2Exit
+          OnKeyPress = Bimestre2KeyPress
+        end
+        object PromedioCuatrimestre: TEdit
+          Left = 137
+          Top = 43
+          Width = 65
+          Height = 21
+          Enabled = False
+          ReadOnly = True
+          TabOrder = 7
+        end
+        object FechaBac: TDateEdit
+          Left = 272
+          Top = 74
+          Width = 89
+          Height = 21
+          NumGlyphs = 2
+          TabOrder = 4
+        end
+      end
+      object RRP: TTabSheet
+        Caption = 'RR Publicas'
+        Enabled = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ImageIndex = 2
+        ParentFont = False
+        object Label23: TLabel
+          Left = 8
+          Top = 16
+          Width = 90
+          Height = 13
+          Caption = 'Nota Primer Parcial'
+        end
+        object Label24: TLabel
+          Left = 8
+          Top = 48
+          Width = 104
+          Height = 13
+          Caption = 'Nota Segundo Parcial'
+        end
+        object Label25: TLabel
+          Left = 8
+          Top = 80
+          Width = 111
+          Height = 13
+          Caption = 'Total de horas dictadas'
+        end
+        object Label26: TLabel
+          Left = 8
+          Top = 112
+          Width = 118
+          Height = 13
+          Caption = 'Inasistencias sin justificar'
+        end
+        object Label27: TLabel
+          Left = 217
+          Top = 48
+          Width = 117
+          Height = 13
+          Caption = 'Recuperatorio integrador'
+        end
+        object Label28: TLabel
+          Left = 217
+          Top = 112
+          Width = 116
+          Height = 13
+          Caption = 'Inasistencias justificadas'
+        end
+        object GrabaMateriaRRP: TBitBtn
+          Left = 437
+          Top = 96
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 0
+          OnClick = GrabaMateriaRRPClick
+        end
+        object CancelaGrabacionRRP: TBitBtn
+          Left = 437
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 1
+          OnClick = CancelaGrabacionBACClick
+        end
+        object NotaPrimerParcialRRP: TEdit
+          Left = 137
+          Top = 8
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 2
+          OnKeyPress = NotaPrimerParcialRRPKeyPress
+        end
+        object NotaSegundoParcialRRP: TEdit
+          Left = 137
+          Top = 40
+          Width = 65
+          Height = 21
+          Enabled = False
+          MaxLength = 4
+          TabOrder = 3
+          OnKeyPress = NotaSegundoParcialRRPKeyPress
+        end
+        object TotalHorasRRP: TEdit
+          Left = 137
+          Top = 72
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 4
+          OnKeyPress = TotalHorasRRPKeyPress
+        end
+        object SinJustificarRRP: TEdit
+          Left = 137
+          Top = 104
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 5
+          OnKeyPress = SinJustificarRRPKeyPress
+        end
+        object RecuperatorioRRP: TEdit
+          Left = 346
+          Top = 40
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 6
+          OnKeyPress = RecuperatorioRRPKeyPress
+        end
+        object JustifIcadasRRP: TEdit
+          Left = 346
+          Top = 104
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 7
+          OnKeyPress = JustifIcadasRRPKeyPress
+        end
+      end
+      object RRH: TTabSheet
+        Caption = 'RR HH y Tecni.'
+        Enabled = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ImageIndex = 3
+        ParentFont = False
+        object Label29: TLabel
+          Left = 8
+          Top = 16
+          Width = 90
+          Height = 13
+          Caption = 'Nota Primer Parcial'
+        end
+        object Label30: TLabel
+          Left = 8
+          Top = 48
+          Width = 104
+          Height = 13
+          Caption = 'Nota Segundo Parcial'
+        end
+        object Label31: TLabel
+          Left = 8
+          Top = 80
+          Width = 111
+          Height = 13
+          Caption = 'Total de horas dictadas'
+        end
+        object Label32: TLabel
+          Left = 8
+          Top = 112
+          Width = 118
+          Height = 13
+          Caption = 'Inasistencias sin justificar'
+        end
+        object Label33: TLabel
+          Left = 217
+          Top = 48
+          Width = 117
+          Height = 13
+          Caption = 'Recuperatorio integrador'
+        end
+        object Label34: TLabel
+          Left = 217
+          Top = 112
+          Width = 116
+          Height = 13
+          Caption = 'Inasistencias justificadas'
+        end
+        object GrabaMateriaRRH: TBitBtn
+          Left = 437
+          Top = 96
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 0
+          OnClick = GrabaMateriaRRHClick
+        end
+        object CancelaGrabacionRRH: TBitBtn
+          Left = 437
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 1
+          OnClick = CancelaGrabacionBACClick
+        end
+        object NotaPrimerParcialRRH: TEdit
+          Left = 137
+          Top = 8
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 2
+          OnKeyPress = NotaPrimerParcialRRHKeyPress
+        end
+        object NotaSegundoParcialRRH: TEdit
+          Left = 137
+          Top = 40
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 3
+          OnKeyPress = NotaSegundoParcialRRHKeyPress
+        end
+        object TotalHorasRRH: TEdit
+          Left = 137
+          Top = 72
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 4
+          OnKeyPress = TotalHorasRRHKeyPress
+        end
+        object SinJustificarRRH: TEdit
+          Left = 137
+          Top = 104
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 5
+          OnKeyPress = SinJustificarRRHKeyPress
+        end
+        object RecuperatorioRRH: TEdit
+          Left = 346
+          Top = 40
+          Width = 65
+          Height = 21
+          MaxLength = 4
+          TabOrder = 6
+          OnKeyPress = RecuperatorioRRHKeyPress
+        end
+        object JustificadasRRH: TEdit
+          Left = 346
+          Top = 104
+          Width = 65
+          Height = 21
+          MaxLength = 5
+          TabOrder = 7
+          OnKeyPress = JustificadasRRHKeyPress
+        end
+      end
+      object CNA: TTabSheet
+        Caption = 'Cs. Naturales'
+        Enabled = False
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ImageIndex = 5
+        ParentFont = False
+        object Label35: TLabel
+          Left = 8
+          Top = 16
+          Width = 68
+          Height = 13
+          Caption = 'Nota definitiva'
+        end
+        object Label57: TLabel
+          Left = 8
+          Top = 43
+          Width = 30
+          Height = 13
+          Caption = 'Fecha'
+        end
+        object GrabaMateriaCNA: TBitBtn
+          Left = 443
+          Top = 97
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 0
+          OnClick = GrabaMateriaCNAClick
+        end
+        object CancelaGrabacionCNA: TBitBtn
+          Left = 443
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 1
+          OnClick = CancelaGrabacionBACClick
+        end
+        object FechaCNA: TDateEdit
+          Left = 94
+          Top = 37
+          Width = 89
+          Height = 21
+          NumGlyphs = 2
+          YearDigits = dyFour
+          TabOrder = 2
+        end
+        object NotaDefinitivaCNA: TCurrencyEdit
+          Left = 94
+          Top = 10
+          Width = 89
+          Height = 21
+          Margins.Left = 1
+          Margins.Top = 1
+          DisplayFormat = ',0.00'
+          TabOrder = 3
+        end
+      end
+      object T333: TTabSheet
+        Caption = '333'
+        ImageIndex = 6
+        object Graba333: TBitBtn
+          Left = 442
+          Top = 96
+          Width = 123
+          Height = 33
+          Caption = 'Graba Materia'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+            555555555555555555555555555555555555555555FF55555555555559055555
+            55555555577FF5555555555599905555555555557777F5555555555599905555
+            555555557777FF5555555559999905555555555777777F555555559999990555
+            5555557777777FF5555557990599905555555777757777F55555790555599055
+            55557775555777FF5555555555599905555555555557777F5555555555559905
+            555555555555777FF5555555555559905555555555555777FF55555555555579
+            05555555555555777FF5555555555557905555555555555777FF555555555555
+            5990555555555555577755555555555555555555555555555555}
+          NumGlyphs = 2
+          TabOrder = 4
+          OnClick = Graba333Click
+        end
+        object Cancela333: TBitBtn
+          Left = 442
+          Top = 136
+          Width = 123
+          Height = 34
+          Caption = 'Cancela Grabaci'#243'n'
+          Enabled = False
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            333333333333333333333333333333333333333FFF33FF333FFF339993370733
+            999333777FF37FF377733339993000399933333777F777F77733333399970799
+            93333333777F7377733333333999399933333333377737773333333333990993
+            3333333333737F73333333333331013333333333333777FF3333333333910193
+            333333333337773FF3333333399000993333333337377737FF33333399900099
+            93333333773777377FF333399930003999333337773777F777FF339993370733
+            9993337773337333777333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 5
+          OnClick = CancelaGrabacionBACClick
+        end
+        object GroupBox4: TGroupBox
+          Left = 1
+          Top = 73
+          Width = 433
+          Height = 37
+          Caption = 'Tercer Trimestre'
+          Enabled = False
+          TabOrder = 2
+          object Label36: TLabel
+            Left = 87
+            Top = 13
+            Width = 23
+            Height = 13
+            Caption = 'Nota'
+          end
+          object Label53: TLabel
+            Left = 180
+            Top = 13
+            Width = 28
+            Height = 13
+            Caption = 'Faltas'
+          end
+          object Label56: TLabel
+            Left = 288
+            Top = 13
+            Width = 30
+            Height = 13
+            Caption = 'Fecha'
+          end
+          object FechaTercer: TDateEdit
+            Left = 328
+            Top = 9
+            Width = 89
+            Height = 21
+            NumGlyphs = 2
+            TabOrder = 2
+          end
+          object FaltasTercer: TCurrencyEdit
+            Left = 224
+            Top = 9
+            Width = 55
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = ',0.00'
+            ReadOnly = True
+            TabOrder = 1
+          end
+          object NotaTercer: TCurrencyEdit
+            Left = 122
+            Top = 9
+            Width = 49
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = '0'
+            TabOrder = 0
+          end
+        end
+        object GroupBox5: TGroupBox
+          Left = 0
+          Top = 37
+          Width = 433
+          Height = 37
+          Caption = 'Segundo Cuatrimestre'
+          TabOrder = 1
+          object Label37: TLabel
+            Left = 87
+            Top = 13
+            Width = 26
+            Height = 13
+            Caption = 'Nota '
+          end
+          object Label52: TLabel
+            Left = 180
+            Top = 13
+            Width = 28
+            Height = 13
+            Caption = 'Faltas'
+          end
+          object Label55: TLabel
+            Left = 288
+            Top = 13
+            Width = 30
+            Height = 13
+            Caption = 'Fecha'
+          end
+          object FechaSegundoTri: TDateEdit
+            Left = 328
+            Top = 9
+            Width = 89
+            Height = 21
+            NumGlyphs = 2
+            TabOrder = 2
+            OnExit = FechaSegundoTriExit
+          end
+          object FaltasSegundoTri: TCurrencyEdit
+            Left = 224
+            Top = 9
+            Width = 55
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = ',0.00'
+            ReadOnly = True
+            TabOrder = 1
+            OnExit = FaltasSegundoTriExit
+          end
+          object NotaSegundoTri: TCurrencyEdit
+            Left = 122
+            Top = 9
+            Width = 49
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = '0'
+            TabOrder = 0
+            OnExit = NotaSegundoTriExit
+          end
+        end
+        object GroupBox6: TGroupBox
+          Left = 0
+          Top = 0
+          Width = 433
+          Height = 37
+          Caption = 'Primer Cuatrimestre'
+          TabOrder = 0
+          object Label38: TLabel
+            Left = 87
+            Top = 13
+            Width = 23
+            Height = 13
+            Caption = 'Nota'
+          end
+          object Label51: TLabel
+            Left = 180
+            Top = 13
+            Width = 28
+            Height = 13
+            Caption = 'Faltas'
+          end
+          object Label54: TLabel
+            Left = 288
+            Top = 13
+            Width = 30
+            Height = 13
+            Caption = 'Fecha'
+          end
+          object FechaPrimerTri: TDateEdit
+            Left = 328
+            Top = 9
+            Width = 89
+            Height = 21
+            NumGlyphs = 2
+            TabOrder = 2
+            OnExit = FechaPrimerTriExit
+          end
+          object FaltasPrimerTri: TCurrencyEdit
+            Left = 224
+            Top = 9
+            Width = 55
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = ',0.00'
+            ReadOnly = True
+            TabOrder = 1
+            OnExit = FaltasPrimerTriExit
+          end
+          object NotaPrimerTri: TCurrencyEdit
+            Left = 122
+            Top = 9
+            Width = 49
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = '0'
+            TabOrder = 0
+            OnExit = NotaPrimerTriExit
+          end
+        end
+        object GroupBox7: TGroupBox
+          Left = 440
+          Top = 0
+          Width = 129
+          Height = 89
+          Caption = 'Datos Generales'
+          TabOrder = 6
+          object Label39: TLabel
+            Left = 10
+            Top = 23
+            Width = 48
+            Height = 13
+            Caption = 'Nota Final'
+          end
+          object Label50: TLabel
+            Left = 10
+            Top = 53
+            Width = 28
+            Height = 13
+            Caption = 'Faltas'
+          end
+          object Promedio: TCurrencyEdit
+            Left = 66
+            Top = 19
+            Width = 57
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = ',0.00'
+            ReadOnly = True
+            TabOrder = 0
+            OnChange = PromedioChange
+          end
+          object Faltas: TCurrencyEdit
+            Left = 66
+            Top = 46
+            Width = 57
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = ',0.00'
+            ReadOnly = True
+            TabOrder = 1
+          end
+        end
+        object GroupBox8: TGroupBox
+          Left = 0
+          Top = 110
+          Width = 433
+          Height = 62
+          Caption = 'Notas examenes  de recupeaci'#243'n'
+          TabOrder = 3
+          object Label40: TLabel
+            Left = 40
+            Top = 19
+            Width = 73
+            Height = 13
+            Caption = 'Nota Diciembre'
+          end
+          object Label47: TLabel
+            Left = 40
+            Top = 40
+            Width = 55
+            Height = 13
+            Caption = 'Nota Marzo'
+          end
+          object Label48: TLabel
+            Left = 222
+            Top = 19
+            Width = 55
+            Height = 13
+            Caption = 'Fecha Dic.:'
+          end
+          object Label49: TLabel
+            Left = 222
+            Top = 40
+            Width = 57
+            Height = 13
+            Caption = 'Fecha Mar.:'
+          end
+          object FechaDic: TDateEdit
+            Left = 287
+            Top = 14
+            Width = 90
+            Height = 21
+            NumGlyphs = 2
+            TabOrder = 1
+          end
+          object FechaMar: TDateEdit
+            Left = 286
+            Top = 37
+            Width = 91
+            Height = 21
+            NumGlyphs = 2
+            TabOrder = 3
+          end
+          object NotaDic: TCurrencyEdit
+            Left = 122
+            Top = 14
+            Width = 49
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = '0.00'
+            TabOrder = 0
+          end
+          object NotaMar: TCurrencyEdit
+            Left = 122
+            Top = 37
+            Width = 49
+            Height = 21
+            Margins.Left = 1
+            Margins.Top = 1
+            AutoSize = False
+            DisplayFormat = '0.00'
+            TabOrder = 2
+          end
+        end
+      end
+    end
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 274
+    Width = 593
+    Height = 48
+    Align = alTop
+    TabOrder = 3
+    object BtnAPrevia: TBitBtn
+      Left = 219
+      Top = 1
+      Width = 81
+      Height = 46
+      Align = alLeft
+      Caption = 'A Previa'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00500005000555
+        555557777F777555F55500000000555055557777777755F75555005500055055
+        555577F5777F57555555005550055555555577FF577F5FF55555500550050055
+        5555577FF77577FF555555005050110555555577F757777FF555555505099910
+        555555FF75777777FF555005550999910555577F5F77777775F5500505509990
+        3055577F75F77777575F55005055090B030555775755777575755555555550B0
+        B03055555F555757575755550555550B0B335555755555757555555555555550
+        BBB35555F55555575F555550555555550BBB55575555555575F5555555555555
+        50BB555555555555575F555555555555550B5555555555555575}
+      NumGlyphs = 2
+      TabOrder = 0
+      OnClick = BtnAPreviaClick
+    end
+    object Pasacursando: TBitBtn
+      Left = 138
+      Top = 1
+      Width = 81
+      Height = 46
+      Align = alLeft
+      Caption = 'A cursando'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00500005000555
+        555557777F777555F55500000000555055557777777755F75555005500055055
+        555577F5777F57555555005550055555555577FF577F5FF55555500550050055
+        5555577FF77577FF555555005050110555555577F757777FF555555505099910
+        555555FF75777777FF555005550999910555577F5F77777775F5500505509990
+        3055577F75F77777575F55005055090B030555775755777575755555555550B0
+        B03055555F555757575755550555550B0B335555755555757555555555555550
+        BBB35555F55555575F555550555555550BBB55575555555575F5555555555555
+        50BB555555555555575F555555555555550B5555555555555575}
+      NumGlyphs = 2
+      TabOrder = 1
+      OnClick = PasacursandoClick
+    end
+    object modificacursada: TBitBtn
+      Left = 1
+      Top = 1
+      Width = 137
+      Height = 46
+      Align = alLeft
+      Caption = 'Modifica Regularidad'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333000000
+        000033333377777777773333330FFFFFFFF03FF3FF7FF33F3FF700300000FF0F
+        00F077F777773F737737E00BFBFB0FFFFFF07773333F7F3333F7E0BFBF000FFF
+        F0F077F3337773F3F737E0FBFBFBF0F00FF077F3333FF7F77F37E0BFBF00000B
+        0FF077F3337777737337E0FBFBFBFBF0FFF077F33FFFFFF73337E0BF0000000F
+        FFF077FF777777733FF7000BFB00B0FF00F07773FF77373377373330000B0FFF
+        FFF03337777373333FF7333330B0FFFF00003333373733FF777733330B0FF00F
+        0FF03333737F37737F373330B00FFFFF0F033337F77F33337F733309030FFFFF
+        00333377737FFFFF773333303300000003333337337777777333}
+      NumGlyphs = 2
+      TabOrder = 2
+      OnClick = modificacursadaClick
+    end
+    object salir: TBitBtn
+      Left = 512
+      Top = 1
+      Width = 80
+      Height = 46
+      Align = alRight
+      Caption = 'Salir'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00330000000000
+        03333377777777777F333301BBBBBBBB033333773F3333337F3333011BBBBBBB
+        0333337F73F333337F33330111BBBBBB0333337F373F33337F333301110BBBBB
+        0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+        0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+        0333337F337F33337F333301110BBBBB0333337F337FF3337F33330111B0BBBB
+        0333337F337733337F333301110BBBBB0333337F337F33337F333301110BBBBB
+        0333337F3F7F33337F333301E10BBBBB0333337F7F7F33337F333301EE0BBBBB
+        0333337F777FFFFF7F3333000000000003333377777777777333}
+      NumGlyphs = 2
+      TabOrder = 3
+      OnClick = salirClick
+    end
+    object BtnLibre: TBitBtn
+      Left = 300
+      Top = 1
+      Width = 81
+      Height = 46
+      Align = alLeft
+      Caption = 'A Libre'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00500005000555
+        555557777F777555F55500000000555055557777777755F75555005500055055
+        555577F5777F57555555005550055555555577FF577F5FF55555500550050055
+        5555577FF77577FF555555005050110555555577F757777FF555555505099910
+        555555FF75777777FF555005550999910555577F5F77777775F5500505509990
+        3055577F75F77777575F55005055090B030555775755777575755555555550B0
+        B03055555F555757575755550555550B0B335555755555757555555555555550
+        BBB35555F55555575F555550555555550BBB55575555555575F5555555555555
+        50BB555555555555575F555555555555550B5555555555555575}
+      NumGlyphs = 2
+      TabOrder = 4
+      OnClick = BtnLibreClick
+    end
+  end
+  object DataSource1: TDataSource
+    DataSet = CustomerData.IbDsVarios
+    Left = 368
+    Top = 192
+  end
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
+    Left = 95
+    Top = 545
+  end
+end

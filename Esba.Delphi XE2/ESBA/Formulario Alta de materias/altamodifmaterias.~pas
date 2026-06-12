@@ -1,0 +1,309 @@
+unit altamodifmaterias;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, ExtCtrls,StdCtrls, Buttons,Printers,Funciones,
+  Imprimir,GmTypes, GmPreview, DataModule, DB, ComCtrls, Mask, ToolEdit;
+
+type
+  TAlMoMaterias = class(TForm)
+    Panel1: TPanel;
+    Panel2: TPanel;
+    BotonModificar: TBitBtn;
+    BitBtn2: TBitBtn;
+    BitBtn3: TBitBtn;
+    BotonNuevo: TBitBtn;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label7: TLabel;
+    Edit1: TEdit;
+    Edit4: TEdit;
+    Edit5: TEdit;
+    Edit6: TEdit;
+    BotonCancelar: TBitBtn;
+    BotonGrabar: TBitBtn;
+    DBGrid1: TDBGrid;
+    DataSource1: TDataSource;
+    Dialogo: TPrintDialog;
+    baja: TCheckBox;
+    Anual: TCheckBox;
+    Edit3: TEdit;
+    UpDown1: TUpDown;
+    Label6: TLabel;
+    CmbEquivale: TComboEdit;
+    NombreEqui: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure BitBtn3Click(Sender: TObject);
+    procedure BotonNuevoClick(Sender: TObject);
+    procedure BotonModificarClick(Sender: TObject);
+    procedure BotonCancelarClick(Sender: TObject);
+    procedure BotonGrabarClick(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure DBGrid1KeyPress(Sender: TObject; var Key: Char);
+    procedure FormCreate(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure CmbEquivaleButtonClick(Sender: TObject);
+    procedure CmbEquivaleExit(Sender: TObject);
+    procedure Edit1Exit(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    procedure Excepciones(Sender: TObject; E: Exception);
+  end;
+
+var
+  AlMoMaterias: TAlMoMaterias;
+  CarreraActiva  : String[6];
+  UsuarioActivo  : String;
+  Dondeestoy     : String;
+  CarreraLarga   : String;
+
+implementation
+  uses IBExternals, uMensajesError;
+{$R *.DFM}
+
+procedure TAlMoMaterias.Excepciones(Sender: TObject; E: Exception);
+begin
+  if not MostrarMensajeIB(E,'') then
+       Application.ShowException(E);
+end;
+
+procedure TAlMoMaterias.FormActivate(Sender: TObject);
+begin
+   AlMoMaterias.Height := 245;
+   BotonNuevo.Visible := True;
+   BotonModificar.Visible := True;
+   With CustomerData do
+    Begin
+      if TRDsVarios.Active then
+         TRDsVarios.Rollback;
+      IBdsVarios.Active:=False;
+      IBDsVarios.SQLs.SelectSQL.Clear;
+      IBDsVarios.SQLs.SelectSQL.Text := 'SELECT CODCARRE, CODMATERI, CUATRIM, DESCRIPCI, CORRELATIV, '+
+                             'SIGLA, ANUAL, EQUIVALE, ORDEN, ESTADO '+
+                             'FROM MATERIAS '+
+                             'WHERE CODCARRE = :CODCARRE '+
+                             ' ORDER BY CUATRIM,CODMATERI; ';
+      IBdsVarios.ParamByName('CODCARRE').Value := CarreraActiva;
+      TRDsVarios.Active := True;
+      IBDsVarios.active:=True;
+    End;
+ DbGrid1.SetFocus;
+end;
+
+procedure TAlMoMaterias.BitBtn3Click(Sender: TObject);
+begin
+ AlMoMaterias.Close;
+end;
+
+procedure TAlMoMaterias.BotonNuevoClick(Sender: TObject);
+begin
+ AlMoMaterias.Height := 370;
+ Edit1.SetFocus ;
+ Edit1.Text := '';
+ CmbEquivale.Text := '';
+ NombreEqui.Caption:='';
+ Edit3.Text := '';
+ Edit4.Text := '';
+ Edit5.Text := '';
+ Edit6.Text := '';
+// txtorden.Text:='';
+ Dondeestoy:='Nuevo';
+ Panel1.Enabled := False;
+ Edit1.ReadOnly := False;
+end;
+procedure TAlMoMaterias.BotonModificarClick(Sender: TObject);
+begin
+ AlMoMaterias.Height := 370;
+ With CustomerData Do Begin
+   Edit1.Text := IBDSVarios.FieldByName('CodMateri').Value;
+   CmbEquivale.Text := IBDSVarios.FieldByName('Equivale').Value;
+   cmbequivale.OnExit(CmbEquivale);
+   Edit3.Text := IntToStr(IBDSVarios.FieldByName('Cuatrim').Value);
+   Edit4.Text := IBDSVarios.FieldByName('Descripci').Value;
+   Edit5.Text := IBDSVarios.FieldByName('Correlativ').Value;
+   Edit6.Text := IBDSVarios.FieldByName('Sigla').Value;
+   if IBDSVarios.FieldByName('Anual').Value='S' then
+       Anual.Checked:=True
+   else
+       Anual.Checked:=False;
+   //TxtOrden.Text:= IBDSVarios.FieldByName('Orden').Value;
+   if (IBDSVarios.FieldByName('ESTADO').AsString='B') then
+      baja.Checked:=True
+   else
+      baja.Checked:=false;
+ End;
+ Dondeestoy:='Modificar';
+ Panel1.Enabled := False;
+ Edit1.ReadOnly := True;
+end;
+
+procedure TAlMoMaterias.BotonCancelarClick(Sender: TObject);
+begin
+ AlMoMaterias.Height := 245;
+ Panel1.Enabled := True;
+end;
+
+procedure TAlMoMaterias.BotonGrabarClick(Sender: TObject);
+begin
+if customerdata.TrUpVarios.Active then
+   customerdata.TrUpVarios.Rollback;
+CustomerData.IBUpVarios.SQL.Clear;
+If Dondeestoy = 'Nuevo' then
+    CustomerData.IBUpVarios.SQL.Text := 'INSERT INTO MATERIAS(CODCARRE,CODMATERI,CUATRIM,DESCRIPCI,CORRELATIV, '+
+                                        ' SIGLA,ANUAL,EQUIVALE, ORDEN, USUARIO, ESTADO) '+
+                                        'VALUES (:CODCARRE,:CODMATERI,:CUATRIM,:DESCRIPCI,:CORRELATIV, '+
+                                        ' :SIGLA,:ANUAL,:EQUIVALE, :ORDEN, :USUARIO, :ESTADO);'
+else
+    CustomerData.IBUpVarios.SQL.Text := 'UPDATE MATERIAS SET CUATRIM=:CUATRIM, DESCRIPCI=:DESCRIPCI, CORRELATIV=:CORRELATIV, '+
+                                        ' SIGLA=:SIGLA, ANUAL=:ANUAL, EQUIVALE=:EQUIVALE, ORDEN= :ORDEN, USUARIO= :USUARIO, ESTADO=:ESTADO WHERE CODCARRE=:CODCARRE AND CODMATERI=:CODMATERI;';
+
+
+With CustomerData Do Begin
+  IBUpVarios.ParamByName('Codmateri').Value:=Edit1.text;
+  IBUpVarios.ParamByName('Equivale').Value:=CmbEquivale.text;
+  IBUpVarios.ParamByName('Cuatrim').Value:=StrToInt(Edit3.text);
+  IBUpVarios.ParamByName('Descripci').Value:=Edit4.text;
+  IBUpVarios.ParamByName('Correlativ').Value:=Edit5.text;
+  IBUpVarios.ParamByName('Sigla').Value:=Edit6.text;
+  if Anual.Checked then
+      IBUpVarios.ParamByName('Anual').Value:='S'
+  else
+      IBUpVarios.ParamByName('Anual').Value:='N';
+  IBUpVarios.ParamByName('Codcarre').Value:=CarreraActiva;
+  IBUpVarios.ParamByName('USUARIO').Value:=Funciones.CodUsu;
+  if baja.Checked then
+      IBUpVarios.ParamByName('ESTADO').Value:='B'
+  Else
+      IBUpVarios.ParamByName('ESTADO').Value:='Y';
+
+  Try
+    TRUpVarios.Active := True;
+    IBUpVarios.ExecQuery;
+    TRUpVarios.Commit;
+  Finally
+    If (TRUpVarios.Active) Then TRUpVarios.Rollback;
+    TRUpVarios.Active := False;
+  End;
+  BotonCancelarClick(sender);
+  If (TRUpVarios.Active) Then
+      TRUpVarios.Rollback;
+  TRUpVarios.Active := False;
+
+  if TRdsVarios.Active then
+      TRDSVarios.Rollback;
+  TRdsVarios.Active := False;
+  TRDsVarios.Active := True;
+  IBDsVarios.active:=True;
+End;
+End;
+
+procedure TAlMoMaterias.BitBtn2Click(Sender: TObject);
+var
+ Fila : Real;
+begin
+ If Dialogo.Execute Then
+ Begin
+  FormPreview := TFormPreview.Create(Self);
+  With FormPreview.VistaPrevia1 Do
+  Begin
+//    Title := 'Materias de la Carrera';
+    BeginUpdate;
+    With Canvas Do
+     Begin
+      Fila := 2.00;
+      Font.Name := 'Arial';
+      Font.Size := 12;
+      Font.Style := [FsBold];
+      TextOutCenter(10.5,Fila,CarreraLarga, GmCentimeters);
+      fila:=fila+0.50;
+      TextOutCenter(10.5,Fila,'Listado de Materias al '+ DateToStr(Date), GmCentimeters);
+      Font.Size := 10;
+      Fila := Fila + 1.00;
+      TextOut(4.00,fila,'CUAT.', GmCentimeters);
+      TextOut(5.80,fila,'COD. MAT.', GmCentimeters);
+      TextOut(9.00,fila,'DESCRIPCION', GmCentimeters);
+      fila:=fila+0.60;
+      MoveTo(3.80,fila, GmCentimeters);
+      LineTo(19.50,fila, GmCentimeters);
+      Fila:=Fila+0.25;
+      Font.Style := [];
+      CustomerData.IBDsVarios.First;
+      While NOT CustomerData.IBdsVarios.eof do
+       Begin
+        TextOut(4.50,fila,InttoStr(CustomerData.IBdsVarios.FieldByName('Cuatrim').value), GmCentimeters);
+        TextOut(6.20,fila,CustomerData.IBdsVarios.FieldByName('CodMateri').Value, GmCentimeters);
+        TextOut(9.00,fila,CustomerData.IBdsVarios.FieldByName('Descripci').Value, GmCentimeters);
+        Fila:=fila+0.50;
+        MoveTo(3.80,fila, GmCentimeters);
+        LineTo(19.50,fila, GmCentimeters);
+        fila:=fila+0.25;
+        CustomerData.IBdsVarios.Next;
+       End;
+       Caja(3.80,3.25,19.50,fila-0.25,FormPreview.VistaPrevia1);
+     end;
+    EndUpdate;
+  end;
+  FormPreview.ShowModal;
+  FormPreview.Free;
+ end;
+ Bitbtn3.SetFocus
+end;
+procedure TAlMoMaterias.DBGrid1KeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+     BotonModificarClick(Sender);
+end;
+
+procedure TAlMoMaterias.FormCreate(Sender: TObject);
+begin
+  Application.OnException:= Excepciones;
+end;
+
+procedure TAlMoMaterias.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if CustomerDAta.TrdsVarios.Active then
+      CustomerDAta.TrdsVarios.Rollback;
+  CustomerData.TRdsVarios.Active := False;
+  CustomerData.IbdsVarios.Active := False;
+end;
+
+procedure TAlMoMaterias.CmbEquivaleButtonClick(Sender: TObject);
+Var Text1,Text2:String;
+begin
+  Funciones.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='''+CarreraActiva+''' ORDER BY CODMATERI',['Codigo','Nombre'],Text1,Text2,0,1,True);
+  CmbEquivale.Text:=Text1;
+  NombreEqui.Caption:=Text2;
+end;
+
+procedure TAlMoMaterias.CmbEquivaleExit(Sender: TObject);
+Var Text1,Text2:String;
+begin
+  Text1:='';
+  if (CmbEquivale.Text<>'') Then Begin
+      CmbEquivale.Text:=Lpad(CmbEquivale.Text,2,'0');
+      Funciones.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='''+CarreraActiva+''' AND CODMATERI='''+CmbEquivale.Text+'''',['Codigo','Nombre'],Text1,Text2,0,1,False);
+      If (Text1='') then begin
+         MessageBox(AlMoMaterias.Handle, Pchar(UsuarioActivo + ', código incorrecto'),'Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+         CmbEquivale.SetFocus;
+      end
+      else begin
+         CmbEquivale.Text:=Text1;
+         NombreEqui.Caption:=Text2;
+      end
+  end;
+end;
+  
+procedure TAlMoMaterias.Edit1Exit(Sender: TObject);
+begin
+ Edit1.Text:=Lpad(Edit1.Text,2,'0');
+end;
+
+end.

@@ -1,0 +1,65 @@
+unit TablaConfiguraciones;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Data.DB, FIBDatabase,
+  pFIBDatabase, FIBQuery, pFIBQuery, FIBDataSet, pFIBDataSet, kbmMemTable,
+  Vcl.Grids, Vcl.DBGrids, Vcl.StdCtrls, Vcl.Buttons;
+
+type
+  TFrmTablaConfiguracion = class(TForm)
+    CancelaGrabacion: TBitBtn;
+    Grabamesa: TBitBtn;
+    grilla: TDBGrid;
+    MTxxxconf: TkbmMemTable;
+    DataSource1: TDataSource;
+    Dstri: TpFIBDataSet;
+    qrTri: TpFIBQuery;
+    IbupIns: TpFIBQuery;
+    Trtri: TpFIBTransaction;
+    MTxxxconfPARAME: TStringField;
+    MTxxxconfDESCRI: TStringField;
+    MTxxxconfVALOR: TStringField;
+    Panel1: TPanel;
+    procedure FormShow(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmTablaConfiguracion: TFrmTablaConfiguracion;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmTablaConfiguracion.FormShow(Sender: TObject);
+var
+   x:integer;
+begin
+  DsTri.SQLs.SelectSQL.Text:='SELECT parame, descri, valor FROM xxx_conf';
+  if trtri.Active then
+     Trtri.Rollback;
+  trtri.Active:=true;
+  Dstri.Active:=true;
+  dstri.First;
+  MTxxxconf.Active:=True;
+  while not (dstri.Eof) do begin
+      MTxxxconf.Append;
+      For x:=0 to DsTri.fieldcount-1 do
+          MTxxxconf.FieldByName(DsTri.Fields.Fields[x].FullName).Value:=dstri.FieldByName(DsTri.Fields.Fields[x].FullName).Value;
+      MTxxxconf.Post;
+      dstri.Next;
+  end;
+  Trtri.Rollback;
+  trtri.Active:=False;
+  Dstri.Active:=False;
+  MTxxxconf.First;
+  grilla.Repaint;
+end;
+
+end.

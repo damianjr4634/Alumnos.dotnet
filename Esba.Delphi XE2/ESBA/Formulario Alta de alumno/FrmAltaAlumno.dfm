@@ -1,0 +1,1441 @@
+object AltaAlumno: TAltaAlumno
+  Left = 225
+  Top = 14
+  BorderStyle = bsDialog
+  Caption = 'AltaAlumno'
+  ClientHeight = 599
+  ClientWidth = 934
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  OnClose = FormClose
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Label3: TLabel
+    Left = 2
+    Top = 13
+    Width = 94
+    Height = 13
+    Caption = 'Tipo de Documento'
+  end
+  object Label4: TLabel
+    Left = 207
+    Top = 13
+    Width = 108
+    Height = 13
+    Caption = 'N'#250'mero de documento'
+  end
+  object Label12: TLabel
+    Left = 456
+    Top = 9
+    Width = 86
+    Height = 13
+    Caption = 'Fecha de Ingreso '
+    OnClick = caClick
+  end
+  object estudioscursados: TGroupBox
+    Left = 2
+    Top = 179
+    Width = 726
+    Height = 98
+    Caption = 'Estudios Cursados'
+    Enabled = False
+    TabOrder = 4
+    object Label16: TLabel
+      Left = 8
+      Top = 23
+      Width = 37
+      Height = 13
+      Caption = 'Primario'
+    end
+    object Label17: TLabel
+      Left = 8
+      Top = 49
+      Width = 54
+      Height = 13
+      Caption = 'Secundario'
+    end
+    object Label18: TLabel
+      Left = 328
+      Top = 49
+      Width = 24
+      Height = 13
+      Caption = 'A'#241'os'
+    end
+    object Label19: TLabel
+      Left = 400
+      Top = 49
+      Width = 49
+      Height = 13
+      Caption = 'Modalidad'
+    end
+    object Label28: TLabel
+      Left = 8
+      Top = 73
+      Width = 41
+      Height = 13
+      Caption = 'Terciario'
+    end
+    object Label35: TLabel
+      Left = 328
+      Top = 73
+      Width = 24
+      Height = 13
+      Caption = 'A'#241'os'
+    end
+    object Label36: TLabel
+      Left = 400
+      Top = 73
+      Width = 49
+      Height = 13
+      Caption = 'Modalidad'
+    end
+    object Label43: TLabel
+      Left = 328
+      Top = 23
+      Width = 24
+      Height = 13
+      Caption = 'A'#241'os'
+    end
+    object Label44: TLabel
+      Left = 400
+      Top = 23
+      Width = 49
+      Height = 13
+      Caption = 'Modalidad'
+    end
+    object anossecundario: TEdit
+      Left = 360
+      Top = 41
+      Width = 33
+      Height = 21
+      MaxLength = 2
+      TabOrder = 4
+      OnKeyPress = anossecundarioKeyPress
+    end
+    object modalidadsecundario: TEdit
+      Left = 456
+      Top = 41
+      Width = 201
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 50
+      TabOrder = 5
+      OnKeyPress = modalidadsecundarioKeyPress
+    end
+    object colegioprimario: TEdit
+      Left = 72
+      Top = 17
+      Width = 249
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 50
+      TabOrder = 0
+      OnKeyPress = colegioprimarioKeyPress
+    end
+    object colegiosecundario: TEdit
+      Left = 72
+      Top = 42
+      Width = 249
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 50
+      TabOrder = 3
+      OnKeyPress = colegiosecundarioKeyPress
+    end
+    object anosterciario: TEdit
+      Left = 360
+      Top = 67
+      Width = 33
+      Height = 21
+      MaxLength = 2
+      TabOrder = 7
+      OnKeyPress = anosterciarioKeyPress
+    end
+    object anosprimario: TEdit
+      Left = 360
+      Top = 16
+      Width = 33
+      Height = 21
+      MaxLength = 2
+      TabOrder = 1
+      OnKeyPress = anosprimarioKeyPress
+    end
+    object modalidadterciario: TEdit
+      Left = 456
+      Top = 67
+      Width = 201
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 50
+      TabOrder = 8
+      OnKeyPress = modalidadterciarioKeyPress
+    end
+    object modalidadprimario: TEdit
+      Left = 456
+      Top = 14
+      Width = 201
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 50
+      TabOrder = 2
+      OnKeyPress = modalidadprimarioKeyPress
+    end
+    object colegioterciario: TEdit
+      Left = 72
+      Top = 67
+      Width = 249
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 50
+      TabOrder = 6
+      OnKeyPress = colegioterciarioKeyPress
+    end
+  end
+  object datoslaborales: TGroupBox
+    Left = 2
+    Top = 278
+    Width = 726
+    Height = 99
+    Caption = 'Datos Laborales Actuales'
+    Enabled = False
+    TabOrder = 5
+    object Label20: TLabel
+      Left = 8
+      Top = 24
+      Width = 41
+      Height = 13
+      Caption = 'Empresa'
+    end
+    object Label21: TLabel
+      Left = 355
+      Top = 24
+      Width = 29
+      Height = 13
+      Caption = 'Rubro'
+    end
+    object Label22: TLabel
+      Left = 8
+      Top = 48
+      Width = 28
+      Height = 13
+      Caption = 'Cargo'
+    end
+    object Label23: TLabel
+      Left = 355
+      Top = 48
+      Width = 54
+      Height = 13
+      Caption = 'Antig'#252'edad'
+    end
+    object Label24: TLabel
+      Left = 8
+      Top = 73
+      Width = 45
+      Height = 13
+      Caption = 'Direcci'#243'n'
+    end
+    object Label25: TLabel
+      Left = 355
+      Top = 73
+      Width = 42
+      Height = 13
+      Caption = 'Tel'#233'fono'
+    end
+    object Label26: TLabel
+      Left = 591
+      Top = 73
+      Width = 33
+      Height = 13
+      Caption = 'Interno'
+    end
+    object empresa: TEdit
+      Left = 64
+      Top = 16
+      Width = 281
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 20
+      TabOrder = 0
+      OnKeyPress = empresaKeyPress
+    end
+    object rubro: TEdit
+      Left = 414
+      Top = 16
+      Width = 249
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 20
+      TabOrder = 1
+      OnKeyPress = rubroKeyPress
+    end
+    object cargo: TEdit
+      Left = 64
+      Top = 41
+      Width = 281
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 20
+      TabOrder = 2
+      OnKeyPress = cargoKeyPress
+    end
+    object antiguedad: TEdit
+      Left = 414
+      Top = 41
+      Width = 83
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 10
+      TabOrder = 3
+      OnKeyPress = antiguedadKeyPress
+    end
+    object direccion: TEdit
+      Left = 64
+      Top = 66
+      Width = 281
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 25
+      TabOrder = 4
+      OnKeyPress = direccionKeyPress
+    end
+    object telefonolaboral: TEdit
+      Left = 414
+      Top = 66
+      Width = 169
+      Height = 21
+      MaxLength = 8
+      TabOrder = 5
+      OnKeyPress = telefonolaboralKeyPress
+    end
+    object interno: TEdit
+      Left = 631
+      Top = 66
+      Width = 81
+      Height = 21
+      MaxLength = 4
+      TabOrder = 6
+      OnKeyPress = internoKeyPress
+    end
+  end
+  object docupresentada: TGroupBox
+    Left = 2
+    Top = 379
+    Width = 471
+    Height = 127
+    Caption = 'Documentaci'#243'n Presentada'
+    Enabled = False
+    TabOrder = 6
+    object Label27: TLabel
+      Left = 102
+      Top = 41
+      Width = 75
+      Height = 13
+      Caption = 'Fecha de C.T.T'
+    end
+    object vtoctt: TLabel
+      Left = 285
+      Top = 43
+      Width = 91
+      Height = 13
+      Caption = 'Vencimiento C.T.T.'
+      Visible = False
+    end
+    object Label32: TLabel
+      Left = 102
+      Top = 107
+      Width = 85
+      Height = 13
+      Caption = 'Fecha Apto Fisico'
+    end
+    object VtoApFi: TLabel
+      Left = 285
+      Top = 105
+      Width = 116
+      Height = 13
+      Caption = 'Vencimiento Apto Fisico:'
+    end
+    object Label45: TLabel
+      Left = 7
+      Top = 20
+      Width = 31
+      Height = 13
+      Caption = 'D.N.I.:'
+    end
+    object ctt: TCheckBox
+      Left = 6
+      Top = 35
+      Width = 65
+      Height = 26
+      Caption = 'C.T.T.'
+      TabOrder = 2
+      OnClick = cttClick
+    end
+    object ca: TCheckBox
+      Left = 6
+      Top = 56
+      Width = 153
+      Height = 17
+      Caption = 'Certificado Anal'#237'tico'
+      TabOrder = 4
+      OnClick = caClick
+    end
+    object FechaCTT: TDateEdit
+      Left = 193
+      Top = 38
+      Width = 87
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 3
+      OnChange = FechaCTTChange
+    end
+    object AptoFisico: TCheckBox
+      Left = 6
+      Top = 106
+      Width = 89
+      Height = 17
+      Caption = 'Apto Fisico'
+      TabOrder = 7
+      OnClick = AptoFisicoClick
+    end
+    object FechaAptoFisico: TDateEdit
+      Left = 193
+      Top = 101
+      Width = 86
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 8
+      OnChange = FechaAptoFisicoChange
+    end
+    object dni: TComboBox
+      Left = 44
+      Top = 15
+      Width = 115
+      Height = 21
+      Style = csDropDownList
+      TabOrder = 0
+      Items.Strings = (
+        '8 a'#241'os'
+        '16 a'#241'os'
+        'Mayor de edad'
+        'Sin Documento')
+    end
+    object Foto: TCheckBox
+      Left = 6
+      Top = 88
+      Width = 97
+      Height = 17
+      Caption = 'Foto 4x4'
+      TabOrder = 6
+    end
+    object Pn: TCheckBox
+      Left = 165
+      Top = 18
+      Width = 133
+      Height = 17
+      Caption = 'Partida de Nacimiento'
+      TabOrder = 1
+    end
+    object nominaPase: TCheckBox
+      Left = 6
+      Top = 72
+      Width = 171
+      Height = 17
+      Caption = 'Fotocopia nomina de pase'
+      TabOrder = 5
+    end
+  end
+  object grabar: TBitBtn
+    Left = 845
+    Top = 410
+    Width = 81
+    Height = 33
+    Caption = '&Grabar'
+    Enabled = False
+    Glyph.Data = {
+      26050000424D26050000000000003604000028000000100000000F0000000100
+      080000000000F000000000000000000000000001000000000000000000000000
+      80000080000000808000800000008000800080800000C0C0C000C0DCC000F0C8
+      A400000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      000000000000000000000000000000000000F0FBFF00A4A0A000808080000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00070700000000
+      0000000000000000000707000303000000000000070700030007070003030000
+      0000000007070003000707000303000000000000070700030007070003030000
+      0000000000000003000707000303030303030303030303030007070003030000
+      0000000000000303000707000300070707070707070700030007070003000707
+      0707070707070003000707000300070707070707070700030007070003000707
+      0707070707070003000707000300070707070707070700000007070003000707
+      0707070707070007000707000000000000000000000000000007070707070707
+      07070707070707070707}
+    TabOrder = 7
+    OnClick = grabarClick
+  end
+  object cancelar: TBitBtn
+    Left = 756
+    Top = 410
+    Width = 81
+    Height = 33
+    Caption = '&Cancelar'
+    Glyph.Data = {
+      7E010000424D7E01000000000000760000002800000018000000160000000100
+      0400000000000801000000000000000000001000000000000000000000000000
+      8000008000000080800080000000800080008080000080808000C0C0C0000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00888888888888
+      8888888888888888888888888888888888888888888888888888888888888888
+      8888888888888888888888888888888888888888888888888888888888880F88
+      88888888880F888888888888888888888000F8888880F888888888888000F888
+      880F88888888888888000F88800F888888888888888000F800F8888888888888
+      888800000F8888888888888888888000F888888888888888888800000F888888
+      88888888888000F80F8888888888888880000F88800F8888888888880000F888
+      8800F8888888888800F8888888800F8888888888888888888888888888888888
+      8888888888888888888888888888888888888888888888888888888888888888
+      8888}
+    TabOrder = 13
+    OnClick = cancelarClick
+  end
+  object Tipodoc: TComboBox
+    Left = 102
+    Top = 5
+    Width = 97
+    Height = 21
+    Style = csDropDownList
+    ItemIndex = 0
+    TabOrder = 0
+    Text = 'DNI'
+    OnKeyPress = TipodocKeyPress
+    Items.Strings = (
+      'DNI'
+      'CI '
+      'LE '
+      'PAS')
+  end
+  object documento: TEdit
+    Left = 321
+    Top = 5
+    Width = 112
+    Height = 21
+    MaxLength = 8
+    TabOrder = 1
+    OnExit = documentoExit
+    OnKeyPress = documentoKeyPress
+  end
+  object CbxBaja: TCheckBox
+    Left = 866
+    Top = 8
+    Width = 60
+    Height = 17
+    Caption = 'Baja'
+    TabOrder = 14
+  end
+  object GpObservaciones: TGroupBox
+    Left = 2
+    Top = 505
+    Width = 561
+    Height = 96
+    Caption = 'Observaciones'
+    TabOrder = 10
+    object Memo: TMemo
+      Left = 2
+      Top = 15
+      Width = 557
+      Height = 79
+      Align = alClient
+      MaxLength = 32762
+      TabOrder = 0
+    end
+  end
+  object FechaIngreso: TDateEdit
+    Left = 548
+    Top = 5
+    Width = 92
+    Height = 21
+    NumGlyphs = 2
+    TabOrder = 2
+  end
+  object BtnTutores: TBitBtn
+    Left = 845
+    Top = 454
+    Width = 81
+    Height = 33
+    Caption = '&Tutores'
+    Glyph.Data = {
+      8E060000424D8E06000000000000360400002800000016000000190000000100
+      08000000000058020000CE0E0000D80E00000001000000000000000000004000
+      000080000000FF000000002000004020000080200000FF200000004000004040
+      000080400000FF400000006000004060000080600000FF600000008000004080
+      000080800000FF80000000A0000040A0000080A00000FFA0000000C0000040C0
+      000080C00000FFC0000000FF000040FF000080FF0000FFFF0000000020004000
+      200080002000FF002000002020004020200080202000FF202000004020004040
+      200080402000FF402000006020004060200080602000FF602000008020004080
+      200080802000FF80200000A0200040A0200080A02000FFA0200000C0200040C0
+      200080C02000FFC0200000FF200040FF200080FF2000FFFF2000000040004000
+      400080004000FF004000002040004020400080204000FF204000004040004040
+      400080404000FF404000006040004060400080604000FF604000008040004080
+      400080804000FF80400000A0400040A0400080A04000FFA0400000C0400040C0
+      400080C04000FFC0400000FF400040FF400080FF4000FFFF4000000060004000
+      600080006000FF006000002060004020600080206000FF206000004060004040
+      600080406000FF406000006060004060600080606000FF606000008060004080
+      600080806000FF80600000A0600040A0600080A06000FFA0600000C0600040C0
+      600080C06000FFC0600000FF600040FF600080FF6000FFFF6000000080004000
+      800080008000FF008000002080004020800080208000FF208000004080004040
+      800080408000FF408000006080004060800080608000FF608000008080004080
+      800080808000FF80800000A0800040A0800080A08000FFA0800000C0800040C0
+      800080C08000FFC0800000FF800040FF800080FF8000FFFF80000000A0004000
+      A0008000A000FF00A0000020A0004020A0008020A000FF20A0000040A0004040
+      A0008040A000FF40A0000060A0004060A0008060A000FF60A0000080A0004080
+      A0008080A000FF80A00000A0A00040A0A00080A0A000FFA0A00000C0A00040C0
+      A00080C0A000FFC0A00000FFA00040FFA00080FFA000FFFFA0000000C0004000
+      C0008000C000FF00C0000020C0004020C0008020C000FF20C0000040C0004040
+      C0008040C000FF40C0000060C0004060C0008060C000FF60C0000080C0004080
+      C0008080C000FF80C00000A0C00040A0C00080A0C000FFA0C00000C0C00040C0
+      C00080C0C000FFC0C00000FFC00040FFC00080FFC000FFFFC0000000FF004000
+      FF008000FF00FF00FF000020FF004020FF008020FF00FF20FF000040FF004040
+      FF008040FF00FF40FF000060FF004060FF008060FF00FF60FF000080FF004080
+      FF008080FF00FF80FF0000A0FF0040A0FF0080A0FF00FFA0FF0000C0FF0040C0
+      FF0080C0FF00FFC0FF0000FFFF0040FFFF0080FFFF00FFFFFF00FFFFFFFFFFFF
+      FFFFFFFFFF000000494949FFFFFFFFFF0000FFFFFFFFFFFFFFFFFFFF00F8F8EC
+      00494949FFFFFFFF0000FFFFFFFFFF00000000F8C4F8F8ECEC000049494949FF
+      0000FFFFFFFF0093932500F8C4F8F8ECEC008000494949490000FFFF00002593
+      932500F8C4F8F8ECEC008080004949490000FFFF00932593932500F8C4F8F8EC
+      EC00808000FFFFFF0000FFFF00932593932500F8C4F8F8ECEC00808000FFFFFF
+      0000FFFF00932593932500F8C4F8F8C4C400808000FFFFFF0000FFFF00932593
+      932500F8C4F8F8C4C400808000FFFFFF0000FFFF009325939300F8F8F8F8F8EC
+      ECC4808000FFFFFF0000FFFF009325939300F8F8F8F8F8ECECECCE0000FFFFFF
+      0000FF00939393939300F8F8F8F8F8ECECECCE8000FFFFFF0000FF0093939393
+      9300F8F8F8F8F8ECECECCE8080FFFFFF0000FF00939393939300F8F8F8F8F8EC
+      ECECCE8080FFFFFF0000FF00939393939300F8F8F8F8FFECECECCE8080FFFFFF
+      0000FF00939393939300F8F8FFFFF9F9F9ECCE8080FFFFFF0000FF0093939393
+      FF0000F9000000EC0000CE8080FFFFFF0000FF009393FFFFDBDB00F949494900
+      FFF3F3F380FFFFFF0000FF0093FF252525252500B6B6B64900808080F3FFFFFF
+      0000FFFF00DB000000250024DBDBDB490000800000FFFFFF0000FFFFFF00B6B6
+      B6490024FFFFDB4900B64900FFFFFFFF0000FFFFFF24DBDBDB4900FFDBDB9200
+      DBDB4900FFFFFFFF0000FFFFFF00FFFFDB4900FF000000FFFFDB4900FFFFFFFF
+      0000FFFFFFFFDBDB9200FFFFFFFFFFDBDB9200FFFFFFFFFF0000FFFFFFFF0000
+      00FFFFFFFFFFFF000000FFFFFFFFFFFF0000}
+    TabOrder = 11
+    OnClick = BtnTutoresClick
+  end
+  object BtnActas: TBitBtn
+    Left = 756
+    Top = 454
+    Width = 81
+    Height = 33
+    Glyph.Data = {
+      76070000424D760700000000000036040000280000001D0000001A0000000100
+      08000000000040030000CE0E0000D80E00000001000000000000000000004000
+      000080000000FF000000002000004020000080200000FF200000004000004040
+      000080400000FF400000006000004060000080600000FF600000008000004080
+      000080800000FF80000000A0000040A0000080A00000FFA0000000C0000040C0
+      000080C00000FFC0000000FF000040FF000080FF0000FFFF0000000020004000
+      200080002000FF002000002020004020200080202000FF202000004020004040
+      200080402000FF402000006020004060200080602000FF602000008020004080
+      200080802000FF80200000A0200040A0200080A02000FFA0200000C0200040C0
+      200080C02000FFC0200000FF200040FF200080FF2000FFFF2000000040004000
+      400080004000FF004000002040004020400080204000FF204000004040004040
+      400080404000FF404000006040004060400080604000FF604000008040004080
+      400080804000FF80400000A0400040A0400080A04000FFA0400000C0400040C0
+      400080C04000FFC0400000FF400040FF400080FF4000FFFF4000000060004000
+      600080006000FF006000002060004020600080206000FF206000004060004040
+      600080406000FF406000006060004060600080606000FF606000008060004080
+      600080806000FF80600000A0600040A0600080A06000FFA0600000C0600040C0
+      600080C06000FFC0600000FF600040FF600080FF6000FFFF6000000080004000
+      800080008000FF008000002080004020800080208000FF208000004080004040
+      800080408000FF408000006080004060800080608000FF608000008080004080
+      800080808000FF80800000A0800040A0800080A08000FFA0800000C0800040C0
+      800080C08000FFC0800000FF800040FF800080FF8000FFFF80000000A0004000
+      A0008000A000FF00A0000020A0004020A0008020A000FF20A0000040A0004040
+      A0008040A000FF40A0000060A0004060A0008060A000FF60A0000080A0004080
+      A0008080A000FF80A00000A0A00040A0A00080A0A000FFA0A00000C0A00040C0
+      A00080C0A000FFC0A00000FFA00040FFA00080FFA000FFFFA0000000C0004000
+      C0008000C000FF00C0000020C0004020C0008020C000FF20C0000040C0004040
+      C0008040C000FF40C0000060C0004060C0008060C000FF60C0000080C0004080
+      C0008080C000FF80C00000A0C00040A0C00080A0C000FFA0C00000C0C00040C0
+      C00080C0C000FFC0C00000FFC00040FFC00080FFC000FFFFC0000000FF004000
+      FF008000FF00FF00FF000020FF004020FF008020FF00FF20FF000040FF004040
+      FF008040FF00FF40FF000060FF004060FF008060FF00FF60FF000080FF004080
+      FF008080FF00FF80FF0000A0FF0040A0FF0080A0FF00FFA0FF0000C0FF0040C0
+      FF0080C0FF00FFC0FF0000FFFF0040FFFF0080FFFF00FFFFFF00FFFFFFFFFFFF
+      FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000FFFFFFFFFFFF
+      FF80808080A0A0E0E0E0E0E0E0E0FFFFFFFFFFFFFFFFFF000000FFFFFFFFFFFF
+      8080B6B6B6B6B6B6B6B6B6B6B6E4E4FFFFFFFFFFFFFFFF000000FFFFFFFF8080
+      B6606060606060606060606060E4DBEDEDFFFFFFFFFFFF000000FFFFFF8080B6
+      80600000000000000000000060E4EDFFF2F2FFFFFFFFFF000000FFFFFF80B680
+      60848484848400848484848400EDEDF2FFEDFFFFFFFFFF000000FF80808080A0
+      84ECF1FAF18484F1F1F1F1ECEC60F2EDEDE4E4E0FFFFFF0000008080B680A060
+      84ECFAFAFAECF1FAFAFAF1F1EC0060EDE4E4DBE0E0FFFF00000080B680A0A084
+      84ECFAFAFAF1FAFAFAFAFAF1F18460E4E4E4E0B6E0FFFF00000080B680A0E084
+      84ECFAFAF1FAFAFAFAFAFAFAF1840060E4E0E0B6E0FFFF00000080B6A0E0E084
+      ECF1F1FAFAF184FAF1F184F1FAEC840060E0E0B6E0FFFF000000A0B6E0E0E084
+      ECF1F184ECF1F184ECECEC84F1F1EC846060E0B6E0FFFF000000A0B6E0E0E084
+      ECF1FAF1F1EC84F1F1F1ECEC6084F1EC0060E0B6E0FFFF000000E0B6E0E0E084
+      ECECFAFAFAFAF1FAF1FAFAF160ECFAEC8400E0B6E0FFFF000000E0B6E0E0E084
+      ECEC84FAFA84F1FAF184FAF160E0F1FAECE0E0B6A0FFFF000000E0B6E0E0E084
+      ECF184ECF18484EC00EC84EC60E0E0E0E0E0E0B6A0FFFF000000E0B6E0E0E084
+      84ECECF1FA84ECFA84ECF1FA60E0E0E0E0E0A0B680FFFF000000E0B6E0E0E484
+      84EC84ECF184F1FA8484ECEC60E0E0E0E0A080B680FFFF000000E0B6E0E4E4E4
+      F1F1ECFAFA8484EC84ECF1FA60E0E0E0A0A080B680FFFF000000E0E0DBE4E4ED
+      E4F184ECF184ECFA8484ECF160E0E0A0A080B68080FFFF000000FFE4E4E4EDED
+      F2E4ECF1FA84F1FA84ECF1FA60E0A0A080808080FFFFFF000000FFFFFFEDFFF2
+      EDEDE4F1E4E0ECFA60E4F1FAE0A08080B680FFFFFFFFFF000000FFFFFFF2F2FF
+      EDE4E4E0E0E0F1FAE0E0E4E0A08080B68080FFFFFFFFFF000000FFFFFFFFEDED
+      DBE4E0E0E0E0E4E4E0E0E0A0A080B68080FFFFFFFFFFFF000000FFFFFFFFFFFF
+      E4E4B6B6B6B6B6B6B6B6B6B6B68080FFFFFFFFFFFFFFFF000000FFFFFFFFFFFF
+      FFE0E0E0E0E0E0E0A0A080808080FFFFFFFFFFFFFFFFFF000000}
+    TabOrder = 12
+    OnClick = BtnActasClick
+  end
+  object GpFoto: TGroupBox
+    Left = 734
+    Top = 179
+    Width = 185
+    Height = 206
+    Caption = 'Fotografia'
+    TabOrder = 8
+    object Image: TImage
+      Left = 2
+      Top = 15
+      Width = 181
+      Height = 146
+      Align = alClient
+      Stretch = True
+      ExplicitLeft = 16
+      ExplicitTop = 16
+      ExplicitWidth = 105
+      ExplicitHeight = 105
+    end
+    object PnlFotos: TPanel
+      Left = 2
+      Top = 161
+      Width = 181
+      Height = 43
+      Align = alBottom
+      TabOrder = 0
+      object Button1: TButton
+        Left = 6
+        Top = 7
+        Width = 75
+        Height = 25
+        Caption = 'Cargar Foto'
+        TabOrder = 0
+        OnClick = Button1Click
+      end
+      object Button2: TButton
+        Left = 96
+        Top = 6
+        Width = 75
+        Height = 25
+        Caption = 'Borrar Foto'
+        TabOrder = 1
+        OnClick = Button2Click
+      end
+    end
+  end
+  object GpWeb: TGroupBox
+    Left = 567
+    Top = 505
+    Width = 161
+    Height = 97
+    Caption = 'Acceso Web'
+    TabOrder = 9
+    object Label33: TLabel
+      Left = 2
+      Top = 43
+      Width = 157
+      Height = 52
+      Margins.Left = 5
+      Margins.Right = 5
+      Align = alBottom
+      Caption = 
+        'Recuerde que la asociacion del alumno con usuario web es el mail' +
+        '. Verifique que sea el correcto.'
+      WordWrap = True
+      ExplicitWidth = 153
+    end
+    object CbHabilitarWeb: TCheckBox
+      Left = 8
+      Top = 15
+      Width = 118
+      Height = 17
+      Caption = 'Habilitar'
+      TabOrder = 0
+    end
+  end
+  object datospersonales: TGroupBox
+    Left = 2
+    Top = 27
+    Width = 921
+    Height = 150
+    Caption = 'Datos Personales'
+    Enabled = False
+    TabOrder = 3
+    object Label1: TLabel
+      Left = 9
+      Top = 22
+      Width = 37
+      Height = 13
+      Caption = 'Apellido'
+    end
+    object Label2: TLabel
+      Left = 286
+      Top = 22
+      Width = 37
+      Height = 13
+      Caption = 'Nombre'
+    end
+    object nombre: TEdit
+      Left = 328
+      Top = 16
+      Width = 249
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 25
+      TabOrder = 1
+      OnKeyPress = nombreKeyPress
+    end
+    object apellido: TEdit
+      Left = 50
+      Top = 16
+      Width = 231
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 25
+      TabOrder = 0
+      OnKeyPress = apellidoKeyPress
+    end
+    object PCDatos: TPageControl
+      Left = 2
+      Top = 43
+      Width = 917
+      Height = 105
+      ActivePage = TsWeb
+      Align = alBottom
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clBlack
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 2
+      object TsFicha: TTabSheet
+        Caption = 'Datos por Ficha'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ImageIndex = 1
+        ParentFont = False
+        object Label7: TLabel
+          Left = 1
+          Top = 7
+          Width = 71
+          Height = 13
+          Caption = 'Fecha de Nac.'
+        end
+        object Label8: TLabel
+          Left = 195
+          Top = 7
+          Width = 98
+          Height = 13
+          Caption = 'Lugar de Nacimiento'
+        end
+        object Label11: TLabel
+          Left = 410
+          Top = 7
+          Width = 70
+          Height = 13
+          Caption = 'Provincia Nac.'
+        end
+        object Label5: TLabel
+          Left = 643
+          Top = 7
+          Width = 62
+          Height = 13
+          Caption = 'Nacionalidad'
+        end
+        object Label30: TLabel
+          Left = 1
+          Top = 31
+          Width = 24
+          Height = 13
+          Caption = 'Sexo'
+        end
+        object Label6: TLabel
+          Left = 284
+          Top = 30
+          Width = 40
+          Height = 13
+          Caption = 'Est. Civil'
+        end
+        object Label31: TLabel
+          Left = 428
+          Top = 31
+          Width = 32
+          Height = 13
+          Caption = 'Celular'
+        end
+        object Label10: TLabel
+          Left = 587
+          Top = 31
+          Width = 31
+          Height = 13
+          Caption = 'Carac.'
+        end
+        object Label15: TLabel
+          Left = 685
+          Top = 31
+          Width = 42
+          Height = 13
+          Caption = 'Tel'#233'fono'
+        end
+        object Label9: TLabel
+          Left = 1
+          Top = 54
+          Width = 42
+          Height = 13
+          Caption = 'Domicilio'
+        end
+        object Label13: TLabel
+          Left = 293
+          Top = 54
+          Width = 46
+          Height = 13
+          Caption = 'Localidad'
+        end
+        object Label14: TLabel
+          Left = 491
+          Top = 53
+          Width = 65
+          Height = 13
+          Caption = 'C'#243'digo Postal'
+        end
+        object Label29: TLabel
+          Left = 616
+          Top = 53
+          Width = 29
+          Height = 13
+          Caption = 'E-Mail'
+        end
+        object Label54: TLabel
+          Left = 139
+          Top = 31
+          Width = 35
+          Height = 13
+          Caption = 'Genero'
+        end
+        object FechaNacimiento: TDateEdit
+          Left = 86
+          Top = 3
+          Width = 103
+          Height = 21
+          NumGlyphs = 2
+          TabOrder = 0
+        end
+        object LugarNacimiento: TEdit
+          Left = 299
+          Top = 3
+          Width = 105
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 15
+          TabOrder = 1
+          OnKeyPress = LugarNacimientoKeyPress
+        end
+        object Provincianacimiento: TComboBox
+          Left = 486
+          Top = 3
+          Width = 153
+          Height = 21
+          Sorted = True
+          TabOrder = 2
+          OnKeyPress = ProvincianacimientoKeyPress
+          Items.Strings = (
+            'BUENOS AIRES'
+            'CAPITAL FEDERAL'
+            'CATAMARCA'
+            'CHACO'
+            'CHUBUT'
+            'CORDOBA'
+            'CORRIENTES'
+            'ENTRE RIOS'
+            'FORMOSA'
+            'JUJUY'
+            'LA PAMPA'
+            'LA RIOJA'
+            'MENDOZA'
+            'MISIONES'
+            'NEUQUEN'
+            'RIO NEGRO'
+            'SALTA'
+            'SAN JUAN'
+            'SAN LUIS'
+            'SANTA CRUZ'
+            'SANTA FE'
+            'SANTIAGO DEL ESTERO'
+            'TIERRA DEL FUEGO'
+            'TUCUMAN')
+        end
+        object nacionalidad: TEdit
+          Left = 711
+          Top = 4
+          Width = 157
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 15
+          TabOrder = 3
+          OnKeyPress = nacionalidadKeyPress
+        end
+        object CmbSexo: TComboBox
+          Left = 46
+          Top = 26
+          Width = 87
+          Height = 21
+          TabOrder = 4
+          Items.Strings = (
+            'Femenino'
+            'Masculino')
+        end
+        object estadocivil: TComboBox
+          Left = 330
+          Top = 26
+          Width = 92
+          Height = 21
+          Style = csDropDownList
+          TabOrder = 6
+          OnKeyPress = estadocivilKeyPress
+          Items.Strings = (
+            'SOLTERO'
+            'CASADO'
+            'DIVORCIADO'
+            'VIUDO')
+        end
+        object celular: TEdit
+          Left = 466
+          Top = 27
+          Width = 116
+          Height = 21
+          MaxLength = 20
+          TabOrder = 7
+        end
+        object caracteristica: TEdit
+          Left = 625
+          Top = 27
+          Width = 53
+          Height = 21
+          MaxLength = 7
+          TabOrder = 8
+          OnKeyPress = caracteristicaKeyPress
+        end
+        object telefono: TEdit
+          Left = 735
+          Top = 27
+          Width = 135
+          Height = 21
+          MaxLength = 15
+          TabOrder = 9
+          OnKeyPress = telefonoKeyPress
+        end
+        object domicilio: TEdit
+          Left = 46
+          Top = 50
+          Width = 245
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 30
+          TabOrder = 10
+          OnKeyPress = domicilioKeyPress
+        end
+        object localidad: TEdit
+          Left = 345
+          Top = 50
+          Width = 141
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 25
+          TabOrder = 11
+          OnKeyPress = localidadKeyPress
+        end
+        object codigopostal: TEdit
+          Left = 560
+          Top = 50
+          Width = 49
+          Height = 21
+          MaxLength = 4
+          TabOrder = 12
+          OnKeyPress = codigopostalKeyPress
+        end
+        object mail: TEdit
+          Left = 649
+          Top = 50
+          Width = 248
+          Height = 21
+          MaxLength = 60
+          TabOrder = 13
+        end
+        object CbGenero: TComboBox
+          Left = 178
+          Top = 26
+          Width = 100
+          Height = 21
+          Style = csDropDownList
+          TabOrder = 5
+          Items.Strings = (
+            'S/Especificar'
+            'Cisgenero'
+            'Cissexual'
+            'Transgenero'
+            'Transexual'
+            'Cuigenero'
+            'Tercer Genero'
+            'Agenero'
+            'Genero Neutro'
+            'Intergenero'
+            'Androgino'
+            'Bigenero'
+            'Genero Fluido'
+            'Poligenero'
+            'Pangenero'
+            'SemiMujer'
+            'SemiHombre')
+        end
+      end
+      object TsWeb: TTabSheet
+        Caption = 'Datos por Web'
+        Enabled = False
+        ImageIndex = 1
+        object Label37: TLabel
+          Left = 1
+          Top = 7
+          Width = 71
+          Height = 13
+          Caption = 'Fecha de Nac.'
+        end
+        object Label38: TLabel
+          Left = 195
+          Top = 7
+          Width = 98
+          Height = 13
+          Caption = 'Lugar de Nacimiento'
+        end
+        object Label39: TLabel
+          Left = 410
+          Top = 7
+          Width = 70
+          Height = 13
+          Caption = 'Provincia Nac.'
+        end
+        object Label40: TLabel
+          Left = 643
+          Top = 7
+          Width = 62
+          Height = 13
+          Caption = 'Nacionalidad'
+        end
+        object Label41: TLabel
+          Left = 1
+          Top = 31
+          Width = 24
+          Height = 13
+          Caption = 'Sexo'
+        end
+        object Label42: TLabel
+          Left = 238
+          Top = 30
+          Width = 55
+          Height = 13
+          Caption = 'Estado Civil'
+        end
+        object Label46: TLabel
+          Left = 1
+          Top = 54
+          Width = 42
+          Height = 13
+          Caption = 'Domicilio'
+        end
+        object Label47: TLabel
+          Left = 293
+          Top = 54
+          Width = 46
+          Height = 13
+          Caption = 'Localidad'
+        end
+        object Label48: TLabel
+          Left = 410
+          Top = 31
+          Width = 32
+          Height = 13
+          Caption = 'Celular'
+        end
+        object Label49: TLabel
+          Left = 491
+          Top = 53
+          Width = 65
+          Height = 13
+          Caption = 'C'#243'digo Postal'
+        end
+        object Label50: TLabel
+          Left = 587
+          Top = 31
+          Width = 31
+          Height = 13
+          Caption = 'Carac.'
+        end
+        object Label51: TLabel
+          Left = 685
+          Top = 31
+          Width = 42
+          Height = 13
+          Caption = 'Tel'#233'fono'
+        end
+        object Label52: TLabel
+          Left = 617
+          Top = 53
+          Width = 29
+          Height = 13
+          Caption = 'E-Mail'
+        end
+        object WFechaNacimiento: TDateEdit
+          Left = 86
+          Top = 3
+          Width = 103
+          Height = 21
+          NumGlyphs = 2
+          TabOrder = 0
+        end
+        object WLugarNacimiento: TEdit
+          Left = 299
+          Top = 3
+          Width = 105
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 15
+          TabOrder = 1
+          OnKeyPress = LugarNacimientoKeyPress
+        end
+        object WProvinciaNacimiento: TComboBox
+          Left = 484
+          Top = 3
+          Width = 153
+          Height = 21
+          Sorted = True
+          TabOrder = 2
+          OnKeyPress = ProvincianacimientoKeyPress
+          Items.Strings = (
+            'BUENOS AIRES'
+            'CAPITAL FEDERAL'
+            'CATAMARCA'
+            'CHACO'
+            'CHUBUT'
+            'CORDOBA'
+            'CORRIENTES'
+            'ENTRE RIOS'
+            'FORMOSA'
+            'JUJUY'
+            'LA PAMPA'
+            'LA RIOJA'
+            'MENDOZA'
+            'MISIONES'
+            'NEUQUEN'
+            'RIO NEGRO'
+            'SALTA'
+            'SAN JUAN'
+            'SAN LUIS'
+            'SANTA CRUZ'
+            'SANTA FE'
+            'SANTIAGO DEL ESTERO'
+            'TIERRA DEL FUEGO'
+            'TUCUMAN')
+        end
+        object WCmbSexo: TComboBox
+          Left = 46
+          Top = 26
+          Width = 89
+          Height = 21
+          TabOrder = 4
+          Items.Strings = (
+            'Femenino'
+            'Masculino')
+        end
+        object WEstadoCivil: TComboBox
+          Left = 299
+          Top = 27
+          Width = 107
+          Height = 21
+          Style = csDropDownList
+          TabOrder = 5
+          OnKeyPress = estadocivilKeyPress
+          Items.Strings = (
+            'SOLTERO'
+            'CASADO'
+            'DIVORCIADO'
+            'VIUDO')
+        end
+        object WDomicilio: TEdit
+          Left = 46
+          Top = 50
+          Width = 245
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 30
+          TabOrder = 9
+          OnKeyPress = domicilioKeyPress
+        end
+        object WLocalidad: TEdit
+          Left = 345
+          Top = 50
+          Width = 141
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 25
+          TabOrder = 10
+          OnKeyPress = localidadKeyPress
+        end
+        object WCelular: TEdit
+          Left = 453
+          Top = 27
+          Width = 129
+          Height = 21
+          MaxLength = 20
+          TabOrder = 6
+        end
+        object WCodigopostal: TEdit
+          Left = 563
+          Top = 50
+          Width = 49
+          Height = 21
+          MaxLength = 4
+          TabOrder = 11
+          OnKeyPress = codigopostalKeyPress
+        end
+        object WCaracteristica: TEdit
+          Left = 625
+          Top = 27
+          Width = 53
+          Height = 21
+          MaxLength = 7
+          TabOrder = 7
+          OnKeyPress = caracteristicaKeyPress
+        end
+        object WNacionalidad: TEdit
+          Left = 711
+          Top = 4
+          Width = 157
+          Height = 21
+          CharCase = ecUpperCase
+          MaxLength = 15
+          TabOrder = 3
+          OnKeyPress = nacionalidadKeyPress
+        end
+        object WTelefono: TEdit
+          Left = 735
+          Top = 27
+          Width = 135
+          Height = 21
+          MaxLength = 15
+          TabOrder = 8
+          OnKeyPress = telefonoKeyPress
+        end
+        object WMail: TEdit
+          Left = 649
+          Top = 50
+          Width = 248
+          Height = 21
+          MaxLength = 80
+          TabOrder = 12
+        end
+      end
+    end
+  end
+  object GroupBox1: TGroupBox
+    Left = 474
+    Top = 379
+    Width = 254
+    Height = 127
+    Caption = 'Documentacion Entregada'
+    TabOrder = 15
+    object Label53: TLabel
+      Left = 5
+      Top = 37
+      Width = 63
+      Height = 13
+      Caption = 'Entregada el:'
+    end
+    object CbLIbreta: TCheckBox
+      Left = 5
+      Top = 14
+      Width = 140
+      Height = 17
+      Caption = 'Libreta confeccionada'
+      TabOrder = 0
+    end
+    object FechaLibreta: TDateEdit
+      Left = 76
+      Top = 34
+      Width = 87
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 1
+    end
+  end
+  object CbEstado: TComboBox
+    Left = 747
+    Top = 5
+    Width = 110
+    Height = 21
+    Style = csDropDownList
+    TabOrder = 16
+    Items.Strings = (
+      'Cursando'
+      'Pase'
+      'Egresado'
+      'No se sabe')
+  end
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
+    Left = 664
+    Top = 303
+  end
+  object OPDFoto: TOpenPictureDialog
+    Filter = 
+      'All (*.gif;*.jpg;*.jpeg;*.bmp)|*.gif;*.jpg;*.jpeg;*.bmp|JPEG Ima' +
+      'ge File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|Bitmaps (*' +
+      '.bmp)|*.bmp'
+    Left = 696
+    Top = 232
+  end
+end

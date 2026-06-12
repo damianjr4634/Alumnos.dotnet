@@ -1,0 +1,297 @@
+unit InscripcionesWeb;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, kbmMemTable, Grids, DBGrids, StdCtrls, Buttons, ExtCtrls, FuncionesDB,
+  FuncionesConfiguracion, FIBDatabase, pFIBDatabase, FIBQuery, pFIBQuery, DataModule;
+
+type
+  TFrmInscripcionesWeb = class(TForm)
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    Grilla: TDBGrid;
+    DataSource1: TDataSource;
+    MtInscripciones: TkbmMemTable;
+    MtInscripcionesCOD_ALU: TStringField;
+    MtInscripcionesNOMBRE: TStringField;
+    MtInscripcionesCOD_MAT: TStringField;
+    MtInscripcionesMATERIA: TStringField;
+    MtInscripcionesFECHA: TDateField;
+    IbupIns: TpFIBQuery;
+    Tr: TpFIBTransaction;
+    MtInscripcionesGRABA: TStringField;
+    MtInscripcionesTURNO: TStringField;
+    MtInscripcionesCUATRIM: TIntegerField;
+    MtInscripcionesINDICE: TIntegerField;
+    MtInscripcionesAPELLIDO: TStringField;
+    MtInscripcionesMATRIZ: TStringField;
+    procedure GrillaKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormCreate(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrillaEditButtonClick(Sender: TObject);
+    procedure MtPermisosSetText(Sender: TField; const Text: String);
+    procedure GrabamesaClick(Sender: TObject);
+    procedure CargaGrilla;
+  private
+
+  public
+
+  end;
+
+var
+  FrmInscripcionesWeb: TFrmInscripcionesWeb;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+implementation
+
+{$R *.dfm}
+
+uses
+  FuncionesText;
+
+procedure TFrmInscripcionesWeb.GrillaKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+Var b:Variant;
+    x:integer;
+begin
+   IF (grilla.SelectedField.FullName='COD_ALU') and (key=VK_F1) then begin
+       if Not (MtInscripciones.State=dsInsert) then
+          MtInscripciones.Append;
+       FuncionesDB.combobusqueda('SELECT COD_ALU, TRIM(APELLIDO)||'+#39+', '+#39'||TRIM(NOM_APE) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,True);
+       MtInscripciones.FieldByName('COD_ALU').AsString:=b[0];
+       MtInscripciones.FieldByName('NOMBRE').AsString:=b[1];
+   end
+   else IF (grilla.SelectedField.FullName='COD_MAT') and (key=VK_F1) then begin
+       if Not (MtInscripciones.State=dsInsert) then
+          MtInscripciones.Append;
+       FuncionesDB.combobusqueda('SELECT CODMAT, MATERIA, CONDICION, CUTUCO, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtInscripciones.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+')',['Codigo','Nombre','Condicion'],b,True);
+       if (b[4]=2) then begin
+             MessageDlg( Pchar(VNombreUsuario + vartostr(b[5])),mtInformation, [mbok],0,mbok);
+       end else if (b[4]=1) then begin
+              if MessageDlg(Pchar(VNombreUsuario + vartostr(b[5])),mtConfirmation,[mbyes,mbno],0,mbyes)=mrno  Then
+                  grilla.SelectedField.FieldName:='COD_MAT'
+              else begin
+                 MtInscripciones.FieldByName('COD_MAT').AsString:=b[0];
+                 MtInscripciones.FieldByName('MATERIA').AsString:=b[1];
+                 MtInscripciones.FieldByName('CUTUCO').AsInteger:=b[3];
+              end;
+       end else if (b[4]=0) then begin
+             MtInscripciones.FieldByName('COD_MAT').AsString:=b[0];
+             MtInscripciones.FieldByName('CUTUCO').AsInteger:=b[3];
+             MtInscripciones.FieldByName('MATERIA').AsString:=b[1];
+       end
+   end
+   else if (key=VK_RETURN) and ((vartostr(MtInscripciones.FieldByName(grilla.SelectedField.FullName).value)<>'') or not (MtInscripciones.FieldByName(grilla.SelectedField.FullName).Required)) then begin
+      for x:=MtInscripciones.Fields.IndexOf(Grilla.SelectedField)+1 to MtInscripciones.FieldCount-1 do begin
+        if not (Grilla.Columns.Items[x].ReadOnly) then begin
+          Grilla.SelectedField:=MtInscripciones.Fields.Fields[x];
+          break;
+        end
+      end
+   end
+   else if key=VK_DELETE	then begin
+      if MessageDlg(Pchar(VNombreUsuario + ', borra el permiso?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+         MtInscripciones.Delete;
+   end
+end;
+
+procedure TFrmInscripcionesWeb.FormCreate(Sender: TObject);
+begin
+  Tr.BeforeStart:=CustomerData.BaseBeforeStart;
+  MtInscripciones.Active:=True;
+end;
+
+procedure TFrmInscripcionesWeb.CancelaGrabacionClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmInscripcionesWeb.GrillaEditButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+ IF (grilla.SelectedField.FullName='COD_ALU')  then begin
+     if Not (MtInscripciones.State=dsInsert) then
+        MtInscripciones.Append;
+     FuncionesDB.combobusqueda('SELECT COD_ALU, TRIM(APELLIDO)||'+#39+', '+#39'||TRIM(NOM_APE) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,True);
+     MtInscripciones.FieldByName('COD_ALU').AsString:=b[0];
+     MtInscripciones.FieldByName('NOMBRE').AsString:=b[1];
+ end
+ else IF (grilla.SelectedField.FullName='COD_MAT') and not (MtInscripciones.FieldByName('COD_ALU').IsNull) then begin
+     if Not (MtInscripciones.State=dsInsert) then
+        MtInscripciones.Append;
+     FuncionesDB.combobusqueda('SELECT CODMAT, MATERIA, CONDICION, CUTUCO, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtInscripciones.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+')',['Codigo','Nombre','Condicion'],b,True);
+     if (b[4]=2) then begin
+             MessageDlg( Pchar(VNombreUsuario + vartostr(b[5])),mtInformation, [mbok],0,mbok);
+     end else if (b[4]=1) then begin
+              if MessageDlg(Pchar(VNombreUsuario + vartostr(b[5])),mtConfirmation,[mbyes,mbno],0,mbyes)=mrno  Then
+                  grilla.SelectedField.FieldName:='COD_MAT'
+              else begin
+                 MtInscripciones.FieldByName('COD_MAT').AsString:=b[0];
+                 MtInscripciones.FieldByName('MATERIA').AsString:=b[1];
+                 MtInscripciones.FieldByName('CUTUCO').AsInteger:=b[3];
+              end;
+     end else if (b[4]=0) then begin
+            MtInscripciones.FieldByName('COD_MAT').AsString:=b[0];
+            MtInscripciones.FieldByName('CUTUCO').AsInteger:=b[3];
+            MtInscripciones.FieldByName('MATERIA').AsString:=b[1];
+     end
+ end
+ else IF (grilla.SelectedField.FullName='MESA') and not (MtInscripciones.FieldByName('COD_MAT').IsNull) then begin
+     if Not (MtInscripciones.State=dsInsert) then
+        MtInscripciones.Append;
+     FuncionesDB.combobusqueda('SELECT M.MESA, M.LLAMADO, M.FECH_EXA, M.HORA, T.DESCRI FROM MESAS M LEFT OUTER JOIN MESA_TIPO T ON T.CODIGO=M.TIPMES WHERE M.CARRE='+#39+VCARRERA+#39+'AND M.COD_MAT='+#39+MtInscripciones.FieldByName('COD_MAT').Asstring+#39,['Mesa','Llamado','Fecha Exa.','Hora', 'Tipo'],b,True);
+     IF (vartostr(b[0])<>'') then begin
+         MtInscripciones.FieldByName('MESA').AsInteger:=b[0];
+         MtInscripciones.FieldByName('FECHA').AsDateTime:=b[2];//StrToDate(text2);
+     end
+ end
+end;
+
+procedure TFrmInscripcionesWeb.MtPermisosSetText(Sender: TField;
+  const Text: String);
+var b:Variant;
+begin
+  if (text<>'') then begin
+       sender.AsString:=UpperCase(text);
+       if (Sender.FullName='COD_ALU') then begin
+            MtInscripciones.FieldByName('NOMBRE').AsString:=null;
+            FuncionesDB.combobusqueda('SELECT COD_ALU, TRIM(NOM_APE)||'+#39+', '+#39'||TRIM(APELLIDO) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' AND COD_ALU='+#39+text+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,False);
+            MtInscripciones.FieldByName('NOMBRE').AsString:=b[1];
+       end
+       else if (Sender.FullName='COD_MAT') then begin
+            MtInscripciones.FieldByName('CUTUCO').AsInteger:=null;//strToInt(text2);
+            MtInscripciones.FieldByName('MATERIA').Value:=null;
+            FuncionesDB.combobusqueda('SELECT CODMAT, MATERIA, CUTUCO, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtInscripciones.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+') WHERE CODMAT='+#39+text+#39,['Codigo','Nombre'],b,False);
+       end;
+       If vartostr(b[0])='' Then begin
+          if (MtInscripciones.State=DsInsert) then begin
+              MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+              Sender.AsString:='';
+              abort;
+          end
+       end
+       else if (Sender.FullName='COD_MAT') then begin
+            if (b[3]=2) then begin
+                MessageDlg(Pchar(VNombreUsuario + vartostr(b[4])),mtInformation, [mbok],0,mbok);
+                Sender.AsString:='';
+                abort;
+            end
+            else if (b[3]=1) then begin
+              if MessageDlg(Pchar(VNombreUsuario + vartostr(b[4])),mtConfirmation,[mbyes,mbno],0,mbyes)=mrno  Then begin
+                  Sender.AsString:='';
+                  abort;
+              end
+              else begin
+                  Sender.AsString:=b[0];
+                  MtInscripciones.FieldByName('CUTUCO').AsInteger:=b[2];//strToInt(text2);
+                  MtInscripciones.FieldByName('MATERIA').Value:=b[1];
+              end;
+            end
+            else if (b[3]=0) then begin
+               Sender.AsString:=b[0];
+               MtInscripciones.FieldByName('CUTUCO').AsInteger:=b[2];//strToInt(text2);
+               MtInscripciones.FieldByName('MATERIA').Value:=b[1];
+            end
+       end
+  end
+  else begin
+        case Sender.DataType of
+          ftInteger:
+              Sender.AsInteger:=0;
+          else
+              Sender.AsString:='';
+        end;
+
+        Abort;
+  end
+end;
+
+procedure TFrmInscripcionesWeb.GrabamesaClick(Sender: TObject);
+var
+  indcursada: integer;
+begin
+if (MtInscripciones.State in [Dsinsert,DsEdit]) then
+   MtInscripciones.Post;
+if (MtInscripciones.RecordCount=0) then
+   exit;
+if MessageDlg(Pchar(VNombreUsuario + ', graba las inscripciones?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then begin
+    MtInscripciones.First;
+
+    MtInscripciones.Active:=True;
+    while not MtInscripciones.Eof do begin
+       if (UpperCase(MtInscripciones.Fieldbyname('GRABA').AsString)='SI') then begin
+          DataModule.CustomerData.TRUPVarios.Active:=False;
+          DataModule.CustomerData.IBUPVarios.SQL.Clear;
+          DataModule.CustomerData.IBUPVarios.SQL.Text:='INSERT INTO CURSADA(COD_ALU,APELLIDO,CARRE,CUTUCO,'+
+                                                       ' CUA_ANIO,MATRIZ,INSTITUT,CARAC,CONDICION,COD_MAT,NREG,USUARIO) ' +
+                                                       'VALUES(:COD_ALU,:APELLIDO,:CARRE,:CUTUCO, '+
+                                                       ' :CUA_ANIO,:MATRIZ,:INSTITUT,:CARAC,:CONDICION,:COD_MAT,0,:USUARIO) returning indice';
+          DataModule.CustomerData.IBUpVarios.ParamByName('APELLIDO').AsString:=MtInscripciones.FieldByName('APELLIDO').AsString;
+          DataModule.CustomerData.IBUpVarios.ParamByName('CARRE').AsString:=VCarrera;
+          DataModule.CustomerData.IBUpVarios.ParamByName('CUTUCO').AsInteger:=900 + (StrToInt(MtInscripciones.FieldByName('TURNO').AsString)*10) + 1;
+          DataModule.CustomerData.IBUpVarios.ParamByName('CUA_ANIO').AsString:=Cuatrimestre(vcarrera);
+          DataModule.CustomerData.IBUpVarios.ParamByName('MATRIZ').AsString:=MtInscripciones.FieldByName('MATRIZ').AsString;
+          DataModule.CustomerData.IBUpVarios.ParamByName('INSTITUT').AsString:=VInstituto;
+          DataModule.CustomerData.IBUpVarios.ParamByName('CARAC').AsString:=VCaracteristica;
+          DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString:='CURSANDO';
+          DataModule.CustomerData.IBUpVarios.ParamByName('COD_ALU').AsString:=MtInscripciones.FieldByName('COD_ALU').AsString;
+          DataModule.CustomerData.IBUpVarios.ParamByName('COD_MAT').AsString:=MtInscripciones.FieldByName('COD_MAT').AsString;
+          DataModule.CustomerData.IBUpVarios.ParamByName('USUARIO').value:=FuncionesConfiguracion.codusu;
+          DataModule.CustomerData.TrUPVarios.Active:=True;
+          DataModule.CustomerData.IBUPVarios.ExecQuery;
+          indcursada:= DataModule.CustomerData.IBUPVarios.FieldByName('INDICE'}.AsInteger;
+          DataModule.CustomerData.IBUPVarios.SQL.Clear;
+          DataModule.CustomerData.IBUPVarios.SQL.Text:= 'update WEB_INSCRIPCIONES wp set estado=:estado, indcursada=:indcursada where wp.indice=:indice';
+
+          DataModule.CustomerData.IBUpVarios.ParamByName('indcursada').AsInteger:=indcursada;
+
+          DataModule.CustomerData.IBUpVarios.ParamByName('INDICE').AsInteger:=MtInscripciones.FieldByName('INDICE').AsInteger;
+          DataModule.CustomerData.IBUpVarios.ParamByName('ESTADO').AsString:='APROBADO';
+          DataModule.CustomerData.IBUPVarios.ExecQuery;
+          DataModule.CustomerData.TRUPVarios.Commit;
+          DataModule.CustomerData.TRUPVarios.Active:=False;
+       end
+       else if (UpperCase(MtInscripciones.Fieldbyname('GRABA').AsString)='ELIMINA') then begin
+          DataModule.CustomerData.TRUPVarios.Active:=False;
+          DataModule.CustomerData.IBUPVarios.SQL.Clear;
+          DataModule.CustomerData.IBUPVarios.SQL.Text:= 'update WEB_INSCRIPCIONES wp set estado=:estado, indcursada=-1 where wp.indice=:indice';
+          DataModule.CustomerData.IBUpVarios.ParamByName('INDICE').AsInteger:=MtInscripciones.FieldByName('INDICE').AsInteger;
+          DataModule.CustomerData.IBUpVarios.ParamByName('ESTADO').AsString:='ELIMINADO';
+          DataModule.CustomerData.IBUPVarios.ExecQuery;
+          DataModule.CustomerData.TRUPVarios.Commit;
+          DataModule.CustomerData.TRUPVarios.Active:=False;
+       end;
+       MtInscripciones.Next;
+    end;
+    MtInscripciones.Commit;
+    MtInscripciones.Active:=False;
+    MessageDlg(Pchar(VNombreUsuario + ', permisos grabados'),mtInformation, [mbok],0,mbok);
+    close;
+end;
+end;
+
+procedure TFrmInscripcionesWeb.CargaGrilla;
+var
+  query: string;
+begin
+  MtInscripciones.Active:=false;
+  MtInscripciones.Active:=True;
+  query:= 'select a.cod_alu, a.nom_ape as nombre, a.apellido, wp.materia as cod_mat, m.descripci as materia, '+
+          '       wp.fecha, wp.indice, wp.turno, m.cuatrim, a.matriz '+
+          ' from WEB_INSCRIPCIONES wp '+
+          ' left outer join alumnos a on a.indice = wp.alumno '+
+          ' left outer join materias m on m.codmateri=wp.materia and m.codcarre = wp.carrera '+
+          ' where wp.indcursada is null and wp.estado=''PENDIENTE'' and wp.carrera = '''+VCarrera+'''';
+  FuncionesDB.Carga_MemTable(query,MtInscripciones,false);
+
+end;
+
+end.

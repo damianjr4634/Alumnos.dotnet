@@ -1,0 +1,128 @@
+unit FuncionesSystem;
+
+interface
+
+Uses
+  SysUtils, Printers, Windows, GmTypes, GmPreview, Messages, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Db, Grids, DBGrids, OleServer, ExcelXP, ComCtrls,
+  busqueda,FIBDatabase, pFIBDatabase, FIBQuery,
+  pFIBQuery, FIBDataSet, pFIBDataSet, Variants, kbmMemTable, DataModule;
+
+
+
+function GetVolumeID(DriveChar: Char): String;
+function GetUserName : String;
+function GetAppVersion:string;
+function CustomMessageDialog(const Msg: string; DlgType: TMsgDlgType;
+                             Buttons: TMsgDlgButtons; Captions: array of string): Integer;
+function GenID(Var PsIdGraf: String): String;
+function GetTempDirectory: String;
+
+implementation
+
+function GetTempDirectory: String;
+var
+  tempFolder: array[0..MAX_PATH] of Char;
+begin
+  GetTempPath(MAX_PATH, @tempFolder);
+  result := StrPas(tempFolder);
+end;
+
+Function GenID(Var PsIdGraf: String): String;
+Var
+  lGUIDIdentif: TGUID; //Objeto para obtener el Identificador único global
+Begin
+  Result := 'Nada';
+  Try
+    //Obtiene un identificador único global
+    CreateGUID(lGUIDIdentif);
+    //Convierte el identificador obtenido a formato cadena
+    PsIdGraf := StringReplace(StringReplace(StringReplace(GUIDToString(lGUIDIdentif), '-', '',[rfReplaceAll]), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Except
+    on Err : Exception do
+      Result := Err.Message;
+  End;
+End;
+
+function CustomMessageDialog(const Msg: string; DlgType: TMsgDlgType;
+  Buttons: TMsgDlgButtons; Captions: array of string): Integer;
+var
+  aMsgDlg: TForm;
+  i: Integer;
+  dlgButton: TButton;
+  CaptionIndex: Integer;
+begin
+  { Create the Dialog }
+  aMsgDlg := CreateMessageDialog(Msg, DlgType, Buttons);
+  captionIndex := 0;
+  { Loop through Objects in Dialog }
+  for i := 0 to aMsgDlg.ComponentCount - 1 do
+  begin
+   { If the object is of type TButton, then }
+    if (aMsgDlg.Components[i] is TButton) then
+    begin
+      dlgButton := TButton(aMsgDlg.Components[i]);
+      if CaptionIndex > High(Captions) then Break;
+      { Give a new caption from our Captions array}
+      dlgButton.Caption := Captions[CaptionIndex];
+      Inc(CaptionIndex);
+    end;
+  end;
+  Result := aMsgDlg.ShowModal;
+end;
+
+Function GetUserName : String;
+Var
+    pcUser   : PChar;
+    dwUSize : DWORD;
+Begin
+    dwUSize := 21;
+    GetMem( pcUser, dwUSize );
+    try
+       if Windows.GetUserName( pcUser, dwUSize ) then
+          Result := pcUser
+    finally
+       FreeMem( pcUser );
+    end;
+End;
+
+Function GetVolumeID(DriveChar: Char): String;
+  Var
+    MaxFileNameLength, VolFlags, SerNum: DWord;
+  Begin
+   if GetVolumeInformation(PChar(DriveChar + ':\'), nil, 0, @SerNum, MaxFileNameLength, VolFlags, nil, 0) Then
+    begin
+     Result := IntToHex(SerNum,8);
+     Insert('-', Result, 5);
+    end
+   else
+     Result := '';
+End;
+
+function  GetAppVersion:string;
+var
+    Size, Size2: DWord;
+    Pt, Pt2: Pointer;
+begin
+     Size := GetFileVersionInfoSize(PChar (ParamStr (0)), Size2);
+     if Size > 0 then
+     begin
+       GetMem (Pt, Size);
+       try
+          GetFileVersionInfo (PChar (ParamStr (0)), 0, Size, Pt);
+          VerQueryValue (Pt, '\', Pt2, Size2);
+          with TVSFixedFileInfo (Pt2^) do
+          begin
+            Result:= ' Ver '+
+                     IntToStr (HiWord (dwFileVersionMS)) + '.' +
+                     IntToStr (LoWord (dwFileVersionMS)) ;{+ '.' +
+                     IntToStr (HiWord (dwFileVersionLS)) + '.' +
+                     IntToStr (LoWord (dwFileVersionLS));}
+         end;
+       finally
+         FreeMem (Pt);
+       end;
+     end;
+end;
+
+end.

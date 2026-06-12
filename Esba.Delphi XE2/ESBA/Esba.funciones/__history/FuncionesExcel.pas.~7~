@@ -1,0 +1,268 @@
+unit FuncionesExcel;
+
+interface
+
+Uses
+  SysUtils, Printers, Windows, GmTypes, GmPreview, Messages, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Db, Grids, DBGrids, OleServer, ExcelXP, ComCtrls,
+  busqueda,FIBDatabase, pFIBDatabase, FIBQuery,
+  pFIBQuery, FIBDataSet, pFIBDataSet, Variants, kbmMemTable, DataModule;
+
+
+Procedure Exportar_Excel_DS(Sql:TpFIBDataSet); overload;
+Procedure Exportar_Excel_DS(Sql:TpFIBDataSet;Fields:Array Of String; Titles: Array of String); overload;
+Procedure Exportar_Excel_MT(MT:TKbmMemtable);
+Procedure Exportar_Excel_DS_Hojas(Sql:TpFIBDataSet; Const FieldCorte, FieldNombreHoja:String; Fields:Array Of String; Titles: Array of String);
+
+implementation
+
+Procedure Exportar_Excel_MT(MT:TKbmMemtable);
+Var
+  FrmProgress: TForm;
+  Barra : TProgressBar;
+  AppExcel: TExcelApplication;
+  Libro : _WORKBOOK;
+  Hoja  : _WORKSHEET;
+  x : Integer;
+Begin
+  Try
+     Mt.First;
+     FrmProgress := TForm.Create(Application);
+     FrmProgress.Caption := 'Exportando.....0%';
+     FrmProgress.Position := poDesktopCenter;
+     FrmProgress.Width := 400;
+     FrmProgress.Height := 60;
+     FrmProgress.BorderStyle := bsDialog;
+     FrmProgress.Show;
+     Barra := TProgressBar.Create(FrmProgress);
+     Barra.Parent := FrmProgress;
+     Barra.Visible := True;
+     Barra.Align := AlClient;
+     Barra.Max := Mt.RecordCount;
+     Barra.Min := 0;
+     Barra.Step := 1;
+     Barra.Smooth := True;
+  Finally
+
+  End;
+  Try
+    AppExcel:= TExcelApplication.Create(Nil);
+  Except
+    ShowMessage('Excel no se pudo iniciar.');
+    Exit;
+  End;
+  Libro := AppExcel.Workbooks.Add('',0);
+  Hoja  := Libro.Sheets[1] as _WORKSHEET;
+  For x:= 0 to Mt.FieldCount-1 Do
+    AppExcel.Cells.Item[1,Chr(X+65)] :=  Mt.Fields.Fields[x].DisplayLabel;
+  While Not Mt.Eof Do
+    Begin
+      For x:= 0 to Mt.FieldCount-1 Do begin
+        case Mt.Fields[x].DataType of
+          ftString:
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  Mt.Fields[x].AsString;
+          ftInteger, ftWord, ftSmallint, ftLargeint:
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  IntToStr(Mt.Fields[x].value);
+          ftFloat, ftCurrency, ftBCD, ftSingle:
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  FloatToStr(Mt.Fields[x].value);
+          ftDate:
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  FormatDateTime('mm/dd/yyyy', Mt.Fields[x].value);
+          ftTime:
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  FormatDateTime('hh:nn:ss',Mt.Fields[x].value);
+          ftDateTime:
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  FormatDateTime('dd/mm/yyyy hh:nn:ss',Mt.Fields[x].value);
+          else
+            AppExcel.Cells.Item[(Mt.RecNo+1),Chr(X+65)] :=  Mt.Fields[x].value;
+        end;
+      end;
+      Mt.Next;
+      Barra.StepIt;
+      FrmProgress.Caption := 'Exportando.....'+FloatToStr(Int((Mt.RecNo/Barra.Max)*100))+'%';
+      FrmProgress.Refresh;
+    End;
+  AppExcel.Visible[0] := True;
+  AppExcel.Free;
+  FrmProgress.Free;
+End;
+
+Procedure Exportar_Excel_DS(Sql:TpFIBDataSet);
+Var
+  FrmProgress: TForm;
+  Barra : TProgressBar;
+  AppExcel: TExcelApplication;
+  Libro : _WORKBOOK;
+  Hoja  : _WORKSHEET;
+  x : Integer;
+Begin
+  Try
+     Sql.First;
+     Sql.FetchAll;
+     FrmProgress := TForm.Create(Application);
+     FrmProgress.Caption := 'Exportando.....0%';
+     FrmProgress.Position := poDesktopCenter;
+     FrmProgress.Width := 400;
+     FrmProgress.Height := 60;
+     FrmProgress.BorderStyle := bsDialog;
+     FrmProgress.Show;
+     Barra := TProgressBar.Create(FrmProgress);
+     Barra.Parent := FrmProgress;
+     Barra.Visible := True;
+     Barra.Align := AlClient;
+     Barra.Max := Sql.RecordCount;
+     Barra.Min := 0;
+     Barra.Step := 1;
+     Barra.Smooth := True;
+  Finally
+
+  End;
+  Try
+    AppExcel:= TExcelApplication.Create(Nil);
+  Except
+    ShowMessage('Excel no se pudo iniciar.');
+    Exit;
+  End;
+  Libro := AppExcel.Workbooks.Add('',0);
+  Hoja  := Libro.Sheets[1] as _WORKSHEET;
+  For x:= 0 to Length(Fields)-1 Do
+    AppExcel.Cells.Item[1,Chr(X+65)] :=  Titles[x];
+  While Not Sql.Eof Do
+    Begin
+      For x:= 0 to Length(Fields)-1 Do
+         AppExcel.Cells.Item[(Sql.RecNo+1),Chr(X+65)] :=  Sql.FieldByName(Fields[x]).AsString;
+      Sql.Next;
+      Barra.StepIt;
+      FrmProgress.Caption := 'Exportando.....'+FloatToStr(Int((Sql.RecNo/Barra.Max)*100))+'%';
+      FrmProgress.Refresh;
+    End;
+  AppExcel.Visible[0] := True;
+  AppExcel.Free;
+  FrmProgress.Free;
+End;
+
+Procedure Exportar_Excel_DS(Sql:TpFIBDataSet;Fields:Array Of String; Titles: Array of String);
+Var
+  FrmProgress: TForm;
+  Barra : TProgressBar;
+  AppExcel: TExcelApplication;
+  Libro : _WORKBOOK;
+  Hoja  : _WORKSHEET;
+  x : Integer;
+Begin
+  Try
+     Sql.First;
+     Sql.FetchAll;
+     FrmProgress := TForm.Create(Application);
+     FrmProgress.Caption := 'Exportando.....0%';
+     FrmProgress.Position := poDesktopCenter;
+     FrmProgress.Width := 400;
+     FrmProgress.Height := 60;
+     FrmProgress.BorderStyle := bsDialog;
+     FrmProgress.Show;
+     Barra := TProgressBar.Create(FrmProgress);
+     Barra.Parent := FrmProgress;
+     Barra.Visible := True;
+     Barra.Align := AlClient;
+     Barra.Max := Sql.RecordCount;
+     Barra.Min := 0;
+     Barra.Step := 1;
+     Barra.Smooth := True;
+  Finally
+
+  End;
+  Try
+    AppExcel:= TExcelApplication.Create(Nil);
+  Except
+    ShowMessage('Excel no se pudo iniciar.');
+    Exit;
+  End;
+  Libro := AppExcel.Workbooks.Add('',0);
+  Hoja  := Libro.Sheets[1] as _WORKSHEET;
+  For x:= 0 to Length(Fields)-1 Do
+    AppExcel.Cells.Item[1,Chr(X+65)] :=  Titles[x];
+  While Not Sql.Eof Do
+    Begin
+      For x:= 0 to Length(Fields)-1 Do
+         AppExcel.Cells.Item[(Sql.RecNo+1),Chr(X+65)] :=  Sql.FieldByName(Fields[x]).AsString;
+      Sql.Next;
+      Barra.StepIt;
+      FrmProgress.Caption := 'Exportando.....'+FloatToStr(Int((Sql.RecNo/Barra.Max)*100))+'%';
+      FrmProgress.Refresh;
+    End;
+  AppExcel.Visible[0] := True;
+  AppExcel.Free;
+  FrmProgress.Free;
+End;
+
+Procedure Exportar_Excel_DS_Hojas(Sql:TpFIBDataSet; Const FieldCorte, FieldNombreHoja:String; Fields:Array Of String; Titles: Array of String);
+Var
+  FrmProgress: TForm;
+  Barra : TProgressBar;
+  AppExcel: TExcelApplication;
+  Libro : _WORKBOOK;
+  Hoja  : _WORKSHEET;
+  x, ContHojas,totalHojas, Contline : Integer;
+  DatoCorte:Variant;
+Begin
+  Try
+     Sql.First;
+     Sql.FetchAll;
+     FrmProgress := TForm.Create(Application);
+     FrmProgress.Caption := 'Exportando.....0%';
+     FrmProgress.Position := poDesktopCenter;
+     FrmProgress.Width := 400;
+     FrmProgress.Height := 60;
+     FrmProgress.BorderStyle := bsDialog;
+     FrmProgress.Show;
+     Barra := TProgressBar.Create(FrmProgress);
+     Barra.Parent := FrmProgress;
+     Barra.Visible := True;
+     Barra.Align := AlClient;
+     Barra.Max := Sql.RecordCount;
+     Barra.Min := 0;
+     Barra.Step := 1;
+     Barra.Smooth := True;
+  Finally
+
+  End;
+  Try
+    AppExcel:= TExcelApplication.Create(Nil);
+  Except
+    ShowMessage('Excel no se pudo iniciar.');
+    Exit;
+  End;
+  Libro := AppExcel.Workbooks.Add('',0);
+  TotalHojas:=Libro.Worksheets.Count;
+  ContHojas:=1;
+  While Not Sql.Eof Do
+    Begin
+      if VarIsEmpty(DatoCorte) or (Sql.FieldByName(FieldCorte).Value<>DatoCorte) then begin
+          if totalhojas<conthojas then
+             Libro.Sheets.Add(EmptyParam,Libro.Sheets[Libro.Sheets.Count],1,xlWorksheet,0);
+          Hoja:=Libro.WorkSheets.Get_Item(ContHojas) as _WorkSheet;
+          Hoja.Name:=Sql.FieldByName(FieldNombreHoja).Value;
+          DatoCorte:=Sql.FieldByName(FieldCorte).Value;
+          ContHojas:=ContHojas+1;
+          TotalHojas:=Libro.Worksheets.Count;
+          contLine:=2;
+          For x:= 0 to High(Fields) Do begin
+               if (Length(Titles) = 0) then
+                 Hoja.Cells.Item[1,Chr(X+65)] :=  Sql.FieldByName(Fields[x]).DisplayName
+               else
+                 Hoja.Cells.Item[1,Chr(X+65)] :=  Titles[x];
+          end;
+      end;
+      For x:= 0 to High(Fields) Do begin
+          Hoja.Cells.Item[contline,Chr(X+65)] :=  Sql.FieldByName(Fields[x]).value;
+      end;
+      contline:=contline+1;
+      Sql.Next;
+      Barra.StepIt;
+      FrmProgress.Caption := 'Exportando.....'+FloatToStr(Int((Sql.RecNo/Barra.Max)*100))+'%';
+      FrmProgress.Refresh;
+    End;
+  AppExcel.Visible[0] := True;
+  AppExcel.Free;
+  FrmProgress.Free;
+End;
+
+end.

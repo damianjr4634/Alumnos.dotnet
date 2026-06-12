@@ -1,0 +1,76 @@
+unit sesion;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, Buttons, Funciones, DataModule;
+
+type
+  Tiniciodesesion = class(TForm)
+    nombre: TEdit;
+    password: TEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    ok: TBitBtn;
+    BitBtn2: TBitBtn;
+    procedure okClick(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure passwordKeyPress(Sender: TObject; var Key: Char);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  iniciodesesion: Tiniciodesesion;
+  Pasa : Boolean;
+  codusu : Integer;
+
+implementation
+
+{$R *.DFM}
+
+
+procedure Tiniciodesesion.okClick(Sender: TObject);
+begin
+ Pasa:=True;
+ CustomerData.Connect;
+ CustomerData.FDSUsuarios.ParamByName('NOM').AsString := Nombre.Text;
+ CustomerData.FDSUsuarios.Active := True;
+ CustomerData.FDSUsuarios.First;
+ If (CustomerData.FDSUsuarios.FieldByName('NOMBRE').AsString <> '') Then
+   Begin
+    If EncriptoCadena(CustomerData.FDSUsuarios.FieldByName('PASSWD').AsString) <> IniciodeSesion.password.Text Then
+      Begin
+        MessageBox(IniciodeSesion.Handle,'Nombre de usuario o password incorrecto','Error de logueo',MB_OK+MB_ICONERROR+MB_APPLMODAL);
+        Pasa:=False;
+      End
+    Else begin
+        IniciodeSesion.Close;
+        codusu := customerdata.FDSUsuarios.FieldByname('CODUSU').Value;
+    end
+   End
+ Else
+   Begin
+     MessageBox(IniciodeSesion.Handle,'Nombre de usuario o password incorrecto','Error de logueo',MB_OK+MB_ICONERROR+MB_APPLMODAL);
+     Pasa:=False;
+   End;
+ CustomerData.FDSUsuarios.Active := False;
+ CustomerData.DisConnect;
+end;
+
+procedure Tiniciodesesion.BitBtn2Click(Sender: TObject);
+begin
+  Pasa := False;
+  IniciodeSesion.Close;
+end;
+
+procedure Tiniciodesesion.passwordKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+    OkClick(Sender);
+end;
+
+end.

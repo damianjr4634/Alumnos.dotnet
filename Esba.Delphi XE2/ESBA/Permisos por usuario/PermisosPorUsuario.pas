@@ -1,0 +1,234 @@
+unit PermisosPorUsuario;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons, Vcl.StdCtrls, Vcl.ExtCtrls,
+  FuncionesDB, Vcl.Mask, RXToolEdit, DataModule;
+
+type
+  TFrmPermisosUsuario = class(TForm)
+    Panel1: TPanel;
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    GroupBox3: TGroupBox;
+    LstDisponibles: TListBox;
+    LstHabilitadas: TListBox;
+    BtnPuno: TButton;
+    BtnPTodos: TButton;
+    BtnSUno: TButton;
+    BtnStodos: TButton;
+    BtnGrabar: TBitBtn;
+    BtnSalir: TBitBtn;
+    Panel2: TPanel;
+    Label1: TLabel;
+    Usuario: TComboEdit;
+    LblUsuario: TLabel;
+    BtnCargar: TButton;
+    procedure UsuarioButtonClick(Sender: TObject);
+    procedure UsuarioExit(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure BtnCargarClick(Sender: TObject);
+    procedure UsuarioChange(Sender: TObject);
+    procedure BtnPunoClick(Sender: TObject);
+    procedure BtnSUnoClick(Sender: TObject);
+    procedure BtnPTodosClick(Sender: TObject);
+    procedure BtnStodosClick(Sender: TObject);
+    procedure BtnSalirClick(Sender: TObject);
+    procedure BtnGrabarClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    Procedure SetButtons;
+  end;
+
+var
+  FrmPermisosUsuario: TFrmPermisosUsuario;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmPermisosUsuario.BtnCargarClick(Sender: TObject);
+begin
+  With Datamodule.CustomerData do begin
+     LstHabilitadas.Items.Clear;
+     LstDisponibles.Items.Clear;
+     if trDsVarios.Active then
+        TrDsVarios.Rollback;
+     IbDsVarios.Active:=False;
+     IbDsVarios.SQLs.SelectSQL.Text:='SELECT CADENA, HABILITA FROM YYY_SEGU_OPCIONES('+Usuario.text+')';
+     trDsVarios.Active:=True;
+     IbDsVarios.Active:=True;
+     while Not IbDsVarios.Eof do begin
+        if IbdsVarios.FieldByName('HABILITA').AsString='S' then
+           LstHabilitadas.Items.Add(IbdsVarios.FieldByName('CADENA').AsString)
+        else
+           LstDisponibles.Items.Add(IbdsVarios.FieldByName('CADENA').AsString);
+        IbDsVarios.Next;
+     end;
+     TrDsVarios.Rollback;
+     IbDsVarios.Active:=False;
+     GroupBox1.Enabled:=True;
+     GroupBox2.Enabled:=True;
+     GroupBox3.Enabled:=True;
+     BtnGrabar.Enabled:=True;
+     SetButtons;
+  end;
+end;
+
+procedure TFrmPermisosUsuario.BtnGrabarClick(Sender: TObject);
+Var Query:String;
+    x: Integer;
+begin
+  query:='SELECT FERRCOD, FERRMSG FROM YYY_SEGU_GRABA('+Usuario.Text+','+#39;
+  for x := 0 to LstHabilitadas.Items.Count-1 do begin
+      query:=query+LstHabilitadas.Items.Strings[x]+'&';
+  end;
+  Query:=Query+#39+')';
+  With Datamodule.CustomerData do begin
+     if trUpVarios.Active then
+        TrUpVarios.Rollback;
+     IbUpVarios.SQL.Text:=query;
+     trUpVarios.Active:=True;
+     IbUpVarios.ExecQuery;
+     If (IBupVarios.FieldByName('FERRCOD').AsInteger=2) Then Begin
+                MessageDlg(IBUpVarios.FieldByName('FERRMSG').AsString,mtError,[mbok],0,mbok);
+                TRUpVarios.Rollback;
+                TRUpVarios.Active := False;
+                IBUpVarios.Close;
+     End
+     ELSE If (IBUpVarios.FieldByName('FERRCOD').AsInteger=1) and
+                 (MessageDlg(IBUpVarios.FieldByName('FERRMSG').AsString,mtConfirmation,[mbyes,mbno],0,mbyes)=mryes) then begin
+                  TRUpVarios.Commit;
+                  TRUpVarios.Active := False;
+                  IBUpVarios.Close;
+     End
+     else If (IBUpVarios.FieldByName('FERRCOD').AsInteger=0) then begin
+                  TRUpVarios.Commit;
+                  TRUpVarios.Active := False;
+                  IBUpVarios.Close;
+     end
+     else begin
+                TRUpVarios.Rollback;
+                TRUpVarios.Active := False;
+                IBUpVarios.Close;
+     end;
+  end;
+end;
+
+procedure TFrmPermisosUsuario.BtnPTodosClick(Sender: TObject);
+Var
+  i : Integer;
+begin
+  For i := (LstDisponibles.Items.Count - 1) DownTo 0 Do
+    Begin
+       LstHabilitadas.Items.Add(LstDisponibles.Items.Strings[i]);
+       LstDisponibles.Items.Delete(i);
+    End;
+  SetButtons;
+end;
+
+procedure TFrmPermisosUsuario.BtnPunoClick(Sender: TObject);
+Var
+   i : Integer;
+begin
+ If LstDisponibles.ItemIndex <> -1 Then
+  Begin
+     For i := (LstDisponibles.Items.Count - 1) DownTo 0 Do
+      Begin
+        If LstDisponibles.Selected[i] Then
+          Begin
+            LstHabilitadas.Items.Add(LstDisponibles.Items.Strings[i]);
+            LstDisponibles.Items.Delete(i);
+          End;
+      End;
+    SetButtons;
+  End;
+end;
+
+procedure TFrmPermisosUsuario.BtnSalirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmPermisosUsuario.BtnStodosClick(Sender: TObject);
+Var
+  i : Integer;
+begin
+  For i := (LstHabilitadas.Items.Count - 1) DownTo 0 Do
+    Begin
+       LstDisponibles.Items.Add(LstHabilitadas.Items.Strings[i]);
+       LstHabilitadas.Items.Delete(i);
+    End;
+  SetButtons;
+end;
+
+procedure TFrmPermisosUsuario.BtnSUnoClick(Sender: TObject);
+Var
+   i : Integer;
+begin
+ If LstHabilitadas.ItemIndex <> -1 Then
+  Begin
+     For i := (LstHabilitadas.Items.Count - 1) DownTo 0 Do
+      Begin
+        If LstHabilitadas.Selected[i] Then
+          Begin
+            LstDisponibles.Items.Add(LstHabilitadas.Items.Strings[i]);
+            LstHabilitadas.Items.Delete(i);
+          End;
+      End;
+    SetButtons;
+  End;
+end;
+
+procedure TFrmPermisosUsuario.FormCreate(Sender: TObject);
+begin
+  LblUsuario.Caption:='';
+  GroupBox1.Enabled:=False;
+  GroupBox2.Enabled:=False;
+  GroupBox3.Enabled:=False;
+  BtnGrabar.Enabled:=False;
+  BtnCargar.Enabled:=False;
+end;
+
+procedure TFrmPermisosUsuario.UsuarioButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODUSU, NOMBRE FROM USUARIOS',['Codigo','Usuario'],b,True);
+  Usuario.Text:=b[0];
+  lblUsuario.Caption:=b[1];
+end;
+
+procedure TFrmPermisosUsuario.UsuarioChange(Sender: TObject);
+begin
+  if Usuario.Text<>'' then begin
+     BtnCargar.Enabled:=True;
+  end
+end;
+
+procedure TFrmPermisosUsuario.UsuarioExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (Usuario.Text<>'') Then Begin
+      FuncionesDB.combobusqueda('SELECT CODUSU, NOMBRE FROM USUARIOS WHERE CODUSU='+Usuario.Text,['Codigo','Usuario'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         Usuario.SetFocus;
+      end
+      else begin
+         Usuario.Text:=b[0];
+         LblUsuario.Caption:=b[1];
+      end
+  end
+end;
+
+Procedure TFrmPermisosUsuario.SetButtons;
+Begin
+ BtnPuno.Enabled   := (LstDisponibles.Items.Count <> 0);
+ BtnPTodos.Enabled := (LstDisponibles.Items.Count <> 0);
+ BtnSUno.Enabled   := (LstHabilitadas.Items.Count <> 0);
+ BtnStodos.Enabled := (LstHabilitadas.Items.Count <> 0);
+End;
+end.

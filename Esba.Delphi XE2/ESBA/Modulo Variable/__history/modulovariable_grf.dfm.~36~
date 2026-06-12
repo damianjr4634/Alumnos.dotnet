@@ -1,0 +1,149 @@
+object FrmModVar_grf: TFrmModVar_grf
+  Left = 0
+  Top = 0
+  Caption = 'FrmModVar_grf'
+  ClientHeight = 360
+  ClientWidth = 503
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnActivate = FormActivate
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnKeyUp = FormKeyUp
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 503
+    Height = 35
+    Align = alTop
+    TabOrder = 0
+    object Label1: TLabel
+      Left = 6
+      Top = 11
+      Width = 71
+      Height = 13
+      Caption = 'Tipo de grafico'
+    end
+    object CbTipGrf: TComboBox
+      Left = 82
+      Top = 7
+      Width = 119
+      Height = 21
+      ItemIndex = 0
+      TabOrder = 0
+      Text = 'Lineas'
+      OnChange = CbTipGrfChange
+      Items.Strings = (
+        'Lineas'
+        'Torta'
+        'Barras')
+    end
+    object Button1: TButton
+      Left = 352
+      Top = 1
+      Width = 75
+      Height = 33
+      Align = alRight
+      Caption = 'Imprimir'
+      TabOrder = 1
+    end
+    object Button2: TButton
+      Left = 427
+      Top = 1
+      Width = 75
+      Height = 33
+      Align = alRight
+      Caption = 'Salir'
+      TabOrder = 2
+      OnClick = Button2Click
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 35
+    Width = 503
+    Height = 325
+    Align = alClient
+    TabOrder = 1
+    object TcGrf: TDBChart
+      Left = 1
+      Top = 1
+      Width = 501
+      Height = 200
+      Title.Text.Strings = (
+        'TDBChart')
+      Title.TextFormat = ttfHtml
+      Pages.AutoScale = True
+      View3DOptions.Elevation = 315
+      View3DOptions.Orthogonal = False
+      View3DOptions.Perspective = 0
+      View3DOptions.Rotation = 360
+      Align = alClient
+      TabOrder = 0
+      OnKeyUp = FormKeyUp
+      PrintMargins = (
+        15
+        31
+        15
+        31)
+      ColorPaletteIndex = 13
+    end
+    object DBGrid1: TDBGrid
+      Left = 1
+      Top = 201
+      Width = 501
+      Height = 123
+      Align = alBottom
+      DataSource = DataSource1
+      TabOrder = 1
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'Tahoma'
+      TitleFont.Style = []
+    end
+    object cnf: TMemo
+      Left = 291
+      Top = 232
+      Width = 94
+      Height = 73
+      Lines.Strings = (
+        'cnf')
+      ScrollBars = ssBoth
+      TabOrder = 2
+      Visible = False
+    end
+  end
+  object DataSource1: TDataSource
+    DataSet = Mt
+    Left = 72
+    Top = 48
+  end
+  object Mt: TkbmMemTable
+    DesignActivation = True
+    AttachedAutoRefresh = True
+    AttachMaxCount = 1
+    FieldDefs = <>
+    IndexDefs = <>
+    SortOptions = []
+    PersistentBackup = False
+    ProgressFlags = [mtpcLoad, mtpcSave, mtpcCopy]
+    LoadedCompletely = False
+    SavedCompletely = False
+    FilterOptions = []
+    Version = '7.15.00 Professional Edition'
+    LanguageID = 0
+    SortID = 0
+    SubLanguageID = 0
+    LocaleID = 0
+    Left = 120
+    Top = 48
+  end
+end

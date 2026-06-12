@@ -1,0 +1,327 @@
+unit CertServ;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, StdCtrls, Buttons, Db, FuncionesText,FuncionesDB, DataModuleZeosLib,
+   ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset,
+  Mask, RXToolEdit, Variants, kbmMemTable;
+
+type
+  TFrmCertServ = class(TForm)
+    GroupBox1: TGroupBox;
+    Grilla: TDBGrid;
+    Nuevo: TBitBtn;
+    Modificar: TBitBtn;
+    salir: TBitBtn;
+    GroupBox2: TGroupBox;
+    Eliminar: TBitBtn;
+    DataSource1: TDataSource;
+    GroupBox3: TGroupBox;
+    Label1: TLabel;
+    CodigoProfesor: TEdit;
+    comboProfesor: TComboBox;
+    VerHist: TBitBtn;
+    Label2: TLabel;
+    ComboCarreras: TComboBox;
+    Label3: TLabel;
+    Label4: TLabel;
+    Horas: TEdit;
+    Label5: TLabel;
+    Comision: TEdit;
+    label6: TLabel;
+    Cuatrimestre: TEdit;
+    GroupBox4: TGroupBox;
+    titular: TRadioButton;
+    suplente: TRadioButton;
+    Grabar: TBitBtn;
+    Cancelar: TBitBtn;
+    NombreMat: TLabel;
+    ComboMaterias: TComboEdit;
+    MT: TkbmMemTable;
+    procedure FormActivate(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure comboProfesorChange(Sender: TObject);
+    procedure VerHistClick(Sender: TObject);
+    procedure NuevoClick(Sender: TObject);
+    procedure ModificarClick(Sender: TObject);
+    procedure GrabarClick(Sender: TObject);
+    procedure CancelarClick(Sender: TObject);
+    procedure CodigoProfesorKeyPress(Sender: TObject; var Key: Char);
+    procedure HorasKeyPress(Sender: TObject; var Key: Char);
+    procedure ComisionKeyPress(Sender: TObject; var Key: Char);
+    procedure EliminarClick(Sender: TObject);
+    procedure ComboMateriasButtonClick(Sender: TObject);
+    procedure ComboMateriasExit(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    Procedure ResetearControles(Seteo:Array Of Boolean);
+  end;
+
+var
+  VUsuario : String;
+  Vunidad : String[1];
+  Modificacion : Boolean;
+  FrmCertServ: TFrmCertServ;
+
+implementation
+
+
+{$R *.DFM}
+
+Procedure TFrmCertServ.ResetearControles(Seteo: Array of Boolean);
+Begin
+   Grilla.Enabled := Seteo[0];
+   Nuevo.Enabled := Seteo[1];
+   Eliminar.Enabled := Seteo[2];
+   Modificar.Enabled := Seteo[3];
+   Salir.Enabled := Seteo[4];
+   comboCarreras.Enabled := Seteo[5];
+   ComboMaterias.Enabled := Seteo[7];
+   Horas.Enabled := Seteo[8];
+   Comision.Enabled := Seteo[9];
+   cuatrimestre.Enabled := Seteo[10];
+   titular.Enabled := Seteo[11];
+   suplente.Enabled := Seteo[12];
+   grabar.Enabled := Seteo[13];
+End;
+
+procedure TFrmCertServ.FormActivate(Sender: TObject);
+var
+  datos: variant;
+  x: integer;
+begin
+ //BORRAR
+
+ ResetearControles([False,False,False,False,False,False,False,False,False,False,False,False,False,False]);
+ Modificacion := False;
+ FrmCertServ.Height := 290;
+ CodigoProfesor.SetFocus;
+
+ funcionesDb.Consulta('SELECT  CODPROFES''||''-''||DOCENTE FROM DOCENTES ORDER BY CODPROFES',datos);
+
+ for x := 0 to VarArrayHighBound(datos,1) do
+ Begin
+  ComboProfesor.Items.Add(datos[x]);
+ End;
+
+end;
+
+procedure TFrmCertServ.salirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmCertServ.comboProfesorChange(Sender: TObject);
+Var
+  Texto : String;
+  x : Integer;
+begin
+  CodigoProfesor.Text := '';
+  Texto := ComboProfesor.Text;
+  For x := 1 To (Length(Texto)-1) Do
+   Begin
+     CodigoProfesor.Text := CodigoProfesor.Text + Texto[x];
+     If Texto[x+1] = '-' Then
+       Break;
+   End;
+  Case Length(codigoProfesor.Text) Of
+    1: CodigoProfesor.Text := '00'+CodigoProfesor.Text;
+    2: CodigoProfesor.Text := '0'+CodigoProfesor.Text;
+  End;
+end;
+
+procedure TFrmCertServ.VerHistClick(Sender: TObject);
+begin
+
+ try
+   Nuevo.Enabled := False;
+   Modificar.Enabled := False;
+   Eliminar.Enabled := False;
+   mt.Active:= false;
+   FuncionesDb.Carga_MemTable('SELECT C.COD_PROFES, C.COD_CARRE,  M.SIGLA, C.COMISION, '+
+                              '       C.CUA_ANIO, C.HORAS, C.TIT_SUP, C.INDICE, C.COD_MAT '+
+                              'FROM CERTSERV C '+
+                              'LEFT OUTER JOIN MATERIAS M ON C.COD_MAT=M.CODMATERI AND C.COD_CARRE=M.CODCARRE '+
+                              'WHERE C.COD_PROFES='#39+CodigoProfesor.Text+#39,mt,true);
+
+
+ finally
+   Nuevo.Enabled := True;
+   Modificar.Enabled := Mt.RecordCount <> 0;
+   Eliminar.Enabled := Mt.RecordCount <> 0;
+   Grilla.Enabled := True;
+   Salir.Enabled := True;
+ end;
+
+end;
+
+procedure TFrmCertServ.NuevoClick(Sender: TObject);
+begin
+ FrmCertServ.Height := 543;
+ ResetearControles([False,False,False,False,False,False,False,False,False,False,False,False,False,False]);
+ ComboCarreras.Enabled := True;
+ ComboCarreras.SetFocus;
+ Modificacion := False;
+ ComboCarreras.Text:='';
+ ComboCarreras.ItemIndex := -1;
+ Horas.Text  :=  '';
+ Comision.Text := '';
+ Cuatrimestre.Text := '';
+ Titular.Checked := False;
+ Suplente.Checked := False;
+end;
+
+procedure TFrmCertServ.ModificarClick(Sender: TObject);
+begin
+
+ FrmCertServ.Height := 543;
+ ResetearControles([False,False,False,False,False,True,True,True,True,True,True,True,True,True]);
+ ComboCarreras.SetFocus;
+ Modificacion := True;
+
+  ComboCarreras.ItemIndex :=  ComboCarreras.Items.IndexOf(mt.FieldByName('COD_CARRE').AsString);
+  ComboMaterias.Text := trim(mt.FieldByName('COD_MAT').AsString);
+  Horas.Text  :=  IntToStr(mt.FieldByName('HORAS').AsInteger);
+  Comision.Text := IntToStr(mt.FieldByName('COMISION').AsInteger);
+  Cuatrimestre.Text := mt.FieldByName('CUA_ANIO').AsString;
+  If trim(mt.FieldByName('TIT_SUP').AsString) = 'T' Then
+     Titular.Checked := True
+  Else
+     Suplente.Checked := True;
+
+end;
+
+procedure TFrmCertServ.GrabarClick(Sender: TObject);
+var
+   ZConn: TZConnection;
+   ZQuery: TZQuery;
+begin
+
+ if MessageDlg(Pchar(VUsuario+', estas seguro de anexar este servicio al historial del profesor?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+    ZQuery:= TZQuery.Create(nil);
+    try
+      If Modificacion Then
+        ZQuery.SQL.Text:='UPDATE CERTSERV C SET C.COD_CARRE=:CARRE, C.COD_MAT=:CODMAT, C.COMISION=:COMISION, C.CUA_ANIO=:CUAANIO, C.HORAS=:HORAS, C.TIT_SUP=:TITSUP WHERE C.INDICE=:INDICE;'
+      Else
+        ZQuery.SQL.Text:='INSERT INTO CERTSERV(COD_PROFES,COD_CARRE,COD_MAT,HORAS,COMISION,CUA_ANIO,TIT_SUP) VALUES(:CODPROF,:CARRE,:CODMAT,:HORAS,:COMISION,:CUAANIO,:TITSUP);';
+      If Not Modificacion Then
+        ZQuery.ParamByName('CODPROF').AsString  := CodigoProfesor.Text
+      else
+        ZQuery.ParamByName('INDICE').AsInteger  := MT.FieldByname('INDICE').AsInteger;
+      ZQuery.ParamByName('CARRE').AsString   := ComboCarreras.Text;
+      ZQuery.ParamByName('CODMAT').AsString     := Copy(ComboMaterias.Text,1,2);
+      Try
+        ZQuery.ParamByName('HORAS').AsInteger      := StrToInt(Horas.Text);
+      Except
+        Raise Exception.Create(VUsuario+', las horas de clases deben ser numerias.');
+      End;
+      try
+        ZQuery.ParamByName('COMISION').AsInteger   := StrToInt(Comision.Text);
+      except
+        raise Exception.Create(VUsuario+', la comisión debe ser numerica');
+      end;
+
+      ZQuery.ParamByName('CUAANIO').AsString    := Cuatrimestre.Text;
+
+      If Titular.Checked Then
+        ZQuery.ParamByName('TITSUP').AsString     := 'T'
+      Else
+        ZQuery.ParamByName('TITSUP').AsString     := 'S';
+
+      zconn:= DataModuleZlib.GetConnection();
+      ZQuery.Connection:= zconn;
+      zconn.StartTransaction;
+      ZQuery.ExecSql;
+      zconn.Commit;
+      zconn.Disconnect;
+      VerHistClick(Sender);
+    finally
+      if zConn.Connected then begin
+        zConn.Rollback;
+        zQuery.Close;
+        zConn.Disconnect;
+      end;
+      ZQuery.Free;
+      zconn.Free;
+    end;
+  End;
+  CancelarClick(Sender);
+
+end;
+
+procedure TFrmCertServ.CancelarClick(Sender: TObject);
+begin
+ ResetearControles([True,True,True,True,True,False,False,False,False,False,False,False,False,False]);
+ FrmCertServ.Height := 290;
+ Modificacion := False;
+end;
+
+
+procedure TFrmCertServ.CodigoProfesorKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+  Begin
+   //comboProfesor.ItemIndex := BuscoMateriaEnCombo(CodigoProfesor.Text,ComboProfesor,3);
+   If ComboProfesor.ItemIndex = -1 Then
+     MessageDlg(Pchar(Vusuario+',  el código del profesor no existe.'),mtError,[mbok],0,mbok)
+   Else
+     VerHistClick(Sender);
+  End;
+end;
+
+procedure TFrmCertServ.HorasKeyPress(Sender: TObject; var Key: Char);
+begin
+ If key = #13 Then
+   Comision.SetFocus;
+end;
+
+procedure TFrmCertServ.ComisionKeyPress(Sender: TObject; var Key: Char);
+begin
+  If key = #13 Then
+   Cuatrimestre.SetFocus;
+end;
+
+procedure TFrmCertServ.EliminarClick(Sender: TObject);
+begin
+
+ if MessageDlg(Pchar(VUsuario+', estas seguro de borrar este servicio del historial del docente?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+   Begin
+    //TablaCertServ.Delete;
+      funcionesDb.ExecScript('DELETE FROM CERTSERV WHERE INDICE=:INDICE'+IntToStr(Mt.FieldByname('INDICE').AsInteger));
+   End;
+
+end;
+
+procedure TFrmCertServ.ComboMateriasButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+ComboCarreras.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias.Text:=b[0];
+  NombreMat.Caption:=b[1];
+end;
+
+procedure TFrmCertServ.ComboMateriasExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboMaterias.Text<>'') Then Begin
+      ComBoMaterias.Text:=Lpad(ComboMaterias.Text,2,'0');
+      FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+combocarreras.Text+#39+' AND CODMATERI='+#39+ComboMaterias.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboMaterias.SetFocus;
+      end
+      else begin
+         ComboMaterias.Text:=b[0];
+         NombreMat.Caption:=b[1];
+      end
+  end
+end;
+
+end.

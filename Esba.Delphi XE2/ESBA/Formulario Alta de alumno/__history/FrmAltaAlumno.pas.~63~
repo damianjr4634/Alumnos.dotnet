@@ -1,0 +1,987 @@
+unit FrmAltaAlumno;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ComCtrls, ExtCtrls, Buttons, Mask, DBCtrls,
+  DataModuleZeosLib, FuncionesConfiguracion, IBCustomDataSet, RXToolEdit, Tutores, ActasDisciplinarias,
+  Vcl.ExtDlgs, Variants, pngimage, GIFImg, jpeg, StrUtils;
+
+type
+  TAltaAlumno = class(TForm)
+    estudioscursados: TGroupBox;
+    Label16: TLabel;
+    Label17: TLabel;
+    Label18: TLabel;
+    anossecundario: TEdit;
+    Label19: TLabel;
+    datoslaborales: TGroupBox;
+    Label20: TLabel;
+    Label21: TLabel;
+    empresa: TEdit;
+    rubro: TEdit;
+    Label22: TLabel;
+    cargo: TEdit;
+    Label23: TLabel;
+    antiguedad: TEdit;
+    Label24: TLabel;
+    direccion: TEdit;
+    Label25: TLabel;
+    telefonolaboral: TEdit;
+    Label26: TLabel;
+    interno: TEdit;
+    docupresentada: TGroupBox;
+    ctt: TCheckBox;
+    Label27: TLabel;
+    vtoctt: TLabel;
+    Timer1: TTimer;
+    ca: TCheckBox;
+    grabar: TBitBtn;
+    cancelar: TBitBtn;
+    Label28: TLabel;
+    modalidadsecundario: TEdit;
+    colegioprimario: TEdit;
+    colegiosecundario: TEdit;
+    Label35: TLabel;
+    Label36: TLabel;
+    Label43: TLabel;
+    Label44: TLabel;
+    anosterciario: TEdit;
+    anosprimario: TEdit;
+    modalidadterciario: TEdit;
+    modalidadprimario: TEdit;
+    colegioterciario: TEdit;
+    Label3: TLabel;
+    Label4: TLabel;
+    documento: TEdit;
+    Tipodoc: TComboBox;
+    Label12: TLabel;
+    CbxBaja: TCheckBox;
+    GpObservaciones: TGroupBox;
+    Memo: TMemo;
+    FechaIngreso: TDateEdit;
+    FechaCTT: TDateEdit;
+    AptoFisico: TCheckBox;
+    FechaAptoFisico: TDateEdit;
+    Label32: TLabel;
+    VtoApFi: TLabel;
+    Label45: TLabel;
+    dni: TComboBox;
+    Foto: TCheckBox;
+    BtnTutores: TBitBtn;
+    BtnActas: TBitBtn;
+    GpFoto: TGroupBox;
+    PnlFotos: TPanel;
+    Image: TImage;
+    Button1: TButton;
+    Button2: TButton;
+    OPDFoto: TOpenPictureDialog;
+    GpWeb: TGroupBox;
+    Pn: TCheckBox;
+    datospersonales: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    nombre: TEdit;
+    apellido: TEdit;
+    PCDatos: TPageControl;
+    TsFicha: TTabSheet;
+    Label7: TLabel;
+    FechaNacimiento: TDateEdit;
+    Label8: TLabel;
+    LugarNacimiento: TEdit;
+    Label11: TLabel;
+    Provincianacimiento: TComboBox;
+    Label5: TLabel;
+    nacionalidad: TEdit;
+    Label30: TLabel;
+    CmbSexo: TComboBox;
+    Label6: TLabel;
+    estadocivil: TComboBox;
+    Label31: TLabel;
+    celular: TEdit;
+    Label10: TLabel;
+    caracteristica: TEdit;
+    Label15: TLabel;
+    telefono: TEdit;
+    Label9: TLabel;
+    domicilio: TEdit;
+    Label13: TLabel;
+    localidad: TEdit;
+    Label14: TLabel;
+    codigopostal: TEdit;
+    Label29: TLabel;
+    mail: TEdit;
+    TsWeb: TTabSheet;
+    Label37: TLabel;
+    WFechaNacimiento: TDateEdit;
+    Label38: TLabel;
+    WLugarNacimiento: TEdit;
+    Label39: TLabel;
+    WProvinciaNacimiento: TComboBox;
+    Label40: TLabel;
+    Label41: TLabel;
+    WCmbSexo: TComboBox;
+    Label42: TLabel;
+    WEstadoCivil: TComboBox;
+    Label46: TLabel;
+    WDomicilio: TEdit;
+    Label47: TLabel;
+    WLocalidad: TEdit;
+    Label48: TLabel;
+    WCelular: TEdit;
+    Label49: TLabel;
+    WCodigopostal: TEdit;
+    Label50: TLabel;
+    WCaracteristica: TEdit;
+    Label51: TLabel;
+    WNacionalidad: TEdit;
+    WTelefono: TEdit;
+    WMail: TEdit;
+    Label52: TLabel;
+    GroupBox1: TGroupBox;
+    Label53: TLabel;
+    CbLIbreta: TCheckBox;
+    FechaLibreta: TDateEdit;
+    CbEstado: TComboBox;
+    Label54: TLabel;
+    CbGenero: TComboBox;
+    nominaPase: TCheckBox;
+    CbHabilitarWeb: TCheckBox;
+    Label33: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure cttClick(Sender: TObject);
+    procedure FECHACTTChange(Sender: TObject);
+    procedure apellidoKeyPress(Sender: TObject; var Key: Char);
+    procedure nombreKeyPress(Sender: TObject; var Key: Char);
+    procedure codigopostalKeyPress(Sender: TObject; var Key: Char);
+    procedure documentoKeyPress(Sender: TObject; var Key: Char);
+    procedure nacionalidadKeyPress(Sender: TObject; var Key: Char);
+    procedure ProvincianacimientoKeyPress(Sender: TObject; var Key: Char);
+    procedure domicilioKeyPress(Sender: TObject; var Key: Char);
+    procedure localidadKeyPress(Sender: TObject; var Key: Char);
+    procedure cancelarClick(Sender: TObject);
+    procedure caracteristicaKeyPress(Sender: TObject; var Key: Char);
+    procedure telefonoKeyPress(Sender: TObject; var Key: Char);
+    procedure colegioprimarioKeyPress(Sender: TObject; var Key: Char);
+    procedure anosprimarioKeyPress(Sender: TObject; var Key: Char);
+    procedure modalidadprimarioKeyPress(Sender: TObject; var Key: Char);
+    procedure colegiosecundarioKeyPress(Sender: TObject; var Key: Char);
+    procedure anossecundarioKeyPress(Sender: TObject; var Key: Char);
+    procedure modalidadsecundarioKeyPress(Sender: TObject; var Key: Char);
+    procedure colegioterciarioKeyPress(Sender: TObject; var Key: Char);
+    procedure anosterciarioKeyPress(Sender: TObject; var Key: Char);
+    procedure modalidadterciarioKeyPress(Sender: TObject; var Key: Char);
+    procedure empresaKeyPress(Sender: TObject; var Key: Char);
+    procedure rubroKeyPress(Sender: TObject; var Key: Char);
+    procedure antiguedadKeyPress(Sender: TObject; var Key: Char);
+    procedure cargoKeyPress(Sender: TObject; var Key: Char);
+    procedure direccionKeyPress(Sender: TObject; var Key: Char);
+    procedure telefonolaboralKeyPress(Sender: TObject; var Key: Char);
+    procedure estadocivilKeyPress(Sender: TObject; var Key: Char);
+    procedure FECHANACIMIENTOKeyPress(Sender: TObject; var Key: Char);
+    procedure grabarClick(Sender: TObject);
+    procedure caClick(Sender: TObject);
+    procedure LugarNacimientoKeyPress(Sender: TObject; var Key: Char);
+    procedure TipodocKeyPress(Sender: TObject; var Key: Char);
+    procedure internoKeyPress(Sender: TObject; var Key: Char);
+    procedure FormCreate(Sender: TObject);
+    procedure BtnTutoresClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure AptoFisicoClick(Sender: TObject);
+    procedure FechaAptoFisicoChange(Sender: TObject);
+    procedure BtnActasClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure documentoExit(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    procedure Excepciones(Sender: TObject; E: Exception);
+  end;
+
+var
+  AltaAlumno: TAltaAlumno;
+  Unidad : String;
+  Carrera : String;
+  VUsuario : String;
+  Modificacion : Boolean;
+
+implementation
+  uses IBExternals, uMensajesError;
+{$R *.DFM}
+
+procedure TAltaAlumno.Excepciones(Sender: TObject; E: Exception);
+begin
+  if not MostrarMensajeIB(E,'') then
+       Application.ShowException(E);
+end;
+
+procedure TAltaAlumno.FormActivate(Sender: TObject);
+begin
+  {
+  pasar
+  zlib
+  If Modificacion Then
+    Begin
+      with datamodule.customerdata do begin
+        if (TrQrVArios.Active) then begin
+            TrqrVarios.Rollback;
+            TrQrVArios.Active:=False;
+        end;
+        ibqrvarios.SQL.Text:= 'SELECT OBSERV FROM ALUMNOS WHERE COD_ALU=:CODALU AND CARRE=:CARRE';
+        ibqrvarios.parambyname('CODALU').value:= tipodoc.text+documento.Text;
+        ibqrvarios.parambyname('CARRE').value:= CARRERA;
+        TrQrVArios.Active:=True;
+        ibqrvarios.ExecQuery;
+        memo.lines.Text:=ibqrvarios.fieldbyname('OBSERV').AsString;
+        TrQrVArios.Commit;
+        TrQrVArios.Active:=false;
+        ibqrvarios.SQL.Clear;
+        ibqrvarios.SQL.Text:= 'SELECT SEXO, NACIONAL, EST_CIV, FEC_NAC, LUG_NAC, PCIA_NAC, DOMI, LOCALI, '+
+                              '       COD_POS, TELE, MAIL, CELULAR, CAMBIO'+
+                              ' FROM WEB_ALUMNOS '+
+                              ' WHERE COD_ALU=:CODALU AND CARRE=:CARRE';
+        ibqrvarios.parambyname('CODALU').value:= tipodoc.text+documento.Text;
+        ibqrvarios.parambyname('CARRE').value:= CARRERA;
+        TrQrVArios.Active:=True;
+        ibqrvarios.ExecQuery;
+        WNacionalidad.Text          := ibqrvarios.FieldByName('NACIONAL').AsString;
+        If ibqrvarios.FieldByName('Est_Civ').AsString = 'S' Then
+           WEstadoCivil.ItemIndex  := 0
+        Else
+         If ibqrvarios.FieldByName('Est_Civ').AsString = 'C' Then
+            WEstadoCivil.ItemIndex  := 1
+         Else
+           If ibqrvarios.FieldByName('Est_Civ').AsString = 'V' Then
+             WEstadoCivil.ItemIndex  := 3
+           Else
+              If ibqrvarios.FieldByName('Est_Civ').AsString = 'D' Then
+                WEstadoCivil.ItemIndex  := 2
+              Else
+                WEstadoCivil.ItemIndex  := -1;
+        If (ibqrvarios.FieldByname('Sexo').AsString='M') Then
+          WCmbSexo.ItemIndex:=1
+        else
+          If (ibqrvarios.FieldByname('Sexo').AsString='F') Then
+             WCmbSexo.ItemIndex:=0;
+        if not ((ibqrvarios.FieldByName('CAMBIO').IsNull) or (ibqrvarios.FieldByName('CAMBIO').AsString='N')) then begin
+           MessageDlg('El alumno modifico sus datos en la web',mtInformation,[mbok],0,mbok);
+        end;
+        WFechaNacimiento.Date       := ibqrvarios.FieldByName('Fec_Nac').AsDateTime;
+        WLugarNacimiento.Text       := ibqrvarios.FieldByName('Lug_Nac').AsString;
+        WProvinciaNacimiento.Text   := ibqrvarios.FieldByName('Pcia_Nac').AsString;
+        WDomicilio.Text             := ibqrvarios.FieldByName('DOMI').AsString;
+        WLocalidad.Text             := ibqrvarios.FieldByName('LOCALI').AsString;
+        WCodigoPostal.Text          := IntToStr(ibqrvarios.FieldByName('COD_POS').AsInteger);
+        WTelefono.Text              := ibqrvarios.FieldByName('Tele').AsString;
+        WMail.Text                  := ibqrvarios.FieldByName('Mail').AsString;
+        Wcelular.text := ibqrvarios.FieldByName('CELULAR').AsString;
+        TrQrVArios.Commit;
+        TrQrVArios.Active:=false;
+        ibqrvarios.SQL.Clear;
+      end;
+      DatosPersonales.Enabled := True;
+      EstudiosCursados.Enabled := True;
+      DatosLaborales.Enabled := True;
+      DocuPresentada.Enabled := True;
+      Grabar.Enabled := True;
+      TipoDoc.Enabled := False;
+      Documento.Enabled := False;
+      FECHACTTChange(Sender);
+      FechaAptoFisicoChange(sender);
+      AptoFisicoClick(sender);
+      If (ctt.Checked) And (Ca.Checked) Then
+       Begin
+        ca.Enabled := True;
+        ctt.Enabled := true;
+       End;
+      Apellido.SetFocus;
+    End
+  Else
+   Begin
+     Tipodoc.SetFocus;
+     FECHACTT.Date := DATE;
+     FECHANACIMIENTO.DATE:=DATE;
+     FechaIngreso.Date := Date;
+     fechactt.Enabled :=ctt.Checked;
+   End;}
+end;
+
+procedure TAltaAlumno.Timer1Timer(Sender: TObject);
+begin
+ If Vtoctt.Font.Color = clBlack Then begin
+     Vtoctt.Font.Color := clRed;
+     VtoApFi.font.Color:= ClRed;
+ end
+ else begin
+     Vtoctt.Font.Color := ClBlack;
+     VtoApFi.font.Color:= ClBlack;
+ end;
+end;
+
+procedure TAltaAlumno.cttClick(Sender: TObject);
+begin
+   fechactt.Enabled := ctt.Checked ;
+   if fechactt.Enabled then  begin
+      vtoctt.Caption := 'Vencimiento C.T.T. ' + DateToStr(incmonth(fechactt.date,3));
+   end
+   else begin
+      vtoctt.Caption := '';
+   end;
+   vtoctt.Visible :=ctt.Checked;
+   Ca.Enabled := Not(Ctt.Checked)
+end;
+
+procedure TAltaAlumno.FECHACTTChange(Sender: TObject);
+begin
+    vtoctt.Caption := 'Vencimiento C.T.T. ' + DateToStr(incmonth(fechactt.date,3));
+end;
+
+procedure TAltaAlumno.apellidoKeyPress(Sender: TObject; var Key: Char);
+begin
+   if charinset(key,['0'..'9']) then
+       key := #0;
+   If Key = #13 Then
+     Nombre.SetFocus;
+end;
+
+procedure TAltaAlumno.nombreKeyPress(Sender: TObject; var Key: Char);
+begin
+  if charinset(key,['0'..'9']) then
+     key:=#0;
+  If Key = #13 Then
+     EstadoCivil.SetFocus;
+end;
+
+
+procedure TAltaAlumno.codigopostalKeyPress(Sender: TObject; var Key: Char);
+begin
+   if charinset(key,['A'..'Z','a'..'z']) then
+      key:=#0;
+   If Key = #13 Then
+     Caracteristica.SetFocus;
+end;
+
+procedure TAltaAlumno.documentoExit(Sender: TObject);
+Var key:char;
+begin
+  key:=#13;
+  documentoKeyPress(Sender,key);
+end;
+
+procedure TAltaAlumno.documentoKeyPress(Sender: TObject; var Key: Char);
+begin
+{
+  pasar
+  zlib
+  if charinset(key,['A'..'Z','a'..'z']) then
+     key:=#0;
+  If (Key = Chr(13)) And (Documento.Text <> '') And (Not Modificacion) Then
+    Begin
+      if DataModule.CustomerData.TrQrVarios.Active then
+         DataModule.CustomerData.TrQrVarios.Rollback;
+      DataModule.CustomerData.IbQrVarios.SQL.Text:='SELECT COD_ALU, TRIM(CAST(APELLIDO AS VARCHAR(30)))||'+ #39+','+#39+'||TRIM(CAST(NOM_APE AS VARCHAR(30))) AS NOMBRE, BAJA FROM ALUMNOS WHERE COD_ALU = :CODALU AND CARRE=:CARRERA';
+      DataModule.CustomerData.IbQrVarios.ParamByName('CODALU').AsString := TipoDoc.Text+Documento.Text;
+      DataModule.CustomerData.IbQrVarios.ParamByName('CARRERA').AsString := Carrera;
+      DataModule.CustomerData.TrQrVarios.Active:=True;
+      DataModule.CustomerData.IbQrVarios.ExecQuery;
+      If (DataModule.CustomerData.IbQrVarios.FieldByName('COD_ALU').AsString <> '') And (DataModule.CustomerData.IbQrVarios.FieldByName('BAJA').AsString = 'N') Then
+        Begin
+          MessageDlg(Pchar(VUsuario+', el Alumno ya existe en altas'),mtError,[mbok],0,mbok);
+        End
+      Else
+        Begin
+          If DataModule.CustomerData.IbQrVarios.FieldByName('BAJA').AsString = 'S' Then
+             MessageDlg(Pchar(VUsuario+', el Alumno'+DataModule.CustomerData.IbQrVarios.FieldByName('NOMBRE').AsString+ ' ya Existe en bajas'),mtError,[mbok],0,mbok)
+          Else
+            Begin
+             DatosPersonales.Enabled := True;
+             EstudiosCursados.Enabled := True;
+             DatosLaborales.Enabled := True;
+             DocuPresentada.Enabled := True;
+             Grabar.Enabled := True;
+             TipoDoc.Enabled := False;
+             Documento.Enabled := False;
+             //Apellido.SetFocus;
+             FechaIngreso.SetFocus;
+            End;
+        End;
+      if DataModule.CustomerData.TrQrVarios.Active then
+          DataModule.CustomerData.TrQrVarios.Rollback;
+    End;
+    }
+end;
+
+procedure TAltaAlumno.nacionalidadKeyPress(Sender: TObject; var Key: Char);
+begin
+    if charinset(key,['0'..'9']) then
+     key:=#0;
+    If Key = #13 Then
+     LugarNacimiento.SetFocus;
+end;
+
+procedure TAltaAlumno.ProvincianacimientoKeyPress(Sender: TObject; var Key: Char);
+Begin
+  If Key = #13 Then
+    Domicilio.SetFocus;
+  If charinset(key,['a'..'z']) then
+     Key := Chr(ORD(Key) - 32);
+end;
+
+procedure TAltaAlumno.domicilioKeyPress(Sender: TObject; var Key: Char);
+begin
+   If Key = #13 Then
+     Localidad.SetFocus;
+end;
+
+procedure TAltaAlumno.localidadKeyPress(Sender: TObject; var Key: Char);
+begin
+   If Key = #13 Then
+     CodigoPostal.SetFocus;
+end;
+
+procedure TAltaAlumno.cancelarClick(Sender: TObject);
+begin
+   AltaAlumno.Close;
+end;
+
+procedure TAltaAlumno.caracteristicaKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+     Telefono.SetFocus;
+  If charinset(key,['A'..'Z','a'..'z']) then
+      key:=#0;
+end;
+
+procedure TAltaAlumno.telefonoKeyPress(Sender: TObject; var Key: Char);
+begin
+  If charinset(key,['A'..'Z','a'..'z']) then
+     key:=#0;
+  If Key = #13 Then
+     ColegioPrimario.SetFocus;
+end;
+
+procedure TAltaAlumno.colegioprimarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+     AnosPrimario.SetFocus;
+end;
+
+procedure TAltaAlumno.anosprimarioKeyPress(Sender: TObject; var Key: Char);
+begin
+  If charinset(key,['A'..'Z','a'..'z']) then
+     key:=#0;
+  If Key = #13 Then
+     ModalidadPrimario.SetFocus;
+end;
+
+procedure TAltaAlumno.modalidadprimarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+   If Key = #13 Then
+     ColegioSecundario.SetFocus;
+end;
+
+procedure TAltaAlumno.colegiosecundarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+     AnosSecundario.SetFocus;
+end;
+
+procedure TAltaAlumno.anossecundarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If charinset(key,['A'..'Z','a'..'z']) then
+      key:=#0;
+  If Key = #13 Then
+    ModalidadSecundario.SetFocus;
+end;
+
+procedure TAltaAlumno.modalidadsecundarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+    ColegioTerciario.SetFocus;
+end;
+
+procedure TAltaAlumno.colegioterciarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   AnosTerciario.SetFocus;
+end;
+
+procedure TAltaAlumno.anosterciarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If charinset(key,['A'..'Z','a'..'z']) then
+     key:=#0;
+ If Key = #13 Then
+   ModalidadTerciario.SetFocus;
+end;
+
+procedure TAltaAlumno.modalidadterciarioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Empresa.SetFocus;
+end;
+
+procedure TAltaAlumno.empresaKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+   Rubro.SetFocus;
+end;
+
+procedure TAltaAlumno.rubroKeyPress(Sender: TObject; var Key: Char);
+begin
+  If charinset(key,['0'..'9']) then
+      key:=#0;
+ If Key = #13 Then
+   Cargo.SetFocus;
+end;
+
+procedure TAltaAlumno.antiguedadKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+   Direccion.SetFocus;
+end;
+
+procedure TAltaAlumno.cargoKeyPress(Sender: TObject; var Key: Char);
+begin
+  If charinset(key,['0'..'9']) then
+    key:=#0;
+  If Key = #13 Then
+   Antiguedad.SetFocus;
+end;
+
+procedure TAltaAlumno.direccionKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+   TelefonoLaboral.SetFocus;
+end;
+
+procedure TAltaAlumno.telefonolaboralKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If charinset(key,['A'..'Z','a'..'z']) then
+    key:=#0;
+  If Key = #13 Then
+   Interno.SetFocus;
+end;
+
+procedure TAltaAlumno.estadocivilKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+   FechaNacimiento.SetFocus;
+end;
+
+procedure TAltaAlumno.FECHANACIMIENTOKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Nacionalidad.SetFocus;
+end;
+
+procedure TAltaAlumno.grabarClick(Sender: TObject);
+Var
+  i : Integer;
+  NDocumento : String;
+  SentenciaSql :String;
+  codalu:String;
+  Stream: TMemoryStream;
+begin
+ if CbEstado.ItemIndex=-1 then begin
+   ShowMessage('Seleccione un estado al alumno');
+   exit;
+ end;
+ codalu:='';
+ With CustomerData Do Begin
+   If MessageDlg(Pchar(VUsuario+', desea guardar la información?'),mtConfirmation,[mbyes,mbno],0,mbno)=mryes  Then
+    Begin
+     Try
+       ibqrvarios.SQL.Clear;
+       NDocumento := '';
+       For i := 1 to (8-Length(Documento.Text)) do
+             NDocumento := NDocumento + '0';
+       Documento.Text := NDocumento + Documento.Text;
+       If (TipoDoc.Text = 'CI') Or (TipoDoc.Text = 'LE') Then
+             codalu   := TipoDoc.Text +' ' + Documento.Text
+       Else
+             codalu   := TipoDoc.Text + Documento.Text;
+       If Not Modificacion Then
+        Begin
+            SentenciaSql := 'INSERT INTO ALUMNOS (COD_ALU, CARRE, APELLIDO, NOM_APE, NACIONAL, EST_CIV,'+
+                            'FEC_NAC, LUG_NAC, PCIA_NAC, DOMI, LOCALI, COD_POS, CAR_TEL, TELE, FEC_ING, CPRIM, APRIM, TPRIM, '+
+                            'CSECU, ASECU, TSECU, TERCI, ATERCI, TTERCI,'+
+                            'EMPRE, RUBRO, CARGO, ANTI, DOMI_1, TELE_1, INTER,'+
+                            'CTT, FECH_CTT, DNI, CA, USUARIO, BAJA, MAIL, SEXO, OBSERV, CELULAR, FFOTO, FAPTFIS, FAPTFEC, FOTO, FUSUWEB,FPARNAC, FLIBRETA, FLIBFEC, ESTADO, GENERO, NOMIPASE) '+
+                            'VALUES (:COD_ALU, :CARRE, :APELLIDO, :NOM_APE, :NACIONAL,:EST_CIV,'+
+                            'CAST(:FEC_NAC AS DATE), :LUG_NAC, :PCIA_NAC, :DOMI, :LOCALI, :COD_POS, :CAR_TEL, :TELE, :FEC_ING, :CPRIM, '+
+                            ':APRIM, :TPRIM, :CSECU, :ASECU, :TSECU, :TERCI, :ATERCI, :TTERCI, '+
+                            ':EMPRE, :RUBRO, :CARGO, :ANTI, :DOMLAB,'+
+                            ':TELLAB, :INTER, :CTT, :FECH_CTT, :DNI, :CA,'+
+                            ':USUARIO, :BAJA, :MAIL, :SEXO, :OBSERV, :CELULAR, :FFOTO, :FAPTFIS, :FAPTFEC, :FOTO, :FUSUWEB, :FPARNAC, :FLIBRETA, :FLIBFEC, :ESTADO, :GENERO, :NOMIPASE);';
+        End
+       Else Begin
+          SentenciaSql := 'UPDATE ALUMNOS SET APELLIDO=  :APELLIDO,NOM_APE=   :NOM_APE,EXT_POR=   :EXT_POR,'+
+                         'NACIONAL=  :NACIONAL,EST_CIV=   :EST_CIV,FEC_NAC= :FEC_NAC,LUG_NAC=   :LUG_NAC,PCIA_NAC=  :PCIA_NAC,DOMI=      :DOMI,'+
+                         'LOCALI=    :LOCALI,COD_POS=   :COD_POS,CAR_TEL=   :CAR_TEL,TELE=      :TELE,FEC_ING=   :FEC_ING,CPRIM=     :CPRIM,'+
+                         'APRIM=     :APRIM,TPRIM=     :TPRIM,CSECU=     :CSECU,ASECU=     :ASECU,TSECU=     :TSECU,'+
+                         'TERCI=     :TERCI,ATERCI=    :ATERCI,TTERCI=    :TTERCI,'+
+                         'EMPRE=     :EMPRE,RUBRO=     :RUBRO,CARGO=     :CARGO,ANTI=      :ANTI,DOMI_1=    :DOMLAB,'+
+                         'TELE_1=    :TELLAB,INTER=     :INTER,'+
+                         'CTT= :CTT,FECH_CTT=  :FECH_CTT, DNI=       :DNI,CA=        :CA,'+
+                         'MAIL =     :MAIL, BAJA= :BAJA, SEXO= :SEXO, OBSERV= :OBSERV, USUARIO= :USUARIO, CELULAR=:CELULAR, FFOTO=:FFOTO, FAPTFIS=:FAPTFIS, FAPTFEC=:FAPTFEC, '+
+                         'FOTO= :FOTO, FUSUWEB=:FUSUWEB, FPARNAC=:FPARNAC, FLIBRETA= :FLIBRETA, FLIBFEC= :FLIBFEC, ESTADO=:ESTADO, GENERO=:GENERO, NOMIPASE=:NOMIPASE '+
+                         'WHERE COD_ALU = :COD_ALU AND CARRE = :CARRE;';
+       End;
+       ibqrvarios.Sql.Text := SentenciaSql;
+       ibqrvarios.ParamByName('COD_ALU').Value := codalu;
+       ibqrvarios.ParamByName('CARRE').Value := Carrera;
+       ibqrvarios.ParamByName('APELLIDO').Value  := Apellido.Text;
+       ibqrvarios.ParamByName('NOM_APE').Value   := Nombre.Text;
+       ibqrvarios.ParamByName('NACIONAL').Value  := Nacionalidad.Text;
+       ibqrvarios.ParamByName('EST_CIV').Value   := Copy(EstadoCivil.Text,1,1);
+       ibqrvarios.ParamByName('FEC_NAC').Value   := FechaNacimiento.Date;
+       ibqrvarios.ParamByName('LUG_NAC').Value   := LugarNacimiento.Text;
+       ibqrvarios.ParamByName('PCIA_NAC').Value  := ProvinciaNacimiento.Text;
+       ibqrvarios.ParamByName('DOMI').Value      := Domicilio.Text;
+       ibqrvarios.ParamByName('LOCALI').Value    := Localidad.Text;
+       If CodigoPostal.Text <> '' Then
+          ibqrvarios.ParamByName('COD_POS').Value   := StrToInt(CodigoPostal.Text);
+       ibqrvarios.ParamByName('CAR_TEL').Value   := Caracteristica.Text;
+       ibqrvarios.ParamByName('TELE').Value      := Telefono.Text;
+       ibqrvarios.ParamByName('FEC_ING').Value   := FechaIngreso.Date;
+       ibqrvarios.ParamByName('CPRIM').Value    := ColegioPrimario.Text;
+       ibqrvarios.ParamByName('APRIM').Value    := AnosPrimario.Text;
+       ibqrvarios.ParamByName('TPRIM').Value     := ModalidadPrimario.Text;
+       ibqrvarios.ParamByName('CSECU').Value     := ColegioSecundario.Text;
+       ibqrvarios.ParamByName('ASECU').Value     := AnosSecundario.Text;
+       ibqrvarios.ParamByName('TSECU').Value     := ModalidadSecundario.Text;
+       ibqrvarios.ParamByName('TERCI').Value     := ColegioTerciario.Text;
+       ibqrvarios.ParamByName('ATERCI').Value    := AnosTerciario.Text;
+       ibqrvarios.ParamByName('TTERCI').Value    := ModalidadTerciario.Text;
+       ibqrvarios.ParamByName('EMPRE').Value     := Empresa.Text;
+       ibqrvarios.ParamByName('RUBRO').Value     := Rubro.Text;
+       ibqrvarios.ParamByName('CARGO').Value     := Cargo.Text;
+       ibqrvarios.ParamByName('ANTI').Value      := Antiguedad.Text;
+       ibqrvarios.ParamByName('DOMLAB').Value    := Direccion.Text;
+       ibqrvarios.ParamByName('TELLAB').Value    := TelefonoLaboral.Text;
+       ibqrvarios.ParamByName('INTER').Value    := Interno.Text;
+       ibqrvarios.ParamByName('MAIL').Value     := Mail.Text;
+       ibqrvarios.ParamByName('USUARIO').Value  := VUsuario;
+       ibqrvarios.ParamByName('OBSERV').Value  := Memo.Lines.Text;
+       ibqrvarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.codusu;
+       ibqrvarios.ParamByName('CELULAR').Value := Celular.text;
+       if (CbHabilitarWeb.Checked) then
+        ibqrvarios.ParamByName('FUSUWEB').Value := 'S'
+       else
+         ibqrvarios.ParamByName('FUSUWEB').Value := 'N';
+       if CbGenero.ItemIndex<>-1 then
+          ibqrvarios.ParamByName('GENERO').AsInteger := CbGenero.ItemIndex
+       else
+          ibqrvarios.ParamByName('GENERO').Value :=  null;
+
+       if CbEstado.ItemIndex=0 then //cursando
+         ibqrvarios.ParamByName('ESTADO').Value := 'C'
+       else if CbEstado.ItemIndex=1 then //pase
+         ibqrvarios.ParamByName('ESTADO').Value := 'P'
+       else if CbEstado.ItemIndex=2 then //egresado
+         ibqrvarios.ParamByName('ESTADO').Value := 'E'
+       else if CbEstado.ItemIndex=3 then //no se sabe
+         ibqrvarios.ParamByName('ESTADO').Value := 'N';
+
+       If Ctt.Checked Then  Begin
+           ibqrvarios.ParamByName('CTT').Value := '*';
+           ibqrvarios.ParamByName('FECH_CTT').Value  := Fechactt.Date;
+       End;
+       if (DNI.ItemIndex<>-1) then
+           ibqrvarios.ParamByName('DNI').AsString := IntToStr(DNI.ItemIndex);
+       If CA.Checked Then
+           ibqrvarios.ParamByName('CA').Value := '*';
+       If Not Modificacion Then ibqrvarios.ParamByName('BAJA').Value := 'N';
+       If CmbSexo.ItemIndex=0 Then
+           ibqrvarios.ParamByName('SEXO').Value := 'F'
+       else If CmbSexo.ItemIndex=1 Then
+           ibqrvarios.ParamByName('SEXO').Value := 'M';
+       If CbxBaja.Checked Then
+           ibqrvarios.ParamByName('BAJA').Value := 'S'
+       else
+           ibqrvarios.ParamByName('BAJA').Value := 'N';
+       if foto.Checked then
+          ibqrvarios.ParamByName('FFOTO').AsString:='S'
+       else
+          ibqrvarios.ParamByName('FFOTO').AsString:='N';
+       if AptoFisico.Checked then
+          ibqrvarios.ParamByName('FAPTFIS').AsString:='S'
+       else
+          ibqrvarios.ParamByName('FAPTFIS').AsString:='N';
+       if Pn.Checked then
+          ibqrvarios.ParamByName('FPARNAC').AsString:='S'
+       else
+          ibqrvarios.ParamByName('FPARNAC').AsString:='N';
+
+       if nominaPase.Checked then
+          ibqrvarios.ParamByName('NOMIPASE').AsString:='S'
+       else
+          ibqrvarios.ParamByName('NOMIPASE').AsString:='N';
+
+       if FechaAptoFisico.date<>0 then
+          ibqrvarios.ParamByName('FAPTFEC').AsDate:= FechaAptoFisico.Date
+       else
+          ibqrvarios.ParamByName('FAPTFEC').AsDate:= null;
+
+       ibqrvarios.ParamByName('FLIBRETA').AsString:= IfThen(CbLibreta.Checked,'S','N');
+
+       if FechaLibreta.date<>0 then
+          ibqrvarios.ParamByName('FLIBFEC').AsDate:= FechaLibreta.Date
+       else
+          ibqrvarios.ParamByName('FLIBFEC').AsDate:= null;
+
+       if Image.Picture.Graphic=nil then
+          ibqrvarios.ParamByName('FOTO').Value:=null
+       else begin
+          Stream:=TMemoryStream.Create;
+          Image.Picture.Graphic.SaveToStream(Stream);
+          ibqrvarios.ParamByName('FOTO').LoadFromStream(Stream);
+       end;
+
+       Try
+          TrQrVArios.Active := True;
+          ibqrvarios.ExecQuery;
+          TrQrVArios.Commit;
+       Finally
+          If TrQrVArios.Active Then TrQrVArios.Rollback;
+          TrQrVArios.Active := False;
+       End;
+       if TrQrVArios.Active then
+          TrQrVArios.RollBack;
+       TrQrVArios.Active := False;
+       //alta de tutores
+       if frmtutores<>nil then begin
+            SentenciaSql:='DELETE FROM TUTORES WHERE COD_ALU='+#39+codalu+#39+' AND CARRE='+#39+CARRERA+#39;
+            ibqrvarios.Sql.Text := SentenciaSql;
+            Try
+               TrQrVArios.Active := True;
+               ibqrvarios.ExecQuery;
+               TrQrVArios.Commit;
+            Finally
+               If TrQrVArios.Active Then TrQrVArios.Rollback;
+               TrQrVArios.Active := False;
+            End;
+            if TrQrVArios.Active then
+            TrQrVArios.RollBack;
+            SentenciaSql:= 'INSERT INTO TUTORES (COD_ALU, CARRE, FDNI, FNOMBRE, FAPELLIDO, FDIRECC, FTELEFO, FCELULAR, FEMAIL, FPARENT, FRETIRA, FLOCALI, FCODPOS, FRESPON, FUSUWEB) '+
+                           ' VALUES (:COD_ALU, :CARRE, :FDNI, :FNOMBRE, :FAPELLIDO, :FDIRECC, :FTELEFO, :FCELULAR, :FEMAIL, :FPARENT, :FRETIRA, :FLOCALI, :FCODPOS, :FRESPON, :FUSUWEB); ';
+            ibqrvarios.Sql.Text := SentenciaSql;
+            trqrvarios.Active:=True;
+            frmtutores.MtTutores.First;
+            while not frmtutores.MtTutores.Eof do begin
+                 for i:=0 to Frmtutores.MtTutores.FieldCount-1 do
+                      ibqrvarios.ParamByName(FrmTutores.MtTutores.Fields.Fields[i].FullName).Value:=FrmTutores.MtTutores.Fields.Fields[i].Value;
+                 ibqrvarios.ParamByName('COD_ALU').Value:=CODALU;
+                 ibqrvarios.ParamByName('CARRE').Value:=Carrera;
+                 Ibqrvarios.ExecQuery;
+                 frmtutores.MtTutores.Next;
+            end;
+            TrqrVarios.Commit;
+            TrQrVarios.Active:=False;
+       end;
+       //alta de actas disciplinarias
+       if frmActasDisciplinarias<>nil then begin
+            SentenciaSql:='DELETE FROM ACTAS_DISC WHERE COD_ALU='+#39+codalu+#39+' AND CARRE='+#39+CARRERA+#39;
+            ibqrvarios.Sql.Text := SentenciaSql;
+            Try
+               TrQrVArios.Active := True;
+               ibqrvarios.ExecQuery;
+               TrQrVArios.Commit;
+            Finally
+               If TrQrVArios.Active Then TrQrVArios.Rollback;
+               TrQrVArios.Active := False;
+            End;
+            if TrQrVArios.Active then
+            TrQrVArios.RollBack;
+            SentenciaSql:= 'INSERT INTO ACTAS_DISC (COD_ALU, CARRE, FECHA, CARPOR, OBSERV) '+
+                           ' VALUES (:COD_ALU, :CARRE, :FECHA, :CARPOR, :OBSERV)';
+            ibqrvarios.Sql.Text := SentenciaSql;
+            trqrvarios.Active:=True;
+            frmActasDisciplinarias.MtActasDisciplinarias.First;
+            while not frmActasDisciplinarias.MtActasDisciplinarias.Eof do begin
+                 for i:=0 to FrmActasDisciplinarias.MtActasDisciplinarias.FieldCount-1 do
+                      ibqrvarios.ParamByName(FrmActasDisciplinarias.MtActasDisciplinarias.Fields.Fields[i].FullName).Value:=FrmActasDisciplinarias.MtActasDisciplinarias.Fields.Fields[i].Value;
+                 ibqrvarios.ParamByName('COD_ALU').Value:=CODALU;
+                 ibqrvarios.ParamByName('CARRE').Value:=Carrera;
+                 Ibqrvarios.ExecQuery;
+                 frmActasDisciplinarias.MtActasDisciplinarias.Next;
+            end;
+            TrqrVarios.Commit;
+            TrQrVarios.Active:=False;
+       end;
+       AltaAlumno.Close;
+     Except
+       on e:exception do begin
+         MessageDlg(Pchar(VUsuario+', hubo un error al grabar la informacion. '+e.message),mtError,[mbok],0,mbok);
+         if TrQrVArios.Active then
+             TrQrVArios.Rollback;
+         TrQrVArios.Active := False;
+       end;
+     End;
+   End;
+ End;
+End;
+
+procedure TAltaAlumno.caClick(Sender: TObject);
+begin
+  Ctt.Enabled := Not(Ca.Checked)
+end;
+
+procedure TAltaAlumno.LugarNacimientoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+   ProvinciaNacimiento.SetFocus;
+end;
+
+procedure TAltaAlumno.TipodocKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #27 Then
+   AltaAlumno.cancelarClick(Sender);
+end;
+
+procedure TAltaAlumno.internoKeyPress(Sender: TObject; var Key: Char);
+begin
+  If charinset(key,['A'..'Z','a'..'z']) then
+      key:=#0;
+end;
+
+procedure TAltaAlumno.FormCreate(Sender: TObject);
+begin
+  Application.OnException:= Excepciones;
+  BtnActas.Caption:='&Actas'+#13+'Discipli.';
+end;
+
+procedure TAltaAlumno.BtnTutoresClick(Sender: TObject);
+var x:integer;
+begin
+//  if not assigned(frmTutores) then begin
+  if frmtutores=nil then begin
+     FrmTutores:=TFrmTutores.Create(AltaAlumno);
+     FrmTutores.Visible:=False;
+     FrmTutores.Height:=247;
+     with datamodule.customerdata do begin
+        if (TrdsVArios.Active) then begin
+            TrdsVarios.Rollback;
+            TrdsVArios.Active:=False;
+        end;
+        ibdsvarios.SQLs.SelectSQL.Text := 'SELECT FDNI, FNOMBRE, FAPELLIDO, FDIRECC, FTELEFO, FCELULAR, FEMAIL, FPARENT, FRETIRA, FLOCALI, FCODPOS, FRESPON, FUSUWEB '+
+                                          'FROM TUTORES '+
+                                          'WHERE COD_ALU='+#39+tipodoc.text+documento.Text+#39+' AND CARRE='+#39+CARRERA+#39;
+        TrdsVArios.Active:=True;
+        ibdsvarios.Active:=True;
+        ibdsvarios.First;
+        while not ibdsvarios.Eof do begin
+            FrmTutores.MtTutores.Append;
+            for x:=0 to ibdsvarios.FieldCount-1 do
+               FrmTutores.MtTutores.FieldByName(ibdsvarios.Fields.Fields[x].FullName).Value:=ibdsvarios.Fields.Fields[x].Value;
+            FrmTutores.MtTutores.Post;
+            ibdsvarios.Next;
+        end;
+        TrdsVArios.Commit;
+        TrdsVArios.Active:=false;
+        ibdsvarios.Active:=False;
+        ibdsvarios.SQLs.SelectSQL.Clear;
+      end;
+  end;
+  FrmTutores.ShowModal;
+end;
+
+procedure TAltaAlumno.Button1Click(Sender: TObject);
+begin
+  if OPDFoto.Execute then begin
+     if OPDFoto.FileName<>'' then begin
+       Image.Picture.LoadFromFile(OPDFoto.FileName);
+     end;
+  end;
+end;
+
+procedure TAltaAlumno.Button2Click(Sender: TObject);
+begin
+   if MessageDlg(Pchar(VUsuario+', Desea borrar la fotografia'),mtConfirmation,[mbyes,mbno],0,mbno)=mryes then
+     Image.Picture:=Nil;
+end;
+
+procedure TAltaAlumno.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if assigned(frmTutores) then begin
+      FrmTutores.Close;
+      FrmTutores.Free;
+      FrmTutores:=Nil;
+  end;
+  if assigned(frmActasDisciplinarias) then begin
+      FrmActasDisciplinarias.Close;
+      FrmActasDisciplinarias.Free;
+      FrmActasDisciplinarias:=Nil;
+  end;
+end;
+
+procedure TAltaAlumno.AptoFisicoClick(Sender: TObject);
+begin
+   fechaAptofisico.Enabled := aptofisico.Checked ;
+   if aptofisico.Enabled then  begin
+      VtoApFi.Caption:= 'Vencimiento Apto Fisico: '+ DateToStr(incmonth(FechaAptoFisico.date,12));
+   end
+   else begin
+      VtoApFi.Caption:= '';
+   end;
+   VtoApFi.Visible:=Aptofisico.Checked;
+end;
+
+procedure TAltaAlumno.FechaAptoFisicoChange(Sender: TObject);
+begin
+  vtoApFi.Caption := 'Vencimiento Apto Fisico: '+ DateToStr(incmonth(FechaAptoFisico.date,12));
+end;
+
+procedure TAltaAlumno.BtnActasClick(Sender: TObject);
+Var
+   x:Integer;
+begin
+  if FrmActasDisciplinarias=nil then begin
+     FrmActasDisciplinarias:=TFrmActasDisciplinarias.Create(AltaAlumno);
+     FrmActasDisciplinarias.Visible:=False;
+     FrmActasDisciplinarias.Height:=247;
+     with datamodule.customerdata do begin
+        if (TrdsVArios.Active) then begin
+            TrdsVarios.Rollback;
+            TrdsVArios.Active:=False;
+        end;
+        ibdsvarios.SQLs.SelectSQL.Text := 'SELECT FECHA, CARPOR, OBSERV '+
+                                          'FROM ACTAS_DISC '+
+                                          'WHERE COD_ALU='+#39+tipodoc.text+documento.Text+#39+' AND CARRE='+#39+CARRERA+#39+' ORDER BY FECHA';
+        TrdsVArios.Active:=True;
+        ibdsvarios.Active:=True;
+        ibdsvarios.First;
+        while not ibdsvarios.Eof do begin
+            FrmActasDisciplinarias.MtActasDisciplinarias.Append;
+            for x:=0 to ibdsvarios.FieldCount-1 do
+               FrmActasDisciplinarias.MtActasDisciplinarias.FieldByName(ibdsvarios.Fields.Fields[x].FullName).Value:=ibdsvarios.Fields.Fields[x].Value;
+            FrmActasDisciplinarias.MtActasDisciplinarias.Post;
+            ibdsvarios.Next;
+        end;
+        TrdsVArios.Commit;
+        TrdsVArios.Active:=false;
+        ibdsvarios.Active:=False;
+        ibdsvarios.SQLs.SelectSQL.Clear;
+      end;
+  end;
+  FrmActasDisciplinarias.ShowModal;
+end;
+
+end.
+

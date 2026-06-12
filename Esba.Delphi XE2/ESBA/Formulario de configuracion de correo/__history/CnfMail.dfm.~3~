@@ -1,0 +1,115 @@
+object FrmCnfMail: TFrmCnfMail
+  Left = 80
+  Top = 107
+  BorderStyle = bsDialog
+  Caption = 'Configuracion de Correo'
+  ClientHeight = 157
+  ClientWidth = 472
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Label1: TLabel
+    Left = 8
+    Top = 8
+    Width = 94
+    Height = 13
+    Caption = 'Direccion de Correo'
+  end
+  object Label2: TLabel
+    Left = 8
+    Top = 39
+    Width = 36
+    Height = 13
+    Caption = 'Usuario'
+  end
+  object Label3: TLabel
+    Left = 8
+    Top = 68
+    Width = 51
+    Height = 13
+    Caption = 'Contase'#241'a'
+  end
+  object Label4: TLabel
+    Left = 8
+    Top = 96
+    Width = 30
+    Height = 13
+    Caption = 'SMTP'
+  end
+  object Label5: TLabel
+    Left = 296
+    Top = 96
+    Width = 31
+    Height = 13
+    Caption = 'Puerto'
+  end
+  object Label6: TLabel
+    Left = 8
+    Top = 127
+    Width = 65
+    Height = 13
+    Caption = 'Autenticaci'#243'n'
+  end
+  object correo: TEdit
+    Left = 112
+    Top = 4
+    Width = 209
+    Height = 21
+    TabOrder = 0
+  end
+  object usuario: TEdit
+    Left = 112
+    Top = 32
+    Width = 209
+    Height = 21
+    TabOrder = 1
+  end
+  object password: TEdit
+    Left = 112
+    Top = 61
+    Width = 209
+    Height = 21
+    PasswordChar = '*'
+    TabOrder = 2
+  end
+  object smtp: TEdit
+    Left = 48
+    Top = 91
+    Width = 233
+    Height = 21
+    TabOrder = 3
+  end
+  object puerto: TEdit
+    Left = 336
+    Top = 90
+    Width = 121
+    Height = 21
+    TabOrder = 4
+  end
+  object Button1: TButton
+    Left = 381
+    Top = 120
+    Width = 75
+    Height = 25
+    Caption = '&Aceptar'
+    TabOrder = 5
+    OnClick = Button1Click
+  end
+  object CbAuten: TComboBox
+    Left = 78
+    Top = 122
+    Width = 107
+    Height = 21
+    TabOrder = 6
+    Items.Strings = (
+      'Ninguna'
+      'TLS')
+  end
+end

@@ -1,0 +1,509 @@
+object FormPreview: TFormPreview
+  Left = 245
+  Top = 105
+  Caption = 'Vista Previa'
+  ClientHeight = 606
+  ClientWidth = 1028
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  WindowState = wsMaximized
+  OnActivate = FormActivate
+  OnCanResize = FormCanResize
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 1028
+    Height = 105
+    Align = alTop
+    BevelOuter = bvLowered
+    TabOrder = 0
+    object RadioGroup1: TRadioGroup
+      Left = 82
+      Top = 1
+      Width = 378
+      Height = 103
+      Align = alLeft
+      Caption = 'Intervalos de Impresi'#243'n'
+      TabOrder = 0
+    end
+    object todo: TRadioButton
+      Left = 104
+      Top = 16
+      Width = 113
+      Height = 17
+      Caption = 'Imprimir &Todo'
+      TabOrder = 1
+      OnClick = paginasClick
+    end
+    object Pares: TRadioButton
+      Left = 104
+      Top = 40
+      Width = 137
+      Height = 17
+      Caption = 'Imprimir p'#225'ginas pares'
+      TabOrder = 2
+      OnClick = paginasClick
+    end
+    object Impares: TRadioButton
+      Left = 247
+      Top = 39
+      Width = 137
+      Height = 17
+      Caption = 'Imprimir p'#225'ginas impares'
+      TabOrder = 3
+      OnClick = paginasClick
+    end
+    object paginas: TRadioButton
+      Left = 104
+      Top = 65
+      Width = 113
+      Height = 17
+      Caption = 'P'#225'gin&as...'
+      TabOrder = 4
+      OnClick = paginasClick
+    end
+    object numpaginas: TEdit
+      Left = 179
+      Top = 62
+      Width = 181
+      Height = 21
+      Enabled = False
+      TabOrder = 5
+      OnKeyPress = numpaginasKeyPress
+    end
+    object StaticText1: TStaticText
+      Left = 366
+      Top = 64
+      Width = 90
+      Height = 17
+      Caption = 'Ejem.: 1,3,5-12,14'
+      TabOrder = 6
+    end
+    object Actual: TRadioButton
+      Left = 247
+      Top = 16
+      Width = 113
+      Height = 17
+      Caption = 'P'#225'gina actua&l'
+      TabOrder = 7
+      OnClick = paginasClick
+    end
+    object GroupBox2: TGroupBox
+      Left = 1
+      Top = 1
+      Width = 81
+      Height = 103
+      Align = alLeft
+      TabOrder = 8
+      object Label1: TLabel
+        Left = 9
+        Top = 8
+        Width = 27
+        Height = 13
+        Caption = 'Zoom'
+      end
+      object Label2: TLabel
+        Left = 8
+        Top = 48
+        Width = 32
+        Height = 13
+        Caption = 'Copias'
+      end
+      object Edit1: TEdit
+        Left = 9
+        Top = 23
+        Width = 41
+        Height = 21
+        TabOrder = 0
+        Text = '100'
+        OnKeyPress = Edit1KeyPress
+      end
+      object UpDown1: TUpDown
+        Left = 50
+        Top = 23
+        Width = 16
+        Height = 21
+        Associate = Edit1
+        Min = 10
+        Max = 200
+        Increment = 10
+        Position = 100
+        TabOrder = 1
+        OnChanging = UpDown1Changing
+      end
+      object copias: TEdit
+        Left = 9
+        Top = 61
+        Width = 41
+        Height = 21
+        TabOrder = 2
+        Text = '1'
+        OnKeyPress = copiasKeyPress
+      end
+      object UpDown2: TUpDown
+        Left = 50
+        Top = 61
+        Width = 16
+        Height = 21
+        Associate = copias
+        Min = 1
+        Position = 1
+        TabOrder = 3
+      end
+    end
+    object GroupBox1: TGroupBox
+      Left = 460
+      Top = 1
+      Width = 567
+      Height = 103
+      Align = alClient
+      TabOrder = 9
+      object GmPageNavigator1: TGmPageNavigator
+        Left = 2
+        Top = 15
+        Width = 563
+        Height = 46
+        About = 'TGmPageNavigator v2,89'
+        Align = alTop
+        BorderWidth = 6
+        ButtonHeight = 30
+        ButtonWidth = 30
+        ParentColor = False
+        Preview = VistaPrevia1
+        TabOrder = 0
+      end
+      object Panel3: TPanel
+        Left = 2
+        Top = 61
+        Width = 563
+        Height = 40
+        Align = alClient
+        TabOrder = 1
+        object BitBtn1: TBitBtn
+          Left = 482
+          Top = 1
+          Width = 80
+          Height = 38
+          Align = alRight
+          Caption = '&Cerrar'
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00330000000000
+            03333377777777777F333301BBBBBBBB033333773F3333337F3333011BBBBBBB
+            0333337F73F333337F33330111BBBBBB0333337F373F33337F333301110BBBBB
+            0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+            0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+            0333337F337F33337F333301110BBBBB0333337F337FF3337F33330111B0BBBB
+            0333337F337733337F333301110BBBBB0333337F337F33337F333301110BBBBB
+            0333337F3F7F33337F333301E10BBBBB0333337F7F7F33337F333301EE0BBBBB
+            0333337F777FFFFF7F3333000000000003333377777777777333}
+          NumGlyphs = 2
+          TabOrder = 0
+          OnClick = BitBtn1Click
+        end
+        object BitBtn2: TBitBtn
+          Left = 402
+          Top = 1
+          Width = 80
+          Height = 38
+          Align = alRight
+          Caption = '&Imprimir'
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000130B0000130B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00300000000000
+            00033FFFFFFFFFFFFFFF0888888888888880777777777777777F088888888888
+            8880777777777777777F0000000000000000FFFFFFFFFFFFFFFF0F8F8F8F8F8F
+            8F80777777777777777F08F8F8F8F8F8F9F0777777777777777F0F8F8F8F8F8F
+            8F807777777777777F7F0000000000000000777777777777777F3330FFFFFFFF
+            03333337F3FFFF3F7F333330F0000F0F03333337F77773737F333330FFFFFFFF
+            03333337F3FF3FFF7F333330F00F000003333337F773777773333330FFFF0FF0
+            33333337F3FF7F3733333330F08F0F0333333337F7737F7333333330FFFF0033
+            33333337FFFF7733333333300000033333333337777773333333}
+          NumGlyphs = 2
+          TabOrder = 1
+          OnClick = BitBtn2Click
+        end
+        object BtnPdf: TBitBtn
+          Left = 322
+          Top = 1
+          Width = 80
+          Height = 38
+          Align = alRight
+          Caption = 'PDF'
+          Glyph.Data = {
+            56080000424D560800000000000036000000280000001A0000001A0000000100
+            1800000000002008000000000000000000000000000000000000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFBFBFBFCFCFCFDFDFDFDFDFDFDFD
+            FDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFCFCFCFC
+            FCFCFAFAFAFFFFFF0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE7
+            E7E78989897A7A7A7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C7C
+            7C7C7C7C7C7C7C7C7C7D7D7D7B7B7B7C7C7CABABABFBFBFB0000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC9C9C9B7B7B7ACACACADADADADADADADAD
+            ADB3B3B3B1B1B1B5B5B6B7B7B7B2B2B2B6B6B6B5B5B5B7B7B8B1B1B1B6B5B6B7
+            B7B7B3B3B3F8F8F80000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC0
+            C0C0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD0D1D0F7F8F7C5C6C5ABADAAEFF0F0
+            B5B5B4D2D4D1A8AAA7FFFFFFB3B4B3E9EAE9CECECEF4F4F40000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1C1C1FBFBFAFCFCFCF0F0FCFAFAFBFFFF
+            FF6F706D6769653D403A7375716266627F817D3C3E3A6E706C4246406F716EE0
+            E1E0CCCCCCF5F5F50000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1
+            C1C1FFFFFAD5D5FD3737FE7F7FFDFFFFFFA8A9A6555754666864686A65737572
+            7C7F7B4245406D706B636561565954AEAFADD0D0D0F5F5F50000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1C1C1FCFCFAF1F1FDADADFD7676FD8A8A
+            FFE1E1CE494B47CACBCA70736FAFAFADBEBFBD858785848683EDEEECAAABAEEC
+            EDEBCAC9C9F5F5F50000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1
+            C1C1FAFAFAFFFFFCF3F3FBE5E5FC6F6FFFCCCCF7E8E9D0FFFFFFEEEFEAF4F4F2
+            FFFFFFF1F1E6FFFFF2FFFFFFDBD7FBCBC6FBCBCCC7F5F5F50000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1C1C1FAFAFAFCFCFCFEFEFCFFFFFBFFFF
+            FB1B1BFF6060FF8181FDD9D9FFFFFFFBFBFBF9A8A8FF5B5BFD7777FBACABF8FF
+            FFFCC7C7C6F5F5F50000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1
+            C1C1FAFAFAFCFCFCFCFCFCFCFCFCFFFFFBBEBEFC9D9DFCFFFFF9CACAFA3939FC
+            3636FC4A4AFD8B8BFB9090FA9797F9FFFFFDC5C5C5F5F5F50000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1C1C1FAFAFAFCFCFCFBFBFBFBFBFBFDFD
+            FAF0F0FA7C7CFCE2E2F89898FA6262FBF5F5F6FFFFF6FFFFF6FFFFF6FFFFF6FD
+            FDFDC5C5C5F5F5F50000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1
+            C1C1FAFAFAFBFBFBFAFAFAFAFAFAF9F9F9FFFFF8BCBCF97070FB6363FCFFFFF6
+            FBFBF6F7F7F7F7F7F7F7F7F7F6F6F6FDFDFDC5C5C5F5F5F50000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1C1C1F8F8F8F9F9F9F9F9F9F8F8F8F8F8
+            F8FBFBF6E3E3F74646FBC5C5F9FEFEF6F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7FC
+            FCFCC4C4C4F5F5F50000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1
+            C1C1F8F8F8F8F8F8F7F7F7F6F6F6F6F6F6FBFBF6DADAF75858FBD6D6F7FCFCF6
+            F7F7F7F7F7F7F7F7F7F7F7F7F5F5F5FAFAFAC4C4C4F5F5F50000FFFFFFFFFFFF
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC1C1C1F8F8F8F7F7F7F6F6F6F7F7F7F7F7
+            F7FEFEF6B6B6F97777FBF0F0F7F8F8F6F6F6F6F6F6F6F6F6F6F5F5F5F4F4F4FA
+            FAFAC3C3C3F5F5F50000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC4
+            C4C4FAFAFAFBFBFBFAFAFAF9F9F9FAFAFAFFFFF9ABABFC9D9DFDFFFFF8F8F8F8
+            F5F5F5F5F5F5F3F3F3F1F1F1F1F1F1F7F7F7C3C3C3F5F5F50000FAFAEBFAFAEA
+            FAFAEAFAFAEAFAFAEBFAFAEBFFFFF0BFBFB0EAEADBF0F0E1EFEFE1EFEFE1EFEF
+            E1F5F5DFAFAFE46B6BE6E5E5E2EDEDE1F5F5F5F1F1F1EFEFEFEDEDEDEEEEEEF6
+            F6F6C0C0C0F5F5F5000000007A00007B00007A00007900007700007500007700
+            007600007200007100007000006D00006A00006A000067000065000061000063
+            FFFFFCECECECEBEBEBE4E4E4E0E0E0E1E1E1B8B8B8F6F6F600000000950000B8
+            0000B70000B91515C03333C70000BB0606BF4040CC3E3ECA0202BC2B2BC41B1B
+            BE0000B40000B20000AF0000B0070776FFFFF7DCDCDCC7C7C7B5B5B5A1A1A1AF
+            AFAFACACACF7F7F700000101A80606D00606CE0000CE7070E4CCCCF70000CA31
+            31D9FFFFFFB6B6F45959DEACACF07777E40000C10000C30000BF0000C0090985
+            F2F2E4B1B1B1888888868686A0A0A0BCBCBCCFCFCFFCFCFC00000E0EBD1B1BE1
+            1C1CE01111DF7A7AEDF8F8FD9696EF5E5EE9EFEFFC3737E3BABAF5B5B5F4EBEB
+            FA7B7BE60000CF0101CC0000CD080892D8D8C8B0B0B0DADADAE1E1E1DBDBDBD3
+            D3D3FDFDFDFFFFFF00002222D33131EF3232EE2828EE8B8BF5DCDCFCB9B9FA98
+            98F5F0F0FE6666EF9D9DF4ACACF59999F10F0FDB0909D70707D40000D407079F
+            BFBFADB1B1B1FDFDFDE9E9E9CCCCCCFFFFFFFFFFFFFFFFFF00003737E54646FC
+            4949FB4343FC7474FBE3E3FEC7C7FD6767F7CACAFCD0D0FC3F3FEC8989F3E1E1
+            FCA5A5F30000D90808D50000D40909A9ABAB99B6B6B6EAEAEACFCFCFFFFFFFFF
+            FFFFFFFFFFFFFFFF00002A2AE53434F23737F33737F32D2DF21E1EED1C1CEB22
+            22EC0F0FE40909DF1010DD0404D80000D30000CC0000CB0000C60000C30000AB
+            ADAD9AC4C4C4DBDBDBFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000B9B9F4B9B9F4
+            BABAF5BABAF6BBBBF6BABAF5BDBDF88F8FCAB5B5F0B9B9F3B6B6F0B2B2ECAFAF
+            E8AAAAE4A6A6DFA4A4DD9C9CD58787BFC9C9C2D7D7D7FEFEFEFFFFFFFFFFFFFF
+            FFFFFFFFFFFFFFFF0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDC
+            DCD4D6D6CED9D9D0D8D8D0D8D8D0D8D8D0D8D8D0D7D7CFD7D7CFD7D7CFCFCFC8
+            CFCFCFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000}
+          TabOrder = 2
+          OnClick = BtnPdfClick
+        end
+        object BitBtn10: TBitBtn
+          Left = 242
+          Top = 1
+          Width = 80
+          Height = 38
+          Align = alRight
+          Caption = 'Env. Mail'
+          Glyph.Data = {
+            76010000424D7601000000000000760000002800000020000000100000000100
+            04000000000000010000120B0000120B00001000000000000000000000000000
+            800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+            FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+            3333333333333333333333333333333333333FFFFFFFFFFFFFFF000000000000
+            000077777777777777770FFFFFFFFFFFFFF07F3333FFF33333370FFFF777FFFF
+            FFF07F333777333333370FFFFFFFFFFFFFF07F3333FFFFFF33370FFFF777777F
+            FFF07F33377777733FF70FFFFFFFFFFF99907F3FFF33333377770F777FFFFFFF
+            9CA07F77733333337F370FFFFFFFFFFF9A907FFFFFFFFFFF7FF7000000000000
+            0000777777777777777733333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333333333333333
+            3333333333333333333333333333333333333333333333333333}
+          NumGlyphs = 2
+          TabOrder = 3
+          OnClick = BitBtn10Click
+        end
+      end
+    end
+  end
+  object Barra: TStatusBar
+    Left = 0
+    Top = 587
+    Width = 1028
+    Height = 19
+    Panels = <
+      item
+        Text = ' '
+        Width = 700
+      end
+      item
+        Width = 100
+      end>
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 105
+    Width = 1028
+    Height = 482
+    Align = alClient
+    BevelOuter = bvLowered
+    Caption = 'Panel2'
+    TabOrder = 2
+    object VistaPrevia1: TGmPreview
+      Left = 105
+      Top = 1
+      Width = 922
+      Height = 480
+      Cursor = crCross
+      Margins.Pen.Color = clSilver
+      Margins.Pen.Style = psDot
+      Margins.Pen.Width = 0
+      Margins.PrinterMarginPen.Color = clSilver
+      Margins.PrinterMarginPen.Style = psDot
+      Margins.PrinterMarginPen.Width = 0
+      Margins.Values.Left = 0.500000000000000000
+      Margins.Values.Top = 0.500000000000000000
+      Margins.Values.Right = 0.500000000000000000
+      Margins.Values.Bottom = 0.500000000000000000
+      HorzScrollBar.Range = 853
+      VertScrollBar.Range = 1182
+      About = 'TGmPreview v2,89'
+      Align = alClient
+      Canvas.CompareGraphics = True
+      Footer.CaptionLeft.Font.Charset = DEFAULT_CHARSET
+      Footer.CaptionLeft.Font.Color = clWindowText
+      Footer.CaptionLeft.Font.Height = -16
+      Footer.CaptionLeft.Font.Name = 'Arial'
+      Footer.CaptionLeft.Font.Style = []
+      Footer.CaptionCenter.Font.Charset = DEFAULT_CHARSET
+      Footer.CaptionCenter.Font.Color = clWindowText
+      Footer.CaptionCenter.Font.Height = -16
+      Footer.CaptionCenter.Font.Name = 'Arial'
+      Footer.CaptionCenter.Font.Style = []
+      Footer.CaptionRight.Font.Charset = DEFAULT_CHARSET
+      Footer.CaptionRight.Font.Color = clWindowText
+      Footer.CaptionRight.Font.Height = -16
+      Footer.CaptionRight.Font.Name = 'Arial'
+      Footer.CaptionRight.Font.Style = []
+      Footer.ShowLine = False
+      Footer.Visible = False
+      GmPrinter.Collate = False
+      GmPrinter.Duplex = gmSimplex
+      GmPrinter.PrintColor = gmMonochrome
+      GmPrinter.DitherType = gmNone
+      GmPrinter.PrintQuality = gmDraft
+      GmPrinter.Title = '<document>'
+      Gutter = 30
+      Header.CaptionLeft.Font.Charset = DEFAULT_CHARSET
+      Header.CaptionLeft.Font.Color = clWindowText
+      Header.CaptionLeft.Font.Height = -16
+      Header.CaptionLeft.Font.Name = 'Arial'
+      Header.CaptionLeft.Font.Style = []
+      Header.CaptionCenter.Font.Charset = DEFAULT_CHARSET
+      Header.CaptionCenter.Font.Color = clWindowText
+      Header.CaptionCenter.Font.Height = -16
+      Header.CaptionCenter.Font.Name = 'Arial'
+      Header.CaptionCenter.Font.Style = []
+      Header.CaptionRight.Font.Charset = DEFAULT_CHARSET
+      Header.CaptionRight.Font.Color = clWindowText
+      Header.CaptionRight.Font.Height = -16
+      Header.CaptionRight.Font.Name = 'Arial'
+      Header.CaptionRight.Font.Style = []
+      Header.ShowLine = False
+      Header.Visible = False
+      Orientation = gmPortrait
+      PageGrid.GridPen.Color = clSilver
+      PageGrid.GridPen.Width = 0
+      PagesPerSheet = gmOnePage
+      ParentColor = False
+      TabOrder = 0
+      Zoom = 100
+      OnMouseUp = VistaPrevia1MouseUp
+      OnPageChange = VistaPrevia1PageChange
+      MarginValues = '720,720,720,720'
+    end
+    object GmThumbnails1: TGmThumbnails
+      Left = 1
+      Top = 1
+      Width = 104
+      Height = 480
+      VertScrollBar.ButtonSize = 10
+      VertScrollBar.Smooth = True
+      VertScrollBar.Size = 10
+      About = 'TGmThumbnails v2,89'
+      Align = alLeft
+      CaptionFont.Charset = DEFAULT_CHARSET
+      CaptionFont.Color = clWindowText
+      CaptionFont.Height = -11
+      CaptionFont.Name = 'MS Sans Serif'
+      CaptionFont.Style = []
+      GridWidth = 2
+      Layout = gmThumbVert
+      PageCaptions = 'Pagina #'
+      Preview = VistaPrevia1
+      TabOrder = 1
+      ThumbSize = 5
+    end
+  end
+  object gtPDFEngine1: TgtPDFEngine
+    FileExtension = 'pdf'
+    FileDescription = 'Adobe PDF Files'
+    InputXRes = 96
+    InputYRes = 96
+    ReferencePoint = rpBand
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ImageSettings.SourceDPI = 96
+    ImageSettings.OutputImageFormat = ifJPEG
+    ImageSettings.ImagePixelFormat = pfDevice
+    Page.Width = 8.267700000000000000
+    Page.Height = 11.692900000000000000
+    Page.BinNumber = 0
+    FontEncoding = feWinAnsiEncoding
+    Left = 520
+    Top = 168
+  end
+  object SaveDialog1: TSaveDialog
+    DefaultExt = 'pdf'
+    Filter = 'Pdf Files|*.pdf'
+    Left = 600
+    Top = 168
+  end
+  object gtPDFEngine2: TgtPDFEngine
+    FileExtension = 'pdf'
+    FileDescription = 'Adobe PDF Files'
+    InputXRes = 96
+    InputYRes = 96
+    ReferencePoint = rpBand
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ImageSettings.SourceDPI = 96
+    ImageSettings.OutputImageFormat = ifJPEG
+    Page.Width = 8.267700000000000000
+    Page.Height = 11.692900000000000000
+    Page.BinNumber = 0
+    FontEncoding = feWinAnsiEncoding
+    Left = 552
+    Top = 224
+  end
+end

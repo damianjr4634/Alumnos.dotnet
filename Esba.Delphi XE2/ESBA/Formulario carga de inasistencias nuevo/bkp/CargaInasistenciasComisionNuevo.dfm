@@ -1,0 +1,807 @@
+object FrmCargaInaComiNuevo: TFrmCargaInaComiNuevo
+  Left = 579
+  Top = 41
+  BorderStyle = bsDialog
+  Caption = 'Carga de Inasistencias'
+  ClientHeight = 534
+  ClientWidth = 1032
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  OnKeyPress = FormKeyPress
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 13
+  object X2: TPanel
+    Left = 0
+    Top = 0
+    Width = 433
+    Height = 493
+    Align = alLeft
+    Caption = 'X2'
+    TabOrder = 0
+    object Grilla: TDBGrid
+      Left = 1
+      Top = 51
+      Width = 431
+      Height = 321
+      Align = alClient
+      DataSource = DataSource1
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
+      TabOrder = 0
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Style = []
+      OnDrawColumnCell = GrillaDrawColumnCell
+      OnKeyUp = GrillaKeyUp
+      Columns = <
+        item
+          Expanded = False
+          FieldName = 'CODALU'
+          ReadOnly = True
+          Title.Caption = 'Codigo alumno'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'NOMBRE'
+          ReadOnly = True
+          Title.Caption = 'Nombre'
+          Width = 250
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CANTOT'
+          ReadOnly = True
+          Title.Caption = 'Total Faltas'
+          Visible = True
+        end>
+    end
+    object Memo1: TMemo
+      Left = 1
+      Top = 1
+      Width = 431
+      Height = 50
+      Align = alTop
+      Lines.Strings = (
+        'Memo1')
+      TabOrder = 1
+    end
+    object DBGrid1: TDBGrid
+      Left = 1
+      Top = 372
+      Width = 431
+      Height = 120
+      Align = alBottom
+      DataSource = DataSource3
+      TabOrder = 2
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Style = []
+      Visible = False
+    end
+  end
+  object X10: TPanel
+    Left = 0
+    Top = 493
+    Width = 1032
+    Height = 41
+    Align = alBottom
+    TabOrder = 1
+    object Grabamesa: TBitBtn
+      Left = 853
+      Top = 1
+      Width = 89
+      Height = 39
+      Align = alRight
+      Caption = '&Grabar'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+        555555555555555555555555555555555555555555FF55555555555559055555
+        55555555577FF5555555555599905555555555557777F5555555555599905555
+        555555557777FF5555555559999905555555555777777F555555559999990555
+        5555557777777FF5555557990599905555555777757777F55555790555599055
+        55557775555777FF5555555555599905555555555557777F5555555555559905
+        555555555555777FF5555555555559905555555555555777FF55555555555579
+        05555555555555777FF5555555555557905555555555555777FF555555555555
+        5990555555555555577755555555555555555555555555555555}
+      NumGlyphs = 2
+      TabOrder = 0
+      OnClick = GrabamesaClick
+    end
+    object CancelaGrabacion: TBitBtn
+      Left = 942
+      Top = 1
+      Width = 89
+      Height = 39
+      Align = alRight
+      Caption = '&Salir'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+        333333333333333333333333333333333333333FFF33FF333FFF339993370733
+        999333777FF37FF377733339993000399933333777F777F77733333399970799
+        93333333777F7377733333333999399933333333377737773333333333990993
+        3333333333737F73333333333331013333333333333777FF3333333333910193
+        333333333337773FF3333333399000993333333337377737FF33333399900099
+        93333333773777377FF333399930003999333337773777F777FF339993370733
+        9993337773337333777333333333333333333333333333333333333333333333
+        3333333333333333333333333333333333333333333333333333}
+      NumGlyphs = 2
+      TabOrder = 1
+      OnClick = CancelaGrabacionClick
+    end
+  end
+  object X3: TPanel
+    Left = 433
+    Top = 0
+    Width = 599
+    Height = 493
+    Align = alClient
+    TabOrder = 2
+    object XPanelMes: TPanel
+      Left = 1
+      Top = 1
+      Width = 597
+      Height = 50
+      Align = alTop
+      Caption = 'XPanelMes'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'MS Sans Serif'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 0
+      object BitBtn1: TBitBtn
+        Left = 483
+        Top = 1
+        Width = 113
+        Height = 48
+        Align = alRight
+        Caption = 'Siguiente'
+        Glyph.Data = {
+          76010000424D7601000000000000760000002800000020000000100000000100
+          04000000000000010000120B0000120B00001000000000000000000000000000
+          800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+          FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+          33333FF3333333333333447333333333333377FFF33333333333744473333333
+          333337773FF3333333333444447333333333373F773FF3333333334444447333
+          33333373F3773FF3333333744444447333333337F333773FF333333444444444
+          733333373F3333773FF333334444444444733FFF7FFFFFFF77FF999999999999
+          999977777777777733773333CCCCCCCCCC3333337333333F7733333CCCCCCCCC
+          33333337F3333F773333333CCCCCCC3333333337333F7733333333CCCCCC3333
+          333333733F77333333333CCCCC333333333337FF7733333333333CCC33333333
+          33333777333333333333CC333333333333337733333333333333}
+        Layout = blGlyphRight
+        NumGlyphs = 2
+        TabOrder = 0
+        OnClick = BitBtn1Click
+      end
+      object BitBtn2: TBitBtn
+        Left = 1
+        Top = 1
+        Width = 113
+        Height = 48
+        Align = alLeft
+        Caption = 'Anterior'
+        Glyph.Data = {
+          76010000424D7601000000000000760000002800000020000000100000000100
+          04000000000000010000120B0000120B00001000000000000000000000000000
+          800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+          FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+          333333333333333333FF3333333333333744333333333333F773333333333337
+          44473333333333F777F3333333333744444333333333F7733733333333374444
+          4433333333F77333733333333744444447333333F7733337F333333744444444
+          433333F77333333733333744444444443333377FFFFFFF7FFFFF999999999999
+          9999733777777777777333CCCCCCCCCC33333773FF333373F3333333CCCCCCCC
+          C333333773FF3337F333333333CCCCCCC33333333773FF373F3333333333CCCC
+          CC333333333773FF73F33333333333CCCCC3333333333773F7F3333333333333
+          CCC333333333333777FF33333333333333CC3333333333333773}
+        NumGlyphs = 2
+        TabOrder = 1
+        OnClick = BitBtn2Click
+      end
+    end
+    object X9: TPanel
+      Left = 1
+      Top = 51
+      Width = 597
+      Height = 22
+      Align = alTop
+      Caption = 'X9'
+      TabOrder = 1
+      object X19: TPanel
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 20
+        Align = alLeft
+        Caption = 'VIERNES'
+        TabOrder = 0
+      end
+      object X18: TPanel
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 20
+        Align = alLeft
+        Caption = 'JUEVES'
+        TabOrder = 1
+      end
+      object X17: TPanel
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 20
+        Align = alLeft
+        Caption = 'MIERCOLES'
+        TabOrder = 2
+      end
+      object X16: TPanel
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 20
+        Align = alLeft
+        Caption = 'MARTES'
+        TabOrder = 3
+      end
+      object X15: TPanel
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 20
+        Align = alLeft
+        Caption = 'LUNES'
+        TabOrder = 4
+      end
+    end
+    object X4: TPanel
+      Left = 1
+      Top = 353
+      Width = 597
+      Height = 70
+      Align = alTop
+      Caption = 'X4'
+      TabOrder = 2
+      object P44: TStaticText
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 0
+      end
+      object P43: TStaticText
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 1
+      end
+      object P42: TStaticText
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 2
+      end
+      object P41: TStaticText
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 3
+      end
+      object P40: TStaticText
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 4
+      end
+    end
+    object X5: TPanel
+      Left = 1
+      Top = 213
+      Width = 597
+      Height = 70
+      Align = alTop
+      Caption = 'Panel11'
+      TabOrder = 3
+      object P24: TStaticText
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '3'
+        TabOrder = 0
+      end
+      object P23: TStaticText
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '3'
+        TabOrder = 1
+      end
+      object P22: TStaticText
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '3'
+        TabOrder = 2
+      end
+      object P21: TStaticText
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '3'
+        TabOrder = 3
+      end
+      object P20: TStaticText
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '3'
+        TabOrder = 4
+      end
+    end
+    object X6: TPanel
+      Left = 1
+      Top = 143
+      Width = 597
+      Height = 70
+      Align = alTop
+      Caption = 'Panel11'
+      TabOrder = 4
+      object P14: TStaticText
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '2'
+        TabOrder = 0
+      end
+      object P13: TStaticText
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '2'
+        TabOrder = 1
+      end
+      object P12: TStaticText
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '2'
+        TabOrder = 2
+      end
+      object P11: TStaticText
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '2'
+        TabOrder = 3
+      end
+      object P10: TStaticText
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '2'
+        TabOrder = 4
+      end
+    end
+    object X12: TPanel
+      Left = 1
+      Top = 73
+      Width = 597
+      Height = 70
+      Align = alTop
+      Caption = 'Panel11'
+      TabOrder = 5
+      object P04: TStaticText
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '1'
+        TabOrder = 0
+      end
+      object P03: TStaticText
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '1'
+        TabOrder = 1
+      end
+      object P02: TStaticText
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '1'
+        TabOrder = 2
+      end
+      object P01: TStaticText
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '1'
+        TabOrder = 3
+      end
+      object P00: TStaticText
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '1'
+        Color = clNavy
+        FocusControl = Grilla
+        ParentColor = False
+        TabOrder = 4
+      end
+    end
+    object X8: TPanel
+      Left = 1
+      Top = 283
+      Width = 597
+      Height = 70
+      Align = alTop
+      Caption = 'Panel11'
+      TabOrder = 6
+      object P34: TStaticText
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 0
+      end
+      object P33: TStaticText
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 1
+      end
+      object P32: TStaticText
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 2
+      end
+      object P31: TStaticText
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 3
+      end
+      object P30: TStaticText
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        TabOrder = 4
+      end
+    end
+    object X55: TPanel
+      Left = 1
+      Top = 423
+      Width = 597
+      Height = 70
+      Align = alTop
+      Caption = 'Panel11'
+      TabOrder = 7
+      object P54: TStaticText
+        Left = 477
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '4'
+        TabOrder = 0
+      end
+      object P53: TStaticText
+        Left = 358
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '4'
+        TabOrder = 1
+      end
+      object P52: TStaticText
+        Left = 239
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '4'
+        TabOrder = 2
+      end
+      object P51: TStaticText
+        Left = 120
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '4'
+        TabOrder = 3
+      end
+      object P50: TStaticText
+        Left = 1
+        Top = 1
+        Width = 119
+        Height = 68
+        Align = alLeft
+        AutoSize = False
+        BorderStyle = sbsSunken
+        Caption = '4'
+        TabOrder = 4
+      end
+    end
+  end
+  object DataSource1: TDataSource
+    DataSet = MtAlumnos
+    Left = 272
+    Top = 72
+  end
+  object MtAlumnos: TkbmMemTable
+    DesignActivation = True
+    AttachedAutoRefresh = True
+    AttachMaxCount = 1
+    FieldDefs = <
+      item
+        Name = 'CODALU'
+        DataType = ftString
+        Size = 11
+      end
+      item
+        Name = 'NOMBRE'
+        DataType = ftString
+        Size = 80
+      end
+      item
+        Name = 'CANTOT'
+        DataType = ftCurrency
+      end>
+    IndexDefs = <>
+    SortOptions = []
+    PersistentBackup = False
+    ProgressFlags = [mtpcLoad, mtpcSave, mtpcCopy]
+    LoadedCompletely = False
+    SavedCompletely = False
+    FilterOptions = []
+    Version = '7.15.00 Professional Edition'
+    LanguageID = 0
+    SortID = 0
+    SubLanguageID = 1
+    LocaleID = 1024
+    AfterScroll = MtAlumnosAfterScroll
+    Left = 344
+    Top = 72
+    object MtAlumnosCODALU: TStringField
+      FieldName = 'CODALU'
+      Size = 11
+    end
+    object MtAlumnosNOMBRE: TStringField
+      FieldName = 'NOMBRE'
+      Size = 80
+    end
+    object MtAlumnosCANTOT: TCurrencyField
+      FieldName = 'CANTOT'
+      DisplayFormat = '0.0'
+    end
+  end
+  object IbupIns: TpFIBQuery
+    Transaction = TrFaltas
+    Database = CustomerData.FBase
+    Left = 224
+    Top = 409
+  end
+  object TrFaltas: TpFIBTransaction
+    DefaultDatabase = CustomerData.FBase
+    TimeoutAction = TARollback
+    Left = 160
+    Top = 409
+  end
+  object DsFaltas: TpFIBDataSet
+    Transaction = TrFaltas
+    Database = CustomerData.FBase
+    Left = 128
+    Top = 408
+  end
+  object MtFaltas: TkbmMemTable
+    DesignActivation = True
+    AttachedAutoRefresh = True
+    AttachMaxCount = 1
+    FieldDefs = <
+      item
+        Name = 'CODALU'
+        DataType = ftString
+        Size = 11
+      end
+      item
+        Name = 'FECHA'
+        DataType = ftDate
+      end
+      item
+        Name = 'CODFAL'
+        DataType = ftString
+        Size = 2
+      end
+      item
+        Name = 'CANTID'
+        DataType = ftFloat
+      end
+      item
+        Name = 'DESCRI'
+        DataType = ftString
+        Size = 40
+      end>
+    IndexFieldNames = 'CODALU'
+    IndexDefs = <
+      item
+        Name = 'MtFaltasIndex1'
+        Fields = 'CODALU'
+      end>
+    SortOptions = []
+    PersistentBackup = False
+    ProgressFlags = [mtpcLoad, mtpcSave, mtpcCopy]
+    LoadedCompletely = False
+    SavedCompletely = False
+    FilterOptions = []
+    MasterFields = 'CODALU'
+    MasterSource = DataSource2
+    Version = '7.15.00 Professional Edition'
+    LanguageID = 0
+    SortID = 0
+    SubLanguageID = 0
+    LocaleID = 0
+    Left = 344
+    Top = 200
+    object MtFaltasCODALU: TStringField
+      FieldName = 'CODALU'
+      Size = 11
+    end
+    object MtFaltasFECHA: TDateField
+      FieldName = 'FECHA'
+    end
+    object MtFaltasCODFAL: TStringField
+      FieldName = 'CODFAL'
+      Size = 2
+    end
+    object MtFaltasCANTID: TFloatField
+      FieldName = 'CANTID'
+    end
+    object MtFaltasDESCRI: TStringField
+      FieldName = 'DESCRI'
+      Size = 40
+    end
+  end
+  object DataSource2: TDataSource
+    DataSet = MtAlumnos
+    Left = 280
+    Top = 144
+  end
+  object DataSource3: TDataSource
+    DataSet = MtFaltas
+    Left = 264
+    Top = 344
+  end
+  object ApplicationEvents1: TApplicationEvents
+    Left = 72
+    Top = 176
+  end
+end

@@ -1,0 +1,612 @@
+object AlMoMaterias: TAlMoMaterias
+  Left = 348
+  Top = 187
+  BorderStyle = bsDialog
+  Caption = 'Alta - Modificaci'#243'n de Materias'
+  ClientHeight = 460
+  ClientWidth = 752
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  OnClose = FormClose
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 752
+    Height = 217
+    Align = alTop
+    Caption = 'Panel1'
+    TabOrder = 0
+    object BotonModificar: TBitBtn
+      Left = 461
+      Top = 184
+      Width = 89
+      Height = 25
+      Caption = '&Modificar'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333000000
+        000033333377777777773333330FFFFFFFF03FF3FF7FF33F3FF700300000FF0F
+        00F077F777773F737737E00BFBFB0FFFFFF07773333F7F3333F7E0BFBF000FFF
+        F0F077F3337773F3F737E0FBFBFBF0F00FF077F3333FF7F77F37E0BFBF00000B
+        0FF077F3337777737337E0FBFBFBFBF0FFF077F33FFFFFF73337E0BF0000000F
+        FFF077FF777777733FF7000BFB00B0FF00F07773FF77373377373330000B0FFF
+        FFF03337777373333FF7333330B0FFFF00003333373733FF777733330B0FF00F
+        0FF03333737F37737F373330B00FFFFF0F033337F77F33337F733309030FFFFF
+        00333377737FFFFF773333303300000003333337337777777333}
+      NumGlyphs = 2
+      TabOrder = 2
+      OnClick = BotonModificarClick
+    end
+    object BitBtn2: TBitBtn
+      Left = 557
+      Top = 184
+      Width = 89
+      Height = 25
+      Caption = '&Imprimir'
+      Glyph.Data = {
+        F6000000424DF600000000000000760000002800000010000000100000000100
+        0400000000008000000000000000000000001000000000000000000000000000
+        8000008000000080800080000000800080008080000080808000C0C0C0000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00888888888888
+        888F8800000000000888808888888880808800000000000008080888888BBB88
+        0008088888877788080800000000000008800888888888808080800000000008
+        0800880FFFFFFFF080808880F00000F000088880FFFFFFFF088888880F00000F
+        088888880FFFFFFFF08888888000000000888888888888888888}
+      TabOrder = 3
+      OnClick = BitBtn2Click
+    end
+    object BitBtn3: TBitBtn
+      Left = 651
+      Top = 184
+      Width = 89
+      Height = 25
+      Caption = '&Salir'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00330000000000
+        03333377777777777F333301BBBBBBBB033333773F3333337F3333011BBBBBBB
+        0333337F73F333337F33330111BBBBBB0333337F373F33337F333301110BBBBB
+        0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+        0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+        0333337F337F33337F333301110BBBBB0333337F337FF3337F33330111B0BBBB
+        0333337F337733337F333301110BBBBB0333337F337F33337F333301110BBBBB
+        0333337F3F7F33337F333301E10BBBBB0333337F7F7F33337F333301EE0BBBBB
+        0333337F777FFFFF7F3333000000000003333377777777777333}
+      NumGlyphs = 2
+      TabOrder = 4
+      OnClick = BitBtn3Click
+    end
+    object BotonNuevo: TBitBtn
+      Left = 363
+      Top = 184
+      Width = 90
+      Height = 25
+      Caption = '&Nuevo'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF0033333333B333
+        333B33FF33337F3333F73BB3777BB7777BB3377FFFF77FFFF77333B000000000
+        0B3333777777777777333330FFFFFFFF07333337F33333337F333330FFFFFFFF
+        07333337F33333337F333330FFFFFFFF07333337F33333337F333330FFFFFFFF
+        07333FF7F33333337FFFBBB0FFFFFFFF0BB37777F3333333777F3BB0FFFFFFFF
+        0BBB3777F3333FFF77773330FFFF000003333337F333777773333330FFFF0FF0
+        33333337F3337F37F3333330FFFF0F0B33333337F3337F77FF333330FFFF003B
+        B3333337FFFF77377FF333B000000333BB33337777777F3377FF3BB3333BB333
+        3BB33773333773333773B333333B3333333B7333333733333337}
+      NumGlyphs = 2
+      TabOrder = 1
+      OnClick = BotonNuevoClick
+    end
+    object DBGrid1: TDBGrid
+      Left = 1
+      Top = 1
+      Width = 750
+      Height = 176
+      Align = alTop
+      DataSource = DataSource1
+      Options = [dgTitles, dgIndicator, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgCancelOnExit]
+      TabOrder = 0
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Style = []
+      OnKeyPress = DBGrid1KeyPress
+      Columns = <
+        item
+          Expanded = False
+          Visible = False
+        end
+        item
+          Expanded = False
+          FieldName = 'CODMATERI'
+          ReadOnly = True
+          Title.Caption = 'Codigo'
+          Width = 38
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CUATRIM'
+          Title.Caption = 'Cuatri.'
+          Width = 37
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'DESCRIPCI'
+          Title.Caption = 'Descripci'#243'n'
+          Width = 320
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CORRELATIV'
+          Title.Caption = 'Correlativas'
+          Width = 62
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'SIGLA'
+          Title.Caption = 'Abreviatura'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'ANUAL'
+          Title.Caption = 'Anual'
+          Width = 33
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'EQUIVALE'
+          Title.Caption = 'Equivale'
+          Width = 50
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'ORDEN'
+          Visible = False
+        end
+        item
+          Expanded = False
+          FieldName = 'ESTADO'
+          Title.Caption = 'Estado'
+          Width = 50
+          Visible = True
+        end>
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 217
+    Width = 752
+    Height = 243
+    Align = alClient
+    TabOrder = 1
+    object Label1: TLabel
+      Left = 8
+      Top = 24
+      Width = 86
+      Height = 13
+      Caption = 'C'#243'digo de Materia'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label2: TLabel
+      Left = 140
+      Top = 25
+      Width = 58
+      Height = 13
+      Caption = 'Cuatrimestre'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label3: TLabel
+      Left = 8
+      Top = 88
+      Width = 56
+      Height = 13
+      Caption = 'Descripci'#243'n'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label4: TLabel
+      Left = 8
+      Top = 214
+      Width = 55
+      Height = 13
+      Caption = 'Correlativas'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+      Visible = False
+    end
+    object Label5: TLabel
+      Left = 9
+      Top = 126
+      Width = 54
+      Height = 13
+      Caption = 'Abreviatura'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object Label7: TLabel
+      Left = 9
+      Top = 56
+      Width = 50
+      Height = 13
+      Caption = 'Equivale a'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
+    object NombreEqui: TLabel
+      Left = 137
+      Top = 49
+      Width = 3
+      Height = 13
+    end
+    object Label6: TLabel
+      Left = 8
+      Top = 159
+      Width = 29
+      Height = 13
+      Caption = 'Orden'
+    end
+    object Edit1: TEdit
+      Left = 98
+      Top = 19
+      Width = 36
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 2
+      TabOrder = 0
+      OnExit = Edit1Exit
+    end
+    object Edit4: TEdit
+      Left = 70
+      Top = 86
+      Width = 304
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 60
+      TabOrder = 1
+    end
+    object Edit5: TEdit
+      Left = 69
+      Top = 211
+      Width = 84
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 15
+      TabOrder = 2
+      Visible = False
+    end
+    object Edit6: TEdit
+      Left = 70
+      Top = 120
+      Width = 121
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 30
+      TabOrder = 3
+    end
+    object BotonCancelar: TBitBtn
+      Left = 279
+      Top = 211
+      Width = 97
+      Height = 25
+      Caption = '&Cancelar'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+        333333333333333333333333333333333333333FFF33FF333FFF339993370733
+        999333777FF37FF377733339993000399933333777F777F77733333399970799
+        93333333777F7377733333333999399933333333377737773333333333990993
+        3333333333737F73333333333331013333333333333777FF3333333333910193
+        333333333337773FF3333333399000993333333337377737FF33333399900099
+        93333333773777377FF333399930003999333337773777F777FF339993370733
+        9993337773337333777333333333333333333333333333333333333333333333
+        3333333333333333333333333333333333333333333333333333}
+      NumGlyphs = 2
+      TabOrder = 5
+      OnClick = BotonCancelarClick
+    end
+    object BotonGrabar: TBitBtn
+      Left = 187
+      Top = 211
+      Width = 86
+      Height = 25
+      Caption = '&Grabar'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333330070
+        7700333333337777777733333333008088003333333377F73377333333330088
+        88003333333377FFFF7733333333000000003FFFFFFF77777777000000000000
+        000077777777777777770FFFFFFF0FFFFFF07F3333337F3333370FFFFFFF0FFF
+        FFF07F3FF3FF7FFFFFF70F00F0080CCC9CC07F773773777777770FFFFFFFF039
+        99337F3FFFF3F7F777F30F0000F0F09999937F7777373777777F0FFFFFFFF999
+        99997F3FF3FFF77777770F00F000003999337F773777773777F30FFFF0FF0339
+        99337F3FF7F3733777F30F08F0F0337999337F7737F73F7777330FFFF0039999
+        93337FFFF7737777733300000033333333337777773333333333}
+      NumGlyphs = 2
+      TabOrder = 4
+      OnClick = BotonGrabarClick
+    end
+    object baja: TCheckBox
+      Left = 292
+      Top = 113
+      Width = 55
+      Height = 17
+      Caption = 'Baja'
+      TabOrder = 6
+    end
+    object Anual: TCheckBox
+      Left = 292
+      Top = 129
+      Width = 76
+      Height = 17
+      Caption = 'Anual'
+      TabOrder = 7
+    end
+    object Edit3: TEdit
+      Left = 204
+      Top = 19
+      Width = 28
+      Height = 21
+      TabOrder = 8
+      Text = '1'
+    end
+    object UpDown1: TUpDown
+      Left = 232
+      Top = 19
+      Width = 15
+      Height = 21
+      Associate = Edit3
+      Min = 1
+      Max = 6
+      Position = 1
+      TabOrder = 9
+    end
+    object CmbEquivale: TComboEdit
+      Left = 70
+      Top = 52
+      Width = 65
+      Height = 21
+      ClickKey = 112
+      GlyphKind = gkEllipsis
+      MaxLength = 2
+      NumGlyphs = 1
+      TabOrder = 10
+      OnButtonClick = CmbEquivaleButtonClick
+      OnExit = CmbEquivaleExit
+    end
+    object PageControl1: TPageControl
+      Left = 382
+      Top = 1
+      Width = 369
+      Height = 241
+      ActivePage = TabSheet1
+      Align = alRight
+      TabOrder = 11
+      object TabSheet1: TTabSheet
+        Caption = 'Para cursar'
+        object Materias: TLabel
+          Left = 3
+          Top = 1
+          Width = 40
+          Height = 13
+          Caption = 'Materias'
+        end
+        object Label8: TLabel
+          Left = 193
+          Top = 1
+          Width = 128
+          Height = 13
+          Caption = 'A Aprobar (Regular minimo)'
+        end
+        object LstMateriasCursar: TListBox
+          Left = 1
+          Top = 15
+          Width = 165
+          Height = 189
+          ItemHeight = 13
+          TabOrder = 0
+          OnDblClick = PasUnaCursarClick
+        end
+        object LstCorrelaCursar: TListBox
+          Left = 195
+          Top = 15
+          Width = 165
+          Height = 188
+          ItemHeight = 13
+          TabOrder = 1
+          OnDblClick = SacaUnaCursarClick
+        end
+        object PasUnaCursar: TBitBtn
+          Left = 166
+          Top = 15
+          Width = 28
+          Height = 25
+          Caption = '>'
+          TabOrder = 2
+          OnClick = PasUnaCursarClick
+        end
+        object PasTodasCursar: TBitBtn
+          Left = 166
+          Top = 45
+          Width = 28
+          Height = 25
+          Caption = '>>'
+          TabOrder = 3
+          OnClick = PasTodasCursarClick
+        end
+        object SacaUnaCursar: TBitBtn
+          Left = 166
+          Top = 76
+          Width = 28
+          Height = 25
+          Caption = '<'
+          TabOrder = 4
+          OnClick = SacaUnaCursarClick
+        end
+        object SacaTodasCursar: TBitBtn
+          Left = 166
+          Top = 107
+          Width = 28
+          Height = 25
+          Caption = '<<'
+          TabOrder = 5
+          OnClick = SacaTodasCursarClick
+        end
+      end
+      object TabSheet2: TTabSheet
+        Caption = 'Para rendir'
+        ImageIndex = 1
+        object Label9: TLabel
+          Left = 3
+          Top = 1
+          Width = 40
+          Height = 13
+          Caption = 'Materias'
+        end
+        object Label10: TLabel
+          Left = 193
+          Top = 1
+          Width = 113
+          Height = 13
+          Caption = 'A Aprobar (Final minimo)'
+        end
+        object LstMateriasRendir: TListBox
+          Left = 1
+          Top = 15
+          Width = 165
+          Height = 189
+          ItemHeight = 13
+          TabOrder = 0
+          OnDblClick = LstMateriasRendirDblClick
+        end
+        object PasUnaRendir: TBitBtn
+          Left = 166
+          Top = 15
+          Width = 28
+          Height = 25
+          Caption = '>'
+          TabOrder = 1
+          OnClick = PasUnaRendirClick
+        end
+        object PasTodasRendir: TBitBtn
+          Left = 166
+          Top = 45
+          Width = 28
+          Height = 25
+          Caption = '>>'
+          TabOrder = 2
+          OnClick = PasTodasRendirClick
+        end
+        object SacaUnaRendir: TBitBtn
+          Left = 166
+          Top = 76
+          Width = 28
+          Height = 25
+          Caption = '<'
+          TabOrder = 3
+          OnClick = SacaUnaRendirClick
+        end
+        object SacaTodasRendir: TBitBtn
+          Left = 166
+          Top = 107
+          Width = 28
+          Height = 25
+          Caption = '<<'
+          TabOrder = 4
+          OnClick = SacaTodasRendirClick
+        end
+        object LstCorrelaRendir: TListBox
+          Left = 195
+          Top = 15
+          Width = 165
+          Height = 188
+          ItemHeight = 13
+          TabOrder = 5
+          OnDblClick = LstCorrelaRendirDblClick
+        end
+      end
+    end
+    object CeOrden: TCurrencyEdit
+      Left = 70
+      Top = 152
+      Width = 43
+      Height = 21
+      Margins.Left = 1
+      Margins.Top = 1
+      AutoSize = False
+      DecimalPlaces = 0
+      DisplayFormat = '0'
+      TabOrder = 12
+    end
+    object promo: TCheckBox
+      Left = 292
+      Top = 144
+      Width = 84
+      Height = 17
+      Caption = 'Promociona'
+      TabOrder = 13
+    end
+  end
+  object DataSource1: TDataSource
+    DataSet = CustomerData.IbDsVarios
+    Left = 112
+    Top = 144
+  end
+  object Dialogo: TPrintDialog
+    Left = 152
+    Top = 144
+  end
+end

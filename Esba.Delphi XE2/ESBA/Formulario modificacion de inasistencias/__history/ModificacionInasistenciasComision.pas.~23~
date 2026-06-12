@@ -1,0 +1,316 @@
+unit ModificacionInasistenciasComision;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, StdCtrls, Buttons, kbmMemTable, Grids, DBGrids,
+  datamodule, FIBDataSet, pFIBDataSet, FIBDatabase, pFIBDatabase, FIBQuery,
+  pFIBQuery, Funciones;
+
+type
+  TFrmModiInaComi = class(TForm)
+    DataSource1: TDataSource;
+    Grilla: TDBGrid;
+    MtFaltas: TkbmMemTable;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    MtFaltasCODFAL: TStringField;
+    IbupIns: TpFIBQuery;
+    TrFaltas: TpFIBTransaction;
+    DsFaltas: TpFIBDataSet;
+    MtFaltasCANTID: TFloatField;
+    MtFaltasFECHA: TDateField;
+    MtFaltasCUTUCO: TIntegerField;
+    BtnEliminar: TBitBtn;
+    MtFaltasDESFAL: TStringField;
+    procedure FormActivate(Sender: TObject);
+    procedure GrillaEditButtonClick(Sender: TObject);
+    procedure GrillaKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure GrillaColExit(Sender: TObject);
+    procedure MtFaltasCODFALSetText(Sender: TField; const Text: String);
+    procedure GrillaDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure MtFaltasAfterPost(DataSet: TDataSet);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure GrabamesaClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure BtnEliminarClick(Sender: TObject);
+    procedure MtFaltasCUTUCOSetText(Sender: TField; const Text: string);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmModiInaComi: TFrmModiInaComi;
+  codalu,dde,hta:String;
+  VCarrera, materia : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+implementation
+
+{$R *.dfm}
+
+procedure TFrmModiInaComi.FormActivate(Sender: TObject);
+begin
+  if (VCarrera = '333') or (VCarrera='650') then begin
+    DsFaltas.SQLs.SelectSQL.Text:= 'SELECT F.CUTUCO, F.FECHA, F.CODFAL, T.FDESCRI, F.CANFAL '+
+                                   'FROM FALTAS F '+
+                                   'LEFT OUTER JOIN TBL_FALTAS T ON T.FCODIGO=F.CODFAL '+
+                                   'WHERE F.CARRERA='''+vCARRERA+''' AND F.CODALU='''+CODALU+''' AND F.FECHA BETWEEN '''+DDE+''' AND '''+HTA+''' AND COD_MAT IS NULL ORDER BY 2,1'
+  end
+  else
+    DsFaltas.SQLs.SelectSQL.Text:= 'SELECT F.CUTUCO, F.FECHA, F.CODFAL, T.FDESCRI, F.CANFAL '+
+                                   'FROM FALTAS F '+
+                                   'LEFT OUTER JOIN TBL_FALTAS T ON T.FCODIGO=F.CODFAL '+
+                                   'WHERE F.CARRERA='''+vCARRERA+''' AND F.CODALU='''+CODALU+''' AND F.FECHA BETWEEN '''+DDE+''' AND '''+HTA+''' AND COD_MAT='''+materia+''' ORDER BY 2,1';
+  if trfaltas.Active then
+     TrFaltas.Rollback;
+  trfaltas.Active:=true;
+  DsFaltas.Active:=true;
+  dsFaltas.First;
+  mtfaltas.Active:=True;
+  while not (dsfaltas.Eof) do begin
+      MtFaltas.Append;
+      MtFaltasFECHA.value:=DsFaltas.FieldByName('FECHA').Value;
+      MtFaltasCUTUCO.value:=DsFaltas.FieldByName('CUTUCO').Value;
+      MtFaltasDESFAL.value:=DsFaltas.FieldByName('FDESCRI').Value;
+      MtFaltasCODFAL.Value:=DsFaltas.FieldByName('CODFAL').Value;
+      MtFaltasCANTID.Value:=DsFaltas.FieldByName('CANFAL').Value;
+      MtFaltas.Post;
+      DsFaltas.Next;
+  end;
+  BtnEliminar.Enabled := DsFaltas.RecordCount<>0;
+  TrFaltas.Rollback;
+  trfaltas.Active:=False;
+  DsFaltas.Active:=False;
+  MtFaltas.First;
+  grilla.Repaint;
+end;
+procedure TFrmModiInaComi.GrillaEditButtonClick(Sender: TObject);
+Var b:variant;
+begin
+ IF (grilla.SelectedField.FullName='CODFAL')  then begin
+     Funciones.combobusqueda('SELECT FCODIGO, FDESCRI, FCANTID FROM TBL_FALTAS WHERE CARRE IS NULL OR CARRE CONTAINING '''+VCarrera+'''',['Codigo','Apellido','Cantidad'],b,True);
+     if Not (mtFaltas.State=dsedit) then
+        MtFaltas.edit;
+     if (vartostr(b[0])<>'') then begin
+        MtFaltas.FieldByName('CODFAL').AsString:=b[0];
+        MtFaltas.FieldByName('DESFAL').AsString:=b[1];
+        MtFaltas.FieldByName('CANTID').AsFloat:=b[2];//StrToFloat(text2);
+     end;
+ end
+ else IF (grilla.SelectedField.FullName='CUTUCO')  then begin
+     if (Vcarrera='333') or (Vcarrera='650') then
+        Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera),['Comision'],b,True)
+     else
+        Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE COD_MAT='''+materia+''' AND CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera),['Comision'],b,True);
+     if Not (mtFaltas.State=dsedit) then
+        MtFaltas.edit;
+     if (vartostr(b[0])<>'') then begin
+        MtFaltas.FieldByName('CUTUCO').AsInteger:=b[0];
+     end;
+ end;
+end;
+
+procedure TFrmModiInaComi.GrillaKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+Var b:Variant;
+begin
+ IF (grilla.SelectedField.FullName='CODFAL') and (key=VK_F1) then begin
+     Funciones.combobusqueda('SELECT FCODIGO, FDESCRI, FCANTID FROM TBL_FALTAS WHERE CARRE IS NULL OR CARRE CONTAINING '''+VCarrera+'''',['Codigo','Apellido','Cantidad'],b,True);
+     if Not (mtFaltas.State=dsedit) then
+        MtFaltas.edit;
+     if (vartostr(b[0])<>'') then begin
+        MtFaltas.FieldByName('CODFAL').AsString:=b[0];
+        MtFaltas.FieldByName('DESFAL').AsString:=b[1];
+        MtFaltas.FieldByName('CANTID').AsFloat:=b[2];//StrToFloat(text2);
+     end;
+ end
+ else IF (grilla.SelectedField.FullName='CUTUCO') and (key=VK_F1) then begin
+     if (Vcarrera='333') or (Vcarrera='650') then
+        Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera),['Comision'],b,True)
+     else
+        Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE COD_MAT='''+materia+''' AND CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera),['Comision'],b,True);
+     if Not (mtFaltas.State=dsedit) then
+        MtFaltas.edit;
+     if (vartostr(b[0])<>'') then begin
+        MtFaltas.FieldByName('CUTUCO').AsInteger:=b[0];//StrToFloat(text2);
+     end;
+ end;
+end;
+
+procedure TFrmModiInaComi.GrillaColExit(Sender: TObject);
+Var b:Variant;
+begin
+ IF (grilla.SelectedField.FullName='CODFAL') and not (MtFaltas.FieldByName('CODFAL').Isnull) then begin
+     Funciones.combobusqueda('SELECT FCODIGO, FDESCRI, FCANTID FROM TBL_FALTAS WHERE FCODIGO='+#39+MtFaltas.FieldByName('CODFAL').value+#39+' AND (CARRE IS NULL OR CARRE CONTAINING '''+VCarrera+''')',['Codigo','Descripcion','Cantidad'],b,False);
+     If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+     end
+     else begin
+         if Not (mtFaltas.State=dsedit) then
+             MtFaltas.edit;
+         MtFaltas.FieldByName('CODFAL').AsString:=b[0];
+         MtFaltas.FieldByName('DESFAL').AsString:=b[1];
+         MtFaltas.FieldByName('CANTID').AsFloat:=b[2];//StrToFloat(text2);
+     end
+ end
+ else IF (grilla.SelectedField.FullName='CUTUCO') and not (MtFaltas.FieldByName('CUTUCO').Isnull) then begin
+     if (Vcarrera='333') or (Vcarrera='650') then
+         Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera)+' AND CUTUCO='+IntToStr(MtFaltas.FieldByName('CUTUCO').Value),['Comision'],b,False)
+     else
+         Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE COD_MAT='''+materia+''' AND CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera)+' AND CUTUCO='+IntToStr(MtFaltas.FieldByName('CUTUCO').Value),['Comision'],b,False);
+     If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+     end
+     else begin
+         if Not (mtFaltas.State=dsedit) then
+             MtFaltas.edit;
+         MtFaltas.FieldByName('CUTUCO').AsInteger:=b[0];//StrToFloat(text2);
+     end
+ end
+end;
+
+procedure TFrmModiInaComi.MtFaltasCODFALSetText(Sender: TField;
+  const Text: String);
+var b:Variant;
+begin
+  if (text<>'') then begin
+       sender.AsString:=UpperCase(text);
+       Funciones.combobusqueda('SELECT FCODIGO, FDESCRI, FCANTID FROM TBL_FALTAS WHERE FCODIGO='+#39+Sender.AsString+#39+' AND (CARRE IS NULL OR CARRE CONTAINING '''+VCarrera+''')',['Codigo','Descripcion','Cantidad'],b,False);
+       If vartostr(b[0])='' Then begin
+          if (MtFaltas.State in [DsInsert,DsEdit]) then begin
+              MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+              Sender.AsString:='';
+              abort;
+          end
+       end
+       else begin
+          Sender.AsString:=b[0];
+          MtFaltas.FieldByName('DESFAL').AsString:=b[1];
+          MtFaltasCantid.value:=b[2];//StrToFloat(Text2);
+       end
+  end
+  else begin
+        Sender.AsString:='';
+        Abort;
+  end
+end;
+
+procedure TFrmModiInaComi.MtFaltasCUTUCOSetText(Sender: TField;
+  const Text: string);
+var b:Variant;
+begin
+  if (text<>'') then begin
+       sender.AsInteger:=StrToint(text);
+       Funciones.combobusqueda('SELECT DISTINCT CUTUCO FROM COMARM WHERE COD_MAT='''+materia+''' AND CARRE='''+Vcarrera+''' AND CUA_ANIO='+Funciones.Cuatrimestre(vcarrera)+' AND CUTUCO='+text,['Comision'],b,False);
+       If vartostr(b[0])='' Then begin
+          if (MtFaltas.State in [DsInsert,DsEdit]) then begin
+              MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+              Sender.Value:=null;
+              abort;
+          end
+       end
+       else begin
+          Sender.Value:=b[0];
+       end
+  end
+  else begin
+        Sender.Value:=null;
+        Abort;
+  end
+end;
+
+procedure TFrmModiInaComi.GrillaDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+begin
+  with TDBGrid(Sender) do begin
+      if SelectedRows.IndexOf(DataSource.Dataset.Bookmark) >= 0 then
+        Canvas.Brush.Color := clPurple
+      else if gdSelected in State then begin
+        Canvas.Brush.Color := clHighlight;
+        Canvas.Font.Color:=ClWhite;
+      end
+      else if (DataSource.Dataset.FieldByName('CANTID').Value <> 0) and not(DataSource.Dataset.FieldByName('CANTID').Isnull) then begin
+          Canvas.Brush.Color := clYellow;
+      end;
+      DefaultDrawColumnCell(Rect,DataCol,Column,State);
+    end;
+end;
+
+procedure TFrmModiInaComi.MtFaltasAfterPost(DataSet: TDataSet);
+begin
+  //MtFaltasCANTOT.Value:= MtFaltasCANANT.Value+MtFaltasCANTID.Value;
+end;
+
+procedure TFrmModiInaComi.BtnEliminarClick(Sender: TObject);
+begin
+  MtFaltas.Delete;
+end;
+
+procedure TFrmModiInaComi.CancelaGrabacionClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmModiInaComi.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if trfaltas.Active then
+      TrFaltas.Rollback;
+  trfaltas.Active:=False;
+  DsFaltas.Active:=False;
+  trfaltas.Active:=False;
+end;
+
+procedure TFrmModiInaComi.FormCreate(Sender: TObject);
+begin
+  TrFaltas.BeforeStart:=CustomerData.BaseBeforeStart;
+end;
+
+procedure TFrmModiInaComi.GrabamesaClick(Sender: TObject);
+begin
+  MtFaltas.First;
+  if trfaltas.Active then
+      TrFaltas.Rollback;
+
+  trfaltas.Active:=false;
+  if (Vcarrera='333') or (Vcarrera='650') then
+    IbUpins.SQL.Text:=' DELETE FROM FALTAS WHERE COD_MAT IS NULL AND CARRERA='''+vCARRERA+''' AND CODALU='''+CODALU+''' AND FECHA BETWEEN '''+DDE+''' AND '''+HTA+''''
+  else
+    IbUpins.SQL.Text:=' DELETE FROM FALTAS WHERE COD_MAT='''+materia+''' AND CARRERA='''+vCARRERA+''' AND CODALU='''+CODALU+''' AND FECHA BETWEEN '''+DDE+''' AND '''+HTA+'''';
+  trfaltas.Active:=True;
+  ibupins.ExecQuery;
+  //TRFALTAS.Commit;
+
+  //trfaltas.Active:=false;
+  IbUpins.SQL.Text:=' INSERT INTO FALTAS (CARRERA, CODALU, CUTUCO, FECHA, CODFAL, CANFAL,COD_MAT) '+
+                    ' VALUES (:CARRERA, :CODALU, :CUTUCO, :FECHA, :CODFAL, :CANFAL, :COD_MAT) ';
+  //trfaltas.Active:=True;
+  while not mtfaltas.Eof do begin
+     ibupins.ParamByName('CARRERA').Value:=vCARRERA;
+     ibupins.ParamByName('CUTUCO').Value:=MtFaltasCutuco.value;
+     ibupins.ParamByName('FECHA').Value:=MtFaltasFECHA.Value;
+     ibupins.ParamByName('CODALU').Value:=CodAlu;
+     ibupins.ParamByName('CODFAL').Value:=MtFaltasCODFAL.Value;
+     ibupins.ParamByName('CANFAL').Value:=MtFaltasCANTID.Value;
+     ibupins.ParamByName('COD_MAT').Value:=funciones.TextToNull(materia);
+
+     ibupins.ExecQuery;
+     mtfaltas.Next;
+  end;
+  trfaltas.Commit;
+  trfaltas.Active:=false;
+  MessageDlg(Pchar(VNombreUsuario + ', faltas grabadas'),mtInformation, [mbok],0,mbok);
+  close;
+end;
+
+end.

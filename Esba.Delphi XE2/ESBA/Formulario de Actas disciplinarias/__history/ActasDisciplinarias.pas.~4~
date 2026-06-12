@@ -1,0 +1,126 @@
+unit ActasDisciplinarias;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, DBCtrls, Mask, Buttons, DB, kbmMemTable, Grids,
+  DBGrids, RxRichEd, RXToolEdit, RXDBCtrl;
+
+type
+  TFrmActasDisciplinarias = class(TForm)
+    GbGrilla: TGroupBox;
+    DataSource1: TDataSource;
+    DBGrid1: TDBGrid;
+    MtActasDisciplinarias: TkbmMemTable;
+    NuevoTutor: TBitBtn;
+    modificaTutor: TBitBtn;
+    eliminaTutor: TBitBtn;
+    salir: TBitBtn;
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    DBApellido: TDBEdit;
+    Label2: TLabel;
+    Label3: TLabel;
+    GrabaPermiso: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    MtActasDisciplinariasFECHA: TDateField;
+    MtActasDisciplinariasCARPOR: TStringField;
+    MtActasDisciplinariasOBSERV: TBlobField;
+    DbFecha: TDBDateEdit;
+    RxDBMemo1: TDBMemo;
+    procedure FormCreate(Sender: TObject);
+    procedure NuevoTutorClick(Sender: TObject);
+    procedure GrabaPermisoClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure modificaTutorClick(Sender: TObject);
+    procedure eliminaTutorClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure DBretiraClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmActasDisciplinarias: TFrmActasDisciplinarias;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmActasDisciplinarias.FormCreate(Sender: TObject);
+begin
+   If not MtActasDisciplinarias.Active then
+      MtActasDisciplinarias.Active:=True;
+//   FrmActasDisciplinarias.Height:=247;   //407
+end;
+
+procedure TFrmActasDisciplinarias.NuevoTutorClick(Sender: TObject);
+begin
+  If MtActasDisciplinarias.State in [DsInsert,dsEdit] then
+      MtActasDisciplinarias.Cancel;
+  MtActasDisciplinarias.Append;
+  Gbgrilla.Enabled:=False;
+  FrmActasDisciplinarias.Height:=407;
+  DbFecha.SetFocus;
+end;
+
+procedure TFrmActasDisciplinarias.GrabaPermisoClick(Sender: TObject);
+begin
+  Try
+     if MtActasDisciplinariasCARPOR.AsString='' then begin
+       ShowMessage('Falta cargar el que otorgo la sancion');
+       exit
+     end;
+     if MtActasDisciplinariasObserv.AsString='' then begin
+       ShowMessage('Falta cargar el texto de la sancion');
+       exit
+     end;
+     MtActasDisciplinarias.Post;
+  Except
+     MtActasDisciplinarias.Cancel;
+  end;
+  Gbgrilla.Enabled:=True;
+  FrmActasDisciplinarias.Height:=247;
+end;
+
+procedure TFrmActasDisciplinarias.CancelaGrabacionClick(Sender: TObject);
+begin
+  MtActasDisciplinarias.Cancel;
+  Gbgrilla.Enabled:=True;
+  FrmActasDisciplinarias.Height:=247;
+end;
+
+procedure TFrmActasDisciplinarias.modificaTutorClick(Sender: TObject);
+begin
+  If MtActasDisciplinarias.State in [DsInsert,dsEdit] then
+      MtActasDisciplinarias.Cancel;
+  MtActasDisciplinarias.Edit;
+  Gbgrilla.Enabled:=False;
+  FrmActasDisciplinarias.Height:=407;
+  DbFecha.SetFocus;
+end;
+
+procedure TFrmActasDisciplinarias.eliminaTutorClick(Sender: TObject);
+begin
+  If MtActasDisciplinarias.State in [DsInsert,dsEdit] then
+      MtActasDisciplinarias.Cancel;
+  MtActasDisciplinarias.Delete;
+end;
+
+procedure TFrmActasDisciplinarias.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmActasDisciplinarias.DBretiraClick(Sender: TObject);
+begin
+{  if Dbretira.Checked then
+     MtActasDisciplinarias.FieldByName('').AsString:='S'
+  else
+     MtActasDisciplinarias.FieldByName('').AsString:='N'}
+end;
+
+end.

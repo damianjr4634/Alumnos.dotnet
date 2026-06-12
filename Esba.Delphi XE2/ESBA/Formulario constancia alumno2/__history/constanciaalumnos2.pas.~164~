@@ -1,0 +1,909 @@
+﻿unit constanciaalumnos2;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, StdCtrls, ExtCtrls, Imprimir, Buttons, funcionesConfiguracion, FuncionesText,FuncionesPrint,
+  FuncionesSystem, GmTypes,
+  GmPreview, DataModule, variants, Mask, RXToolEdit, RXCurrEdit, Data.DB,
+  Vcl.DBGrids, kbmMemTable, Vcl.Menus;
+
+type
+  TDBGrid = class(Vcl.DBGrids.TDBGrid)
+  private
+    procedure UpdateScrollBar; override;
+  end;
+
+type
+  TConstanciadelAlumno2 = class(TForm)
+    GroupBox1: TGroupBox;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    CodigodelAlumno: TEdit;
+    CarreraCursa: TEdit;
+    ApellidoyNombre: TEdit;
+    LibroyFolio: TEdit;
+    GroupBox2: TGroupBox;
+    dialogo: TPrintDialog;
+    BitBtn2: TBitBtn;
+    Label9: TLabel;
+    Antequien: TEdit;
+    CBmembrete: TCheckBox;
+    GroupBox3: TGroupBox;
+    BtnAnalitico: TBitBtn;
+    BtnPase: TBitBtn;
+    GroupBox4: TGroupBox;
+    BitBtn3: TBitBtn;
+    BitBtn1: TBitBtn;
+    Label10: TLabel;
+    PromGral: TCurrencyEdit;
+    Mt: TkbmMemTable;
+    DS: TDataSource;
+    DbMaterias: TDBGrid;
+    MtCUATRIM: TIntegerField;
+    MtCODMAT: TStringField;
+    MtSIGLA: TStringField;
+    MtDESCRIPCI: TStringField;
+    MtCONDICION: TStringField;
+    MtNOTA: TFloatField;
+    MtFECHA: TDateField;
+    MtINSTITUTO: TStringField;
+    MtCARACT: TStringField;
+    MtACTINT: TStringField;
+    MtACTDEGP: TStringField;
+    MtACTSNE: TStringField;
+    MtANUAL: TStringField;
+    MtCUTUCO: TIntegerField;
+    MtCOLOR: TIntegerField;
+    MtFONTCOLOR: TIntegerField;
+    MtACTFIN: TStringField;
+    DBResto: TDBGrid;
+    MtVENCIM: TStringField;
+    PopupMenu1: TPopupMenu;
+    Imprimirpermiso1: TMenuItem;
+    MtEXIMDESC: TStringField;
+    h1: TMenuItem;
+    MtCUAANIO: TStringField;
+    procedure BitBtn1Click(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure BitBtn3Click(Sender: TObject);
+    procedure BtnPaseClick(Sender: TObject);
+    procedure BtnAnaliticoClick(Sender: TObject);
+    procedure DbMateriasDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure DBRestoDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormCreate(Sender: TObject);
+    procedure Imprimirpermiso1Click(Sender: TObject);
+    procedure DbMateriasMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure h1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    Procedure Constancia;
+    Procedure Impresion_Analitico_Pase(const Titu, Query, tipo:String; confirma: boolean);
+    Procedure Impresion_Constancia_Examen(const Titu, Query, Tipo:String; confirma: boolean);
+    function MaxCuatrimestre:Integer;
+    procedure LoadPlantilla(const FileName:String); overload;
+    procedure LoadPlantilla(const FileName:String; aPaper : TGmPaperSize); overload;
+  end;
+
+var
+  ConstanciadelAlumno2: TConstanciadelAlumno2;
+  CarreraActiva : String;
+  NombreCarrera : String;
+  CodigoAlumno  : String;
+  UnidadPrograma : String;
+  ApellidoNombre : String;
+  LibroMatriz : String;
+
+const
+  C_LOG_MATERIAS = '[NOMBRE]'+#13+
+'Log Materia'+#13+
+'[]'+#13+
+'[SQL]'+ #13+
+'select c.indice,c.idlog, c.logdatetime, c.logtype,c.cod_mat,'+#13+
+'       c.cutuco,c.cua_anio,                                '+#13+
+'       c.condicion, c.tp_eva, c.tp_eva2,c.tp_eva3,c.recup,c.tot_horas,c.inasist,c.justif,c.notadic,c.notamar, '+#13+
+'       c.final1, c.fecha1,c.final2, c.fecha2, c.final3, c.fecha3, '+#13+
+'       u.nombre, '+#13+
+'       c.ultmod  '+#13+
+'from log_cursada c '+#13+
+'left outer join usuarios u on u.codusu=c.usuario '+#13+
+'where c.cod_alu='':CODALU'' and c.cod_mat='':CODMAT'' and c.carre='':CODCARRE'' '+#13+
+'[] '+#13+
+'[TITULOS] '+#13+
+'Indice;idLog;LogDate;LogType;Materia;Cuatri;Cua/Añio;Condicion;Eva1;Eva2;Eva3;Recup;Horas;Inasi;Justif;NotaDic;NotaMar;Final1;Fecha1;Final2;Fecha2;Final3;Fecha3;Usuario;UltMod '+#13+
+'[]'+#13+
+'[ANCHOS]'+#13+
+'13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;20'+#13+
+'[] '+#13+
+'[FORMULARIO] '+#13+
+'1000;500'+#13+
+'[]';
+
+implementation
+
+{$R *.DFM}
+uses
+  FuncionesDB, ModuloVariable, StrUtils, IOUtils;
+
+procedure TConstanciadelAlumno2.LoadPlantilla(const FileName:String; aPaper : TGmPaperSize);
+var
+  Picture: TPicture;
+begin
+  if (CBmembrete.Checked) then begin
+    Picture:= TPicture.Create;
+    try
+      if FileExists(UnidadPrograma+CARPETA_PLANTILLA+'\'+FileName+'.jpg') then begin
+        picture.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\'+FileName+'.jpg');
+        if (aPaper = A4) then
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,31.5,Picture.Graphic,GmCentimeters)
+        else
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,35,Picture.Graphic,GmCentimeters)
+      end
+      else if FileExists(UnidadPrograma+CARPETA_PLANTILLA+'\'+FileName+'.wmf') then begin
+        picture.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\'+FileName+'.wmf');
+        if (aPaper = A4) then
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,31.5,picture.Graphic,GmCentimeters)
+        else
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,35,picture.Graphic,GmCentimeters)
+      end;
+    finally
+      Picture.Free;
+    end;
+  end;
+end;
+
+procedure TConstanciadelAlumno2.LoadPlantilla(const FileName:String);
+begin
+  LoadPlantilla(FileName,TGmPaperSize.A4);
+end;
+
+procedure TDBGrid.UpdateScrollBar;
+begin
+ ShowScrollBar(self.Handle, SB_VERT, true);
+ ShowScrollBar(self.Handle, SB_HORZ, true);
+ if self.Name='DbMaterias' then
+   ShowScrollBar(self.Handle, SB_VERT, False);
+end;
+
+
+function TConstanciadelAlumno2.MaxCuatrimestre:Integer;
+var x, max:Integer;
+begin
+max:=0;
+{For x:=1 to ConstanciaAlumno.rowcount-1 do Begin
+   If (ConstanciaAlumno.Cells[4,x]<>'* ADEUDA *') then begin
+        if (StrToInt(ConstanciaAlumno.cells[1,x])>max) then
+            max:=StrToInt(ConstanciaAlumno.cells[1,x]);
+   end
+end;  }
+result:=max;
+end;
+
+Procedure TConstanciadelAlumno2.Impresion_Analitico_Pase(const Titu, Query, Tipo:String; confirma: boolean);
+Const
+ margen=1.80;
+ sangria=1.80;
+Var
+ Cuat,Cont,x, largo, DondeCorto, VuelvoACortar, MaxCuat: Integer;
+ fila : Real;
+ Anio,Mes,Dia:Word;
+ Acusigla, Todas, STRCuatAnio:String;
+ textosalida:WideString;
+ sw:Boolean;
+ aIdioma: variant;
+ sello, FirmaSecre, FirmaRecto:TPicture;
+begin
+
+if (CarreraActiva='333') or (CarreraActiva='650') then
+  STRCuatAnio:=' AÑO; '
+else
+  STRCuatAnio:= ' CUAT.; ';
+
+With Datamodule.CustomerData do begin
+     TrQrVarios.Active:=False;
+     IbQrVarios.SQL.Text:=query;
+     TrQrVarios.Active:=True;
+     Ibqrvarios.ExecQuery;
+     sw:=False;
+     if (ibQrVarios.FieldByName('FERRCOD').AsInteger=1) then
+        sw:=MessageDlg(pchar(ibQrVarios.FieldByName('FERRMSG').AsString),MtConfirmation,[mbyes,mbno],0,mbyes)=MrYES
+     else if (ibQrVarios.FieldByName('FERRCOD').AsInteger=2) then
+             MessageDlg(pchar(ibQrVarios.FieldByName('FERRMSG').AsString),MtError,[mbok],0,mbok)
+     else if (ibQrVarios.FieldByName('FERRCOD').AsInteger=0) then
+             sw:=True;
+     maxcuat:=ibQrVarios.FieldByName('FCUATRI').AsInteger;
+     TrqrVarios.Rollback;
+     TrQrVarios.Active:=False;
+ end;
+if not sw then
+   exit;
+If Dialogo.Execute then Begin
+
+   firmasecre := TPicture.Create;
+   firmaRecto := TPicture.Create;
+   sello := TPicture.Create;
+
+   FirmaSecre.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_secre.jpg');
+   FirmaRecto.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_recto.jpg');
+   Sello.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\sello2.jpg');
+
+   FormPreview := TFormPreview.Create(Self);
+   FormPreview.falumno:= CodigoAlumno;
+   try
+     FormPreview.fcarre:=CarreraActiva;
+     FormPreview.Ftitle:= Tipo;
+     LoadPlantilla('membrete_con_direccion');
+     With Imprimir.FormPreview.VistaPrevia1 Do Begin
+       BeginUpdate;
+        With Canvas Do Begin
+          Pen.Width:=1;
+          Pen.Color:=ClWhite;
+          Font.Name := 'Arial';
+          Font.Size := 12;
+          Font.Style := [FsBold];
+          fila:=5.00;
+          DecodeDate(Date,Anio,Mes,Dia);
+          TextOutCenter(11,Fila,titu,GmCentimeters);
+          fila:=fila+2.00;
+          Font.Size:= 11;
+          Font.Style:=[];
+          TextOut(margen,fila,'La Dirección del Instituto:',GmCentimeters);
+          fila:=fila+1.00;
+          With Datamodule.CustomerData do begin
+             TrQrVarios.Active:=False;
+             IbQrVarios.SQL.Text:='SELECT FPARRAFO FROM XXX_PARRAFO_CONSTANCIA('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+','+#39+tipo+#39+')';
+             TrQrVarios.Active:=True;
+             Ibqrvarios.ExecQuery;
+             textosalida:=ibQrVarios.FieldByName('FPARRAFO').AsString;
+             TrqrVarios.Rollback;
+             TrQrVarios.Active:=False;
+          end;
+          TextBox(margen,fila,19,fila+3,textosalida,taLeftJustify,GmCentimeters);
+          fila:=fila+TextBoxHeight(19-margen,textosalida,GmCentimeters).AsCentimeters+1;
+          Font.Style:=[FsUnderline,FsBold];
+          TextOut(margen,fila,'DATOS CORRESPONDIENTES:',GmCentimeters);
+          fila:=fila+1;
+          Cuat:=1;
+          Cont:=0;
+          Acusigla:='';
+          Todas:='';
+          mt.First;
+          while not Mt.Eof do Begin
+              If (Mt.FieldByName('CUATRIM').Asinteger>MaxCuat) and (MaxCuat<>0) then
+                 Break;
+              If (Mt.FieldByName('CUATRIM').Asinteger<>Cuat) then Begin
+                If Acusigla <> '' Then Begin
+                   Acusigla := Copy(Acusigla,1,Length(Acusigla)-2);
+                   If (Cont=5) AND (Cuat=1) then
+                      Acusigla:='TODAS LAS ';
+                   If (Cont=6) AND (Cuat<>1) then
+                      Acusigla:='TODAS LAS ';
+                   Todas:=Todas + Acusigla + ' DEL ' + UpperCase(LetrasCuat(Cuat)) + STRCuatAnio;
+                End;
+                Cont:=0;
+                Cuat:=Mt.FieldByName('CUATRIM').Asinteger;
+                Acusigla:='';
+              End;
+              If (Mt.FieldByName('CONDICION').AsString<>'EQUIVALENCIA') and  (Mt.FieldByName('CONDICION').AsString <> 'EXIMIDO') and ((Mt.FieldByName('CONDICION').AsString='* ADEUDA *') or (Mt.FieldByName('CONDICION').AsString='CURSANDO') OR (Mt.FieldByName('CONDICION').AsString='RECURSANDO') or (Mt.FieldByName('NOTA').AsFloat=0)) then Begin
+                 Cont:=Cont + 1;
+                 AcuSigla:=AcuSigla + Mt.FieldByName('SIGLA').AsString + ', ';
+              End;
+          Mt.Next;
+          End;
+          If Acusigla <> '' Then Begin
+               Acusigla := Copy(Acusigla,1,Length(Acusigla)-2);
+               If (Cont=5) AND (Cuat=1) then //
+                 Acusigla:='TODAS LAS ';
+               If (Cont=6) AND (Cuat<>1) then
+                 Acusigla:='TODAS LAS ';
+               Todas:=Todas + Acusigla + ' DEL ' + UpperCase(LetrasCuat(Cuat)) + STRCuatAnio
+          End;
+          Todas := Copy(Todas,1,Length(Todas)-2);
+          Font.Size:=9;
+          font.Style:=[];
+          If Todas='' then
+                textosalida:= '* Materias que adeuda: NINGUNA'
+          Else
+                textosalida:= '* Materias que adeuda: '+todas;
+          TextBox(margen+1.00,fila,19,fila+4,textosalida,taLeftJustify,GmCentimeters);
+          fila:=fila+TextBoxHeight(19-(margen+1),textosalida,GmCentimeters).AsCentimeters;
+          Font.Size:=10;
+          FuncionesDB.consulta('select idioma from carrera where carre='''+CarreraActiva+'''',aIdioma);
+          if (VarToStr(aIdioma[0]) <> '')  then
+             TextBox(margen+1.00,fila,19,fila+4,'* Idioma extranjero cursado: '+VarToStr(aIdioma[0]),taLeftJustify,GmCentimeters);
+
+          fila:=fila+2.00;
+          textosalida:='      A pedido del interesado se extiende la presente constancia, sin raspadura ni enmiendas, en Buenos Aires, '+
+                       'a los ' + IntToStr(Dia) + ' días del mes de ' + MesALetras(Mes) + ' de ' + IntToStr(Anio)+', para ser presentado ante: '+Antequien.Text;
+          TextBox(margen,fila,19,fila+2,textosalida,taLeftJustify,GmCentimeters);
+          fila:=fila+TextBoxHeight(19-margen,textosalida,GmCentimeters).AsCentimeters+1;
+          Font.Style := [];
+          Font.Size:=8;
+          TextOut(margen,fila,'La presente Resolución Ministerial permite el ingreso a Universidades a Nivel Nacional.-',GmCentimeters);
+          fila:=fila+0.40;
+          TextOut(margen,fila,'La presente constancia tiene validez por 90 días.-',GmCentimeters);
+          fila:=fila+0.40;
+          TextOut(margen,fila,'La presente certificación carecerá de valor si no estuviera firmada por las autoridades competentes.',GmCentimeters);
+          fila:=fila+3.00;
+          Font.Style := [FsBold];
+
+          TextOut(margen+sangria-1.00,fila+0.5,FuncionesConfiguracion.Secretaria,GmCentimeters);
+          TextOut(15,fila+0.5,FuncionesConfiguracion.Rector,GmCentimeters);
+          fila:=fila+0.40;
+          TextOut(margen+sangria,fila+0.5,'Secretaria',GmCentimeters);
+          TextOut(16.40,fila+0.5,'Rectora',GmCentimeters);
+          fila:=fila+0.20;
+
+          if (confirma) then begin
+            //x,y,x2,y2
+            {  firma realcion de aspecto
+               x - x2 = 4.5
+               y - y2 = 2.5
+            }
+
+
+            Canvas.StretchDraw(2.5,(fila-3),7,(fila-3)+2.5,firmaSecre.Graphic, GmCentimeters);
+
+            Canvas.StretchDraw(14.5,(fila-3),19,(fila-3)+2.5,firmaRecto.Graphic, GmCentimeters);
+
+            {  sello realcion de aspecto
+               x - x2 = 4.5
+               y - y2 = 5.5
+            }
+
+            Canvas.StretchDraw(8,(fila-3),12.5,(fila-3)+5.5,sello.Graphic, GmCentimeters);
+          end;
+
+          TextOut(margen+8.00,(fila+2.5),'SELLO',GmCentimeters);
+
+          fila:=fila+1;
+
+        End;
+       EndUpdate;
+      End;
+   finally
+    formpreview.VistaPrevia1.Repaint;
+    FormPreview.ShowModal;
+    FormPreview.Free;
+    firmasecre.free;
+    firmaRecto.free;
+    sello.free;
+   end;
+End;
+end;
+
+
+procedure TConstanciadelAlumno2.Imprimirpermiso1Click(Sender: TObject);
+begin
+  Impresion_Constancia_Examen('CONSTANCIA DE EXAMEN FINAL', '','CE', true);
+end;
+
+Procedure TConstanciadelAlumno2.Constancia;
+var
+  i, recno:integer;
+begin
+  DbMaterias.DataSource:=nil;
+  DbResto.DataSource:=nil;
+  recno:=0;
+  Mt.Active:=False;
+  Mt.Active:=true;
+  DataModule.CustomerData.TRConstancia.Active:=True;
+  DataModule.CustomerData.IBConstancia.Active:=True;
+  DataModule.CustomerData.IBConstancia.FetchAll;
+  While Not DataModule.CustomerData.IBConstancia.Eof Do
+     Begin
+        recno:=recno+1;
+        With Datamodule.CustomerData.IBConstancia do
+         Begin
+           mt.Append;
+           for I := 0 to FieldCount-1 do
+              mt.FieldByName(Fields.Fields[i].FullName).Value:=Fields.Fields[i].Value;
+           mt.Post;
+           Next;
+         End
+  End;
+  DbMaterias.DataSource:=Ds;
+  DbResto.DataSource:=Ds;
+  DataModule.CustomerData.TRConstancia.Rollback;
+  DataModule.CustomerData.TRConstancia.Active:=False;
+  DataModule.CustomerData.IBConstancia.Active:=False;
+End;
+
+procedure TConstanciadelAlumno2.DbMateriasDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn; State: TGridDrawState);
+begin
+  if ((gdFocused in State) or (gdSelected in State)) then begin
+    DBMaterias.canvas.Brush.Color:= clNavy;
+    DBMaterias.canvas.Font.Color:=ClWhite;
+    DBMaterias.DefaultDrawColumnCell (Rect, DataCol, Column, State);
+  end;
+  if (DBMaterias.Columns[Datacol].Field.FullName='CONDICION') and (Mt.FieldByName('COLOR').Asinteger<>16777215) then begin
+      DBMaterias.Canvas.Brush.Color := Mt.FieldByName('COLOR').Asinteger;
+      DBMaterias.Canvas.Font.Color :=  Mt.FieldByName('FONTCOLOR').Asinteger;
+      DBMaterias.DefaultDrawColumnCell(rect,DataCol,Column,State);
+  end;
+
+end;
+
+procedure TConstanciadelAlumno2.DbMateriasMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  pnt: TPoint;
+begin
+  if (Button = mbRight) and GetCursorPos(pnt) then
+    PopupMenu1.Popup(pnt.X, pnt.Y);
+end;
+
+procedure TConstanciadelAlumno2.DBRestoDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  i:integer;
+begin
+{  if (DBGrid2.Columns[Datacol].Field.FullName='CONDICION') and (Mt.FieldByName('COLOR').Asinteger<>16777215) then begin
+      DBGrid2.Canvas.Brush.Color := Mt.FieldByName('COLOR').Asinteger;
+      DBGrid2.Canvas.Font.Color :=  Mt.FieldByName('FONTCOLOR').Asinteger;
+      DBGrid2.DefaultDrawColumnCell(rect,DataCol,Column,State);
+  end  }
+  if ((gdFocused in State) or (gdSelected in State)) then begin
+    DBResto.canvas.Brush.Color:= clNavy;
+    DBResto.canvas.Font.Color:=ClWhite;
+    DBResto.DefaultDrawColumnCell (Rect, DataCol, Column, State);
+  end;
+end;
+
+procedure TConstanciadelAlumno2.BitBtn1Click(Sender: TObject);
+Const
+ margen=1.80;
+ sangria=1.80;
+var
+   x,cuatAct : Integer;
+   Fila, FilaAnterior, largopagina : Real;
+   Anio, Mes, Dia : Word;
+   Nota: String;
+   TextoSalida:WideString;
+   sello, firmasecre,firmaRecto:TPicture;
+   aPaper : TGmPaperSize;
+begin
+ if (CBmembrete.Checked) then
+     ShowMessage('Las firmas de las autoridades solo salen con hoja oficio');
+
+ Case FuncionesSystem.CustomMessageDialog('Tipo de papel?', mtConfirmation,
+          [mbNo, mbYes], ['A4', 'Oficio']) of
+       mrYes: aPaper := A4;
+       mrNo:  aPaper := Legal;
+       else exit;
+  End;
+  if (aPaper=A4) then
+    largopagina:=26
+  else
+    largopagina:=28;
+
+ If Dialogo.Execute Then Begin
+  FormPreview := TFormPreview.Create(Self);
+  sello:= TPicture.Create;
+
+  firmasecre := TPicture.Create;
+  firmaRecto := TPicture.Create;
+  sello := TPicture.Create;
+
+  FirmaSecre.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_secre.jpg');
+  FirmaRecto.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_recto.jpg');
+  Sello.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\sello2.jpg');
+  try
+    FormPreview.falumno:= CodigoAlumno;
+    FormPreview.fcarre:=CarreraActiva;
+    FormPreview.Ftitle:= 'ConstanciaMateriasAprobadas';
+    if (aPaper = A4) then
+      LoadPlantilla('membrete_con_direccion',aPaper)
+    else
+      LoadPlantilla('membrete_con_direccion_oficio',aPaper);
+
+    With FormPreview.VistaPrevia1 Do Begin
+  //    Title := 'Constancia de Materias Aprobadas';
+      BeginUpdate;
+
+      PaperSize := aPaper;
+
+      Canvas.Pen.Width:=1;
+      Canvas.Pen.Color:=ClWhite;
+      With Canvas Do Begin
+        Fila := 4.6;
+        Font.Name := 'Arial';
+        Font.Size := 12;
+        Font.Style := [FsBold];
+        TextOutCenter(11,fila,'CONSTANCIA DE MATERIAS APROBADAS',GmCentimeters);
+        Fila  := Fila + 1;
+        Font.Size := 1;
+        Font.Style := [];
+        DecodeDate(Date,Anio,Mes,Dia);
+        TextOut(1,1,'.',gmcentimeters);
+        Font.Size := 9;
+        Font.Style := [];
+        textosalida:= '    En Buenos Aires a los '+ IntToStr(Dia) +' días del mes de '+ Trim(MesALetras(Mes)) +' de '+IntToStr(Anio) +' se extiende la presente perteneciente al alumno/a '+
+                      PasoAMayusculas(ApellidoNombre) +' - '+ PonePuntos(CodigoAlumno)+' correspondiente a la carrera '+ PasoAMayusculas(NombreCarrera)+'.';
+
+
+        TextBox(2,fila,19,fila+2,textosalida,taLeftJustify,GmCentimeters);
+        Canvas.Pen.Width:=8;
+        Canvas.Pen.Color:=Clblack;
+        Font.Size := 8;
+        Fila := Fila + 2;
+        FilaAnterior := Fila - 0.0;
+        Rectangle(1.80,FilaAnterior ,20.00,Fila + 0.50, GmCentimeters);
+        TextOut(2,fila,'Materia',gmcentimeters);
+        TextOut(9,fila,'Condición',gmcentimeters);
+        TextOut(11.30,fila,'Nota',gmcentimeters);
+        TextOut(12.50,fila,'Fecha',gmcentimeters);
+        TextOut(14.70,fila,'Instituto / Característica',gmcentimeters);
+        Fila := Fila + 0.9;
+        Mt.First;
+        CuatAct := Mt.FieldByName('CUATRIM').Asinteger;
+        MoveTo(1.80,fila,gmcentimeters);
+        LineTo(2.30,fila,gmcentimeters);
+        TextOut(2.50,Fila-0.2,LetrasCuat(CuatAct)+' Cuatrimestre/Año',gmcentimeters);
+        MoveTo(6.40,fila,gmcentimeters);
+        LineTo(20.00,fila,gmcentimeters);
+        Fila := Fila + 0.20;
+        While Not Mt.Eof Do Begin
+               If Mt.FieldByName('CUATRIM').Asinteger <> CuatAct Then  Begin
+                    Fila := Fila + 0.20;
+                    CuatAct := Mt.FieldByName('CUATRIM').Asinteger;
+                    MoveTo(1.80,fila,gmcentimeters);
+                    LineTo(2.30,fila,gmcentimeters);
+                    TextOut(2.50,Fila-0.2,LetrasCuat(CuatAct)+' Cuatrimestre/Año',gmcentimeters);
+                    MoveTo(6.40,fila,gmcentimeters);
+                    LineTo(20.00,fila,gmcentimeters);
+                    Fila := Fila + 0.20;
+               End;
+               TextOut(2,fila,Mt.FieldByName('DESCRIPCI').AsString,gmcentimeters); //Nombre Materia
+               If Mt.FieldByName('ANUAL').AsString = '*' Then
+                    TextOut(9.00,fila,'---------- M A T E R I A  A N U A L ----------',GmCentimeters)
+               else begin
+                    If ((Mt.FieldByName('CONDICION').AsString <> 'EQUIVALENCIA') and  (Mt.FieldByName('CONDICION').AsString <> 'EXIMIDO')) Then  Begin
+                        If Mt.FieldByName('CONDICION').AsString = '* ADEUDA *' Then //Condicion Alumno
+                             TextOut(9.00,fila,'ADEUDA',gmcentimeters)
+                        Else
+                             TextOut(9.00,fila,Mt.FieldByName('CONDICION').AsString,gmcentimeters);
+                        If Mt.FieldByName('NOTA').AsFloat <> 0 Then  Begin// nota
+                             If Mt.FieldByName('NOTA').AsFloat=10 Then
+                                 TextOut(11.30,fila,FormatFloat('0.00',Mt.FieldByName('NOTA').AsFloat),gmcentimeters)
+                             Else
+                                 TextOut(11.50,fila,FormatFloat('0.00',Mt.FieldByName('NOTA').AsFloat),gmcentimeters);
+                        End Else
+                             TextOut(11.20,fila,'------',gmcentimeters);
+                        If Not VarIsNull(Mt.FieldByName('FECHA').value) Then
+                             TextOut(12.50,fila,DateToStr(Mt.FieldByName('FECHA').AsDateTime),gmcentimeters)  //Fecha
+                        Else
+                             TextOut(12.50,fila,'--------------',gmcentimeters);
+                        If Mt.FieldByName('INSTITUTO').AsString<> '' Then
+                             TextOut(14.70,fila,Mt.FieldByName('INSTITUTO').AsString+' '+Mt.FieldByName('CARACT').AsString,gmcentimeters)  //Instituto
+                        Else
+                             TextOut(14.70,fila,'-------------------------------------------------',gmcentimeters);
+                    End Else begin// else de aprobada por equivalencia
+                         if (Mt.FieldByName('CONDICION').AsString = 'EXIMIDO') Then  Begin
+                            TextOut(9.00,fila,Mt.FieldByName('EXIMDESC').AsString,gmcentimeters)
+
+                         End
+                         else if Not (VarIsNull(Mt.FieldByName('ACTINT').Value)) then
+                             TextOut(9.00,fila,'APROBADA POR EQUIVALENCIA - Act. Interna N° '+Mt.FieldByName('ACTINT').AsString,gmcentimeters)
+                         else if Not (VarIsNull(Mt.FieldByName('ACTDEGP').value)) then
+                             TextOut(9.00,fila,'APROBADA POR EQUIVALENCIA - Act. D.G.E.G.P. N° '+ Mt.FieldByName('ACTDEGP').AsString,gmcentimeters);
+                    end;
+               end;
+              Fila := Fila + 0.45;
+              if (fila>=largopagina) then begin // por corte de hoja
+                 Caja(1.80,FilaAnterior,20.00,Fila+0.20,formpreview.VistaPrevia1);
+                 NewPage;
+                 fila:=4.6;
+                 filaanterior:=fila;
+                 Font.Size := 1;
+                 Font.Style := [];
+                 TextOut(1,1,'.',gmcentimeters);
+                 Font.Size := 8;
+                 Font.Style := [];
+                 if (aPaper = A4) then
+                    LoadPlantilla('membrete_con_direccion',aPaper)
+                else
+                    LoadPlantilla('membrete_con_direccion_oficio',aPaper);
+              end;
+              Mt.Next;
+        End; //end del while
+        Canvas.Pen.Width:=8;
+        Canvas.Pen.Color:=Clblack;
+        Caja(1.80,FilaAnterior,20.00,Fila+0.20,formpreview.VistaPrevia1);
+        TextOut(3.00,Fila+0.70,'Para ser presentada ante '+Antequien.text,gmcentimeters);
+
+        fila:=fila+1.5;
+        if (CBmembrete.Checked) and (aPaper=legal) then begin
+
+           //x,y,x2,y2
+            {  firma realcion de aspecto
+               x - x2 = 4.5
+               y - y2 = 2.5
+            }
+            Canvas.StretchDraw(2.5,fila,7,fila+2.5,firmaSecre.Graphic, GmCentimeters);
+
+            Canvas.StretchDraw(14.5,fila,19,fila+2.5,firmaRecto.Graphic, GmCentimeters);
+
+            {  sello realcion de aspecto
+               x - x2 = 4.5
+               y - y2 = 5.5
+            }
+            Canvas.StretchDraw(8,fila-0.3,12.5,fila+5.5,sello.Graphic, GmCentimeters);
+
+            fila:=fila+1.5;
+            TextOut(margen+sangria-1.00,fila+1,FuncionesConfiguracion.Secretaria,GmCentimeters);
+            TextOut(15,fila+1,FuncionesConfiguracion.Rector,GmCentimeters);
+            fila:=fila+0.40;
+            TextOut(margen+sangria,fila+1,'Secretaria',GmCentimeters);
+            TextOut(16.40,fila+1,'Rectora',GmCentimeters);
+            fila:=fila+0.20;
+            TextOut(margen+8.00,(fila+3.2),'SELLO',GmCentimeters);
+
+        end;
+       End; // end del if que pregunta si es ADM
+     EndUpdate;
+   End;
+ finally
+  formpreview.VistaPrevia1.Repaint;
+  FormPreview.ShowModal;
+  FormPreview.Free;
+  sello.Free;
+  firmasecre.Free;
+  firmarecto.Free;
+ end;
+End;
+
+end;
+
+Procedure TConstanciadelAlumno2.Impresion_Constancia_Examen(const Titu, Query, Tipo:String; confirma: boolean);
+Const
+ margen=1.80;
+ sangria=1.80;
+Var
+ Cuat,Cont,x, largo, DondeCorto, VuelvoACortar, MaxCuat: Integer;
+ fila : Real;
+ Anio,Mes,Dia:Word;
+ Acusigla, Todas, STRCuatAnio:String;
+ textosalida:WideString;
+ sw:Boolean;
+ aIdioma: variant;
+ sello, FirmaSecre, FirmaRecto:TPicture;
+begin
+
+if (MtCONDICION.AsString = '* ADEUDA *') or (MtCONDICION.AsString = 'CURSANDO') or (MtCONDICION.AsString = 'RECURSANDO') or (MtCONDICION.AsString = 'EQUIVALENCIA') or (MtCONDICION.AsString = 'PREVIA') then begin
+  ShowMessage('en esta condicion no se puede imprimir la constancia');
+  exit;
+
+end;
+
+if (CarreraActiva='333') or (CarreraActiva='650') then
+  STRCuatAnio:=' AñO; '
+else
+  STRCuatAnio:= ' CUAT.; ';
+
+if Query <> '' then begin
+
+  With Datamodule.CustomerData do begin
+       TrQrVarios.Active:=False;
+       IbQrVarios.SQL.Text:=query;
+       TrQrVarios.Active:=True;
+       Ibqrvarios.ExecQuery;
+       sw:=False;
+       if (ibQrVarios.FieldByName('FERRCOD').AsInteger=1) then
+          sw:=MessageDlg(pchar(ibQrVarios.FieldByName('FERRMSG').AsString),MtConfirmation,[mbyes,mbno],0,mbyes)=MrYES
+       else if (ibQrVarios.FieldByName('FERRCOD').AsInteger=2) then
+               MessageDlg(pchar(ibQrVarios.FieldByName('FERRMSG').AsString),MtError,[mbok],0,mbok)
+       else if (ibQrVarios.FieldByName('FERRCOD').AsInteger=0) then
+               sw:=True;
+       maxcuat:=ibQrVarios.FieldByName('FCUATRI').AsInteger;
+       TrqrVarios.Rollback;
+       TrQrVarios.Active:=False;
+   end;
+  if not sw then
+     exit;
+end;
+
+If Dialogo.Execute then Begin
+
+   firmasecre := TPicture.Create;
+   firmaRecto := TPicture.Create;
+   sello := TPicture.Create;
+
+   FirmaSecre.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_secre.jpg');
+   FirmaRecto.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_recto.jpg');
+   Sello.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\sello2.jpg');
+
+   FormPreview := TFormPreview.Create(Self);
+   FormPreview.falumno:= CodigoAlumno;
+   try
+     FormPreview.fcarre:=CarreraActiva;
+     FormPreview.Ftitle:= Tipo;
+     LoadPlantilla('membrete_con_direccion');
+     With Imprimir.FormPreview.VistaPrevia1 Do Begin
+       BeginUpdate;
+        With Canvas Do Begin
+          Pen.Width:=1;
+          Pen.Color:=ClWhite;
+          Font.Name := 'Arial';
+          Font.Size := 12;
+          Font.Style := [FsBold];
+          fila:=5.00;
+          DecodeDate(Date,Anio,Mes,Dia);
+          TextOutCenter(11,Fila,titu,GmCentimeters);
+          fila:=fila+2.00;
+          Font.Size:= 11;
+          Font.Style:=[];
+          TextOut(margen,fila,'La Dirección del Instituto:',GmCentimeters);
+          fila:=fila+1.00;
+          With Datamodule.CustomerData do begin
+             TrQrVarios.Active:=False;
+             IbQrVarios.SQL.Text:='SELECT FPARRAFO FROM XXX_PARRAFO_CONSTANCIA('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+','+#39+tipo+'-'+MtCODMAT.AsString+#39+')';
+             TrQrVarios.Active:=True;
+             Ibqrvarios.ExecQuery;
+             textosalida:=ibQrVarios.FieldByName('FPARRAFO').AsString;
+             textosalida:= textosalida + #13+#13+'Para ser presentada ante '+Antequien.text;
+             TrqrVarios.Rollback;
+             TrQrVarios.Active:=False;
+          end;
+          TextBox(margen,fila,19,fila+4,textosalida,taLeftJustify,GmCentimeters);
+          fila:=fila+TextBoxHeight(19-margen,textosalida,GmCentimeters).AsCentimeters+1;
+
+          fila:=fila+0.50;
+          TextOut(margen,fila,'La presente certificación carecerá de valor si no estuviera firmada por las autoridades competentes.',GmCentimeters);
+          fila:=fila+4.00;
+          Font.Style := [FsBold];
+
+          TextOut(margen+sangria-2.00,fila+0.5,FuncionesConfiguracion.Secretaria,GmCentimeters);
+
+          TextOut(13,fila+0.5,FuncionesConfiguracion.Rector,GmCentimeters);
+
+          fila:=fila+0.40;
+
+          TextOut(margen+sangria,fila+0.5,'Secretaria',GmCentimeters);
+          TextOut(16.40,fila+0.5,'Rectora',GmCentimeters);
+          fila:=fila+0.20;
+
+          if (confirma) then begin
+            //x,y,x2,y2
+            {  firma realcion de aspecto
+               x - x2 = 4.5
+               y - y2 = 2.5
+            }
+
+
+            Canvas.StretchDraw(2.5,(fila-3),7,(fila-3)+2.5,firmaSecre.Graphic, GmCentimeters);
+
+            Canvas.StretchDraw(14.5,(fila-3),19,(fila-3)+2.5,firmaRecto.Graphic, GmCentimeters);
+
+            {  sello realcion de aspecto
+               x - x2 = 4.5
+               y - y2 = 5.5
+            }
+
+            Canvas.StretchDraw(8,(fila-3),12.5,(fila-3)+5.5,sello.Graphic, GmCentimeters);
+          end;
+
+          TextOut(margen+8.00,(fila+2.5),'SELLO',GmCentimeters);
+
+          fila:=fila+1;
+
+        End;
+       EndUpdate;
+      End;
+   finally
+    formpreview.VistaPrevia1.Repaint;
+    FormPreview.ShowModal;
+    FormPreview.Free;
+    firmasecre.free;
+    firmaRecto.free;
+    sello.free;
+   end;
+End;
+end;
+
+
+procedure TConstanciadelAlumno2.BitBtn2Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TConstanciadelAlumno2.FormActivate(Sender: TObject);
+begin
+  CodigodelAlumno.Text :=CodigoAlumno;
+  ApellidoyNombre.Text :=ApellidoNombre;
+  CarreraCursa.Text := CarreraActiva;
+  LibroyFolio.Text := Copy(LibroMatriz,1,2)+'/'+Copy(LibroMatriz,3,3);
+
+  DataModule.CustomerData.IBConstancia.ParamByName('CODALU').AsString:=CodigoAlumno;
+  DataModule.CustomerData.IBConstancia.ParamByName('CARRE').AsString:=CarreraActiva;
+  Constancia;
+  mt.First;
+  if Datamodule.CustomerData.TrDsVarios.Active then
+     Datamodule.CustomerData.TrDsVarios.Rollback;
+  DataModule.CustomerData.IbDsVarios.Active:=False;
+  DataModule.CustomerData.IbDsVarios.SQLs.SelectSQL.Text:='SELECT PROMGRAL FROM XXX_PROMEDIO_GRAL('+#39+CodigoAlumno+#39+','+#39+carreraActiva+#39+')';
+  DataModule.CustomerData.TrQrVarios.Active:=true;
+  DataModule.CustomerData.IbDsVarios.Active:=True;
+  PromGral.Value:=DataModule.CustomerData.IbDsVarios.FieldByname('PROMGRAL').Value;
+  Datamodule.CustomerData.TrDsVarios.Commit;
+  DataModule.CustomerData.IbDsVarios.Active:=False;
+
+end;
+
+procedure TConstanciadelAlumno2.FormCreate(Sender: TObject);
+begin
+  KeyPreview:=True;
+end;
+
+procedure TConstanciadelAlumno2.FormKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #27 Then
+  ConstanciadelAlumno2.Close;
+end;
+
+procedure TConstanciadelAlumno2.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+ If Key = 27 Then
+  ConstanciadelAlumno2.Close;
+end;
+
+procedure TConstanciadelAlumno2.h1Click(Sender: TObject);
+var
+  frmvariable: TFrmModVariable;
+begin
+  moduloVariable.FileContent:= C_LOG_MATERIAS;
+  moduloVariable.FileContent:=AnsireplaceText(moduloVariable.FileContent,':CODMAT',MtCODMAT.AsString);
+  moduloVariable.FileContent:=AnsireplaceText(moduloVariable.FileContent,':CODALU',CodigoAlumno);
+  moduloVariable.FileContent:=AnsireplaceText(moduloVariable.FileContent,':CODCARRE',CarreraActiva);
+  moduloVariable.Archivo:= '';
+
+  modulovariable.Unidad:=UnidadPrograma;
+  try
+    try
+      FrmModVariable := TFrmModVariable.Create(Self);
+      FrmModVariable.Position:=poScreenCenter;
+      If ModuloVariable.Cerrar Then begin
+         FrmModVariable.Caption:= 'Historial de cambios';
+         //showMessage(FrmModVariable.Memo.Lines.text);
+         FrmModVariable.ShowModal;
+      end;
+    finally
+      FrmModVariable.DestroyComponents;
+      FrmModVariable.Free;
+    end;
+  except
+    on e:exception do
+      ShowMessage(e.Message);
+
+  end;
+end;
+
+procedure TConstanciadelAlumno2.BitBtn3Click(Sender: TObject);
+begin
+  Impresion_Analitico_Pase('CONSTANCIA DE CERTIFICADO DE ESTUDIOS EN TRÁMITE', 'SELECT FERRCOD, FERRMSG, FCUATRI FROM XXX_IMPRIME_CTT('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+')','CTT', true);
+End;
+
+procedure TConstanciadelAlumno2.BtnPaseClick(Sender: TObject);
+begin
+  Impresion_Analitico_Pase('CONSTANCIA DE PASE EN TRÁMITE', 'SELECT FERRCOD, FERRMSG, 0 AS FCUATRI FROM XXX_IMPRIME_PASE('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+')','PASE', true);
+end;
+
+procedure TConstanciadelAlumno2.BtnAnaliticoClick(Sender: TObject);
+begin
+    Impresion_Analitico_Pase('CONSTANCIA DE CERTIFICADO ANALITICO EN TRÁMITE','SELECT FERRCOD, FERRMSG, FCUATRI FROM XXX_IMPRIME_CTT('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+')','ANALITICO', true);
+end;
+
+end.

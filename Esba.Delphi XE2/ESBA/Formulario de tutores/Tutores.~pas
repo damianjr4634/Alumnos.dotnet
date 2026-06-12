@@ -1,0 +1,126 @@
+unit Tutores;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, DBCtrls, Mask, Buttons, DB, kbmMemTable, Grids,
+  DBGrids;
+
+type
+  TFrmTutores = class(TForm)
+    GbGrilla: TGroupBox;
+    DataSource1: TDataSource;
+    DBGrid1: TDBGrid;
+    MtTutores: TkbmMemTable;
+    MtTutoresFNOMBRE: TStringField;
+    MtTutoresFAPELLIDO: TStringField;
+    MtTutoresFDNI: TIntegerField;
+    MtTutoresFDIRECC: TStringField;
+    MtTutoresFTELEFO: TStringField;
+    MtTutoresFCELULAR: TStringField;
+    MtTutoresFEMAIL: TStringField;
+    MtTutoresFPARENT: TStringField;
+    MtTutoresFRETIRA: TStringField;
+    NuevoTutor: TBitBtn;
+    modificaTutor: TBitBtn;
+    eliminaTutor: TBitBtn;
+    salir: TBitBtn;
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Dbnombre: TDBEdit;
+    DBApellido: TDBEdit;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    DBdni: TDBEdit;
+    DBdireccion: TDBEdit;
+    DBTelefono: TDBEdit;
+    DBCelular: TDBEdit;
+    DBMail: TDBEdit;
+    DBParetesco: TDBEdit;
+    DBretira: TDBCheckBox;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    GrabaPermiso: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    procedure FormCreate(Sender: TObject);
+    procedure NuevoTutorClick(Sender: TObject);
+    procedure GrabaPermisoClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure modificaTutorClick(Sender: TObject);
+    procedure eliminaTutorClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmTutores: TFrmTutores;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmTutores.FormCreate(Sender: TObject);
+begin
+   If not MtTutores.Active then
+      Mttutores.Active:=True;
+//   FrmTutores.Height:=247;   //407
+end;
+
+procedure TFrmTutores.NuevoTutorClick(Sender: TObject);
+begin
+  If MtTutores.State in [DsInsert,dsEdit] then
+      MtTutores.Cancel;
+  MtTutores.Append;
+  Gbgrilla.Enabled:=False;
+  FrmTutores.Height:=407;
+  DbNombre.SetFocus;
+end;
+
+procedure TFrmTutores.GrabaPermisoClick(Sender: TObject);
+begin
+  Try
+     MtTutores.Post;
+  Except
+     MtTutores.Cancel;
+  end;
+  Gbgrilla.Enabled:=True;
+  FrmTutores.Height:=247;
+end;
+
+procedure TFrmTutores.CancelaGrabacionClick(Sender: TObject);
+begin
+  MtTutores.Cancel;
+  Gbgrilla.Enabled:=True;
+  FrmTutores.Height:=247;
+end;
+
+procedure TFrmTutores.modificaTutorClick(Sender: TObject);
+begin
+  If MtTutores.State in [DsInsert,dsEdit] then
+      MtTutores.Cancel;
+  MtTutores.Edit;
+  Gbgrilla.Enabled:=False;
+  FrmTutores.Height:=407;
+  DbNombre.SetFocus;
+end;
+
+procedure TFrmTutores.eliminaTutorClick(Sender: TObject);
+begin
+  If MtTutores.State in [DsInsert,dsEdit] then
+      MtTutores.Cancel;
+  MtTutores.Delete;
+end;
+
+procedure TFrmTutores.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+end.

@@ -1,0 +1,523 @@
+unit PermisoExamen;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, Db, DBTables, StdCtrls, Buttons, Funciones;
+
+type
+  TPermisosExamen = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    MateriasCarreraCursa: TEdit;
+    MateriasApellidoyNombre: TEdit;
+    MateriasLibroMatriz: TEdit;
+    DataSource1: TDataSource;
+    GroupBox2: TGroupBox;
+    SQLPermisos: TQuery;
+    Grilla: TDBGrid;
+    NuevoPermiso: TBitBtn;
+    modificaPermiso: TBitBtn;
+    eliminaPermiso: TBitBtn;
+    salir: TBitBtn;
+    GroupBox3: TGroupBox;
+    Label5: TLabel;
+    ComboMaterias: TComboBox;
+    GrabaPermiso: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    codigomateria: TEdit;
+    Label6: TLabel;
+    NumeroPermiso: TEdit;
+    Label7: TLabel;
+    Comision: TEdit;
+    Label8: TLabel;
+    Mesa: TEdit;
+    SQLPermisosPERM_EXA: TFloatField;
+    SQLPermisosMESA: TSmallintField;
+    SQLPermisosLLAMADO: TSmallintField;
+    SQLPermisosCOD_ALU: TStringField;
+    SQLPermisosAPELLIDO: TStringField;
+    SQLPermisosCUTUCO: TSmallintField;
+    SQLPermisosCARRE: TStringField;
+    SQLPermisosCOD_MAT: TStringField;
+    SQLPermisosFECH_EXA: TDateField;
+    SQLPermisosFECH_EMI: TDateField;
+    Permisos: TTable;
+    SQLCursada: TQuery;
+    SQLAnalitico: TQuery;
+    SQLMaterias: TQuery;
+    ComboMesa: TComboBox;
+    SQLMesas: TQuery;
+    Label9: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure NuevoPermisoClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure NumeroPermisoKeyPress(Sender: TObject; var Key: Char);
+    procedure codigomateriaKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboMateriasClick(Sender: TObject);
+    procedure ComisionKeyPress(Sender: TObject; var Key: Char);
+    procedure MesaKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboMesaClick(Sender: TObject);
+    procedure GrabaPermisoClick(Sender: TObject);
+    procedure modificaPermisoClick(Sender: TObject);
+    procedure eliminaPermisoClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  PermisosExamen: TPermisosExamen;
+  VCarrera : String[3]; //sirve para saber la carrera activa
+  VUnidad : String[1]; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String[11]; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String[15]; // nose
+  VApellido : String[25]; //Pasa el apellido del alumno activo
+  VNombre : String[25];  //Pasa el nombre del alumno activo
+  VLibroMatriz : String[5]; //Pasa el libro matriz del alumno
+  VInstituto  : String[30]; //Pasa el nomnbre del instituto
+  VCaracteristica : String[5]; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String[4]; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+  Function BuscoMateria(SQLMaterias : TQuery;Codigo:String):String;
+  Function ValidoMateria(Materias, Analitico : TQuery;codigo:String):Boolean;
+  Function CuentoLlamados(Cursada : TQuery;codigo:String):Boolean;
+  Function CargoMesasCombo(SQLMesas : TQuery; ComboMesas:TComboBox; CodigoMateria : String):Boolean;
+  Function VerificoSiEsta(Combo:TComboBox;Codigo:String;cont:Integer):Boolean;
+  Function BuscoCutuco(Cursada : TQuery;Codigo : String):String;
+implementation
+
+{$R *.DFM}
+
+Function BuscoCutuco(Cursada : TQuery;Codigo : String):String;
+Begin
+  Cursada.First;
+  While (Not Cursada.Eof) And  (Cursada.FieldByName('COD_MAT').AsString <> Codigo) Do
+    Cursada.Next;
+  BuscoCutuco := IntToStr(Cursada.FieldByName('CUTUCO').AsInteger);
+End;
+
+Function VerificoSiEsta(Combo:TComboBox;Codigo:String;cont:Integer):Boolean;
+Var
+  x : Integer;
+Begin
+  VerificoSiEsta := False;
+  For x:=0 To (Combo.Items.Count - 1) Do
+    If codigo = Copy(Combo.Items.Strings[x],1,cont) Then
+      Begin
+        VerificoSiEsta := True;
+        Combo.ItemIndex := x;
+      End
+End;
+
+
+Function CargoMesasCombo(SQLMesas : TQuery; ComboMesas:TComboBox; CodigoMateria : String):Boolean;
+Begin
+ ComboMesas.Items.Text := '';
+ SQLMesas.Params.Items[0].Value := CodigoMateria;
+ SQLMesas.Params.Items[1].Value := VCarrera;
+ SQLMesas.Active := True;
+ If SQLMesas.RecordCount = 0 Then
+   CargoMesasCombo := False
+ Else
+   CargoMesasCombo := True;
+ SQLMesas.First;
+ While Not SQLMesas.Eof Do
+  Begin
+    ComboMesas.Items.Add(IntToStr(SQLMesas.FieldByName('MESA').AsInteger)+'-'+
+                         IntToStr(SQLMesas.FieldByName('LLAMADO').AsInteger)+'-'+
+                         DateToStr(SQLMesas.FieldByName('FECH_EXA').AsDateTime)+'-'+
+                         IntToStr(SQLMesas.FieldByName('HORA').AsInteger));
+    SQLMesas.Next;
+  End;
+ SQLMesas.Active := False;
+End;
+
+Function CuentoLlamados(Cursada : TQuery;codigo:String):Boolean;
+Var
+  CuatCursada, CuatLimite:String;
+  Dia, mes, anio : Word;
+Begin
+  Cursada.First;
+  While (Not Cursada.Eof) And (Cursada.FieldByName('COD_MAT').AsString <> Codigo) Do
+    Cursada.Next;
+  CuatCursada := Cursada.FieldByName('CUA_ANIO').AsString;
+  If Copy(CuatCursada,1,1) = '1' Then
+    CuatLimite := IntToStr(StrToInt(CuatCursada) + 3)
+  Else
+   If Copy(CuatCursada,1,1) = '2' Then
+      CuatLimite := IntToStr(StrToInt(CuatCursada) -  97);
+  If Copy(Cuatrimestre(),2,2) > Copy(CuatLimite,2,2) Then
+       CuentoLlamados := False
+  Else
+       CuentoLlamados := True;
+  DecodeDate(Date(), anio, mes, dia);
+  If CuatLimite = Cuatrimestre() Then
+     If Mes >= 4 Then
+        CuentoLlamados := False;
+End;
+
+Function ValidoMateria(Materias, Analitico : Tquery;codigo:String):Boolean;
+Var
+  Cont : Integer;
+  CodMatVerificar:String;
+  PuedeRendir, Mat23, Mat24:Boolean;
+Begin
+  Cont := 1;
+  PuedeRendir := True;
+  Mat23 := False;
+  Mat24 := False;
+  Materias.First;
+  While (Not Materias.Eof) And  (Materias.FieldByName('CODMATERI').AsString <> Codigo) Do
+    Materias.Next;
+  If  Materias.FieldByName('CORRELATIV').AsString <> '' Then
+    Begin
+       While (cont<=15) And (PuedeRendir) do
+         Begin
+            CodMatVerificar := Copy(Materias.FieldByName('CORRELATIV').AsString,Cont,2);
+              If CodMatVerificar <> '' Then
+                Begin
+                  Analitico.First;
+                  While (Not Analitico.Eof) And (Analitico.FieldByName('COD_MAT').AsString <> CodMatVerificar) Do
+                      Analitico.Next;
+                  If Analitico.FieldByName('COD_MAT').AsString <> CodMatVerificar Then
+                    Begin
+                      PuedeRendir := False;
+                      Cont := 17;
+                    End;
+                End;
+            cont := cont + 3
+         End;
+    End;
+  If (VCarrera = 'ASC') And (Codigo = '25') And (PuedeRendir) Then
+   Begin
+     Analitico.First;
+     While (Not Analitico.Eof) Do
+       Begin
+         If (Analitico.FieldByName('COD_MAT').AsString = '24') Then
+           Mat24 := True;
+         If (Analitico.FieldByName('COD_MAT').AsString = '23') Then
+           Mat23 := True;
+        Analitico.Next;
+       End;
+     If Mat23 And Mat24 Then
+        PuedeRendir := True
+     Else
+        PuedeRendir := False;
+   End;
+  ValidoMateria := PuedeRendir;
+End;
+
+Function BuscoMateria(SQLMaterias : TQuery;Codigo:String):String;
+Var
+  Sigo : Boolean;
+Begin
+  Sigo:= True;
+  SQLMaterias.First;
+  BuscoMateria := '';
+  While Not (SQLMaterias.Eof) And (Sigo) Do
+   Begin
+    If SQLMaterias.FieldByName('CODMATERI').AsString = Codigo Then
+     Begin
+       BuscoMateria := Codigo + '-' + SQLMaterias.FieldByName('DESCRIPCI').AsString;
+       Sigo := False;
+     End;
+    SQLMaterias.Next;
+   End;
+End;
+
+procedure TPermisosExamen.FormActivate(Sender: TObject);
+begin
+   //Borrar despues
+   VCondicion := 'CURSANDO';
+   VUnidad := 'G';
+   VCarrera := 'ASC';
+   VCodAlu := 'DNI25829686';//'DNI25682464'; //'DNI24997773'; //'DNI23453509';//'DNI22493865'; //'DNI24999589'; //'DNI33333333'
+   VApellido := 'GUSTAVO MARCELO';
+   VNombre := 'ERNESTO';
+   VLibroMatriz := '12176';
+   VInstituto := 'I. Estudios Superiores Bs. As.';
+   VCaracteristica := 'A-781';
+   VNombreUsuario := 'Damian';
+   //Hasta Aca
+   MateriasCodigoAlumno.Text    := VCODALU;
+   MateriasCarreraCursa.Text    := VCarrera;
+   MateriasApellidoyNombre.Text := VApellido + ', ' + VNombre;
+   MateriasLibroMatriz.Text     := Copy(VlibroMatriz,1,2) + '/' + copy(VlibroMatriz,3,3);
+   PermisosExamen.Height := 345;
+   SQLPermisos.DataBaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   SQLPermisos.Params.Items[0].Value := VCODALU;
+   SQLPermisos.Active := True;
+   SQLCursada.DataBaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   SQLCursada.Params.Items[0].Value := VCODALU;
+   SQLCursada.Active := True;
+   SQLAnalitico.DataBaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   SQLAnalitico.Params.Items[0].Value := VCODALU;
+   SQLMaterias.DatabaseName := Vunidad + ':\New pailot\dbfgral\';
+   SQLMaterias.Params.Items[0].Value := VCarrera;
+   SQLMesas.DataBaseName := Vunidad + ':\New pailot\dbfgral\';
+   If SQLPermisos.RecordCount = 0 Then
+     Begin
+       ModificaPermiso.Enabled := False;
+       EliminaPermiso.Enabled := False;
+     End;  
+   If SQLCursada.RecordCount = 0 Then
+     Begin
+       MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', al alumno no se le pueden cargar ningún permiso de exámen porque no posee ninguna materia REGULAR'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+       NuevoPermiso.Enabled := False;
+       ModificaPermiso.Enabled := False;
+       EliminaPermiso.Enabled := False;
+     End
+   Else
+     Begin
+       SQLMaterias.Active := True;
+       SQLAnalitico.Active := True;
+       SQLCursada.First;
+       While Not SQLCursada.Eof Do
+        Begin
+           If SQLCursada.FieldByName('CONDICION').AsString = 'REGULAR' Then
+             ComboMaterias.Items.Add(BuscoMateria(SQLMaterias,SQLCursada.FieldByName('COD_MAT').AsString));
+           SQLCursada.Next;
+        End;
+     End;
+end;
+
+procedure TPermisosExamen.NuevoPermisoClick(Sender: TObject);
+begin
+  PermisosExamen.Height := 523;
+  NuevoPermiso.Enabled := False;
+  ModificaPermiso.Enabled := False;
+  EliminaPermiso.Enabled := False;
+  Salir.Enabled :=  False;
+  Grilla.Enabled := False;
+  Modificacion := False;
+  NumeroPermiso.Enabled := True;
+  NumeroPermiso.SetFocus;
+  CodigoMateria.Enabled := False;
+  ComboMaterias.Enabled := False;
+  Comision.Enabled := False;
+  Mesa.Enabled := False;
+  ComboMesa.Enabled := False;
+  NumeroPermiso.Text := '';
+  CodigoMateria.Text := '';
+  ComboMaterias.ItemIndex := -1;
+  ComboMesa.ItemIndex := -1;
+  Comision.Text := '';
+  Mesa.Text := '';
+end;
+
+procedure TPermisosExamen.CancelaGrabacionClick(Sender: TObject);
+begin
+  PermisosExamen.Height := 345;
+  NuevoPermiso.Enabled := True;
+  ModificaPermiso.Enabled := True;
+  EliminaPermiso.Enabled := True;
+  Salir.Enabled :=  True;
+  Grilla.Enabled := True;
+  Modificacion := False;
+  Grilla.SetFocus;
+end;
+
+procedure TPermisosExamen.salirClick(Sender: TObject);
+begin
+  Close
+  SQLPermisos.Active := False;
+  SQLCursada.Active := False;
+  SQLAnalitico.Active := False;
+  SQLMaterias.Active := False;
+  SQLMesas.Active := False;
+end;
+
+procedure TPermisosExamen.NumeroPermisoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)]) Then
+     Key := #0;
+ If Key = #13 Then
+   Begin
+       Permisos.Active := False;
+       Permisos.DatabaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+       Permisos.TableName := 'Permexa.dbf';
+       Permisos.IndexFieldNames := 'PERM_EXA';
+       Permisos.Active := True;
+       If (Permisos.FindKey([NumeroPermiso.Text])) And (Not Modificacion) Then
+           MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', el número de permiso pertenece al alumno con documento, '+ Permisos.FieldByName('Cod_Alu').AsString ),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL)
+       Else
+         Begin
+           NumeroPermiso.Enabled := False;
+           CodigoMateria.Enabled := True;
+           CodigoMateria.SetFocus;
+         End;
+       Permisos.Active := False;
+   End;
+End;
+
+procedure TPermisosExamen.codigomateriaKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)]) Then
+     Key := #0;
+  If Key = #13 Then
+    Begin
+      If CodigoMateria.Text = '' Then
+        Begin
+           CodigoMateria.Enabled := False;
+           ComboMaterias.Enabled := True;
+           ComboMaterias.SetFocus;
+        End
+      Else
+        Begin
+          If Length(CodigoMateria.Text) = 1 Then
+            CodigoMateria.Text := '0' + CodigoMateria.Text;
+          If VerificoSiEsta(ComboMaterias,CodigoMateria.Text,2) Then
+            Begin
+              If ValidoMateria(SQLMaterias,SQLAnalitico,CodigoMateria.Text) Then
+                Begin
+                  If CuentoLlamados(SQLCursada,CodigoMateria.Text) Then
+                    Begin
+                      CodigoMateria.Enabled := False;
+                      ComboMaterias.Enabled := False;
+                      Comision.Enabled := True;
+                      CargoMesasCombo(SQLMesas,ComboMesa,CodigoMateria.Text);
+                      Comision.Text := BuscoCutuco(SQLCursada,CodigoMateria.Text);
+                      Comision.SetFocus;
+                    End
+                  Else
+                    MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', el alumno no puede rendir la materia ' +Copy(ComboMaterias.Text,4,Length(comboMaterias.Text)) +' porque exedió la cantidad de llamados'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+                End
+              Else
+               MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', el alumno no puede rendir la materia ' +Copy(ComboMaterias.Text,4,Length(comboMaterias.Text)) +' porque adeuda correlatividades.'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+            End
+          Else
+             MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', el codigo de materia que ingresaste no esta en la lista de materias posibles.'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+        End;
+    End;
+end;
+
+procedure TPermisosExamen.ComboMateriasClick(Sender: TObject);
+Var
+ Key : Char;
+begin
+  CodigoMateria.Text := Copy(ComboMaterias.Text,1,2);
+  Key := #13;
+  codigomateriaKeyPress(Sender,Key);
+end;
+
+procedure TPermisosExamen.ComisionKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)]) Then
+     Key := #0;
+ If Key = #13 Then
+   Begin
+    Mesa.Enabled := True;
+    Comision.Enabled := False;
+    Mesa.SetFocus;
+   End;
+end;
+
+procedure TPermisosExamen.MesaKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)]) Then
+     Key := #0;
+ If Key = #13 Then
+   Begin
+    If Mesa.Text = '' Then
+      Begin
+        Mesa.Enabled := False;
+        ComboMesa.Enabled := True;
+        ComboMesa.SetFocus;
+      End
+    Else
+      Begin
+        If VerificoSiEsta(ComboMesa,Mesa.Text,3) Then
+          Begin
+            GrabaPermiso.Enabled := True;
+            GrabaPermiso.SetFocus;
+          End
+        Else
+          MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', la mesa que ingresaste no existe.'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+      End;
+   End;
+end;
+
+procedure TPermisosExamen.ComboMesaClick(Sender: TObject);
+Var
+ Key : Char;
+begin
+  Mesa.Text := Copy(ComboMesa.Text,1,3);
+  Key := #13;
+  MesaKeyPress(Sender,Key);
+end;
+
+procedure TPermisosExamen.GrabaPermisoClick(Sender: TObject);
+begin
+  If MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', grabas el permiso de examen?'),'Aviso',MB_OKCANCEL+MB_ICONQUESTION+MB_APPLMODAL)
+     = IDOK Then
+    Begin
+      If Modificacion Then
+         Begin
+           Permisos.Active := True;
+           Permisos.FindKey([StrToInt(NumeroPermiso.Text)]);
+           Permisos.Edit;
+         End
+      Else
+         Begin
+           Permisos.Active := True;
+           Permisos.Append;
+         End;
+       Permisos.FieldByName('PERM_EXA').AsInteger  := StrToInt(NumeroPermiso.Text);
+       Permisos.FieldByName('MESA').AsInteger      := StrToInt(Mesa.Text);
+       Permisos.FieldByName('LLAMADO').AsInteger   := StrToInt(Copy(ComboMesa.Text,5,1));
+       Permisos.FieldByName('COD_ALU').AsString    := VCodAlu;
+       Permisos.FieldByName('APELLIDO').AsString   := VApellido;
+       Permisos.FieldByName('CUTUCO').AsInteger    := StrToInt(Comision.Text);
+       Permisos.FieldByName('CARRE').AsString      := VCarrera;
+       Permisos.FieldByName('COD_MAT').AsString    := CodigoMateria.Text;
+       Permisos.FieldByName('FECH_EXA').AsDateTime := StrToDate(Copy(ComboMesa.Text,7,10));
+       Permisos.FieldByName('FECH_EMI').AsDateTime := Date();
+       Permisos.Post;
+       Permisos.Active:=False;
+       SQLPermisos.Active := False;
+       SQLPermisos.Active := True;
+       CancelaGrabacionClick(Sender);
+    End;
+end;
+
+procedure TPermisosExamen.modificaPermisoClick(Sender: TObject);
+Var
+  Key : Char;
+begin
+ NuevoPermisoClick(Sender);
+ NumeroPermiso.Text := IntToStr(SQLPermisos.FieldByName('PERM_EXA').AsInteger);
+ CodigoMateria.Text := SQLPermisos.FieldByName('COD_Mat').AsString;
+ Mesa.Text := IntToStr(SQLPermisos.FieldByName('MESA').AsInteger);
+ Modificacion := True;
+ Key := #13;
+ CodigoMateriaKeyPress(Sender,Key);
+ MesaKeyPress(Sender,Key);
+ Comision.Enabled := False;
+end;
+
+procedure TPermisosExamen.eliminaPermisoClick(Sender: TObject);
+begin
+ If MessageBox(PermisosExamen.Handle, Pchar(VNombreUsuario + ', esta segura/o de borrar el permiso Nº ' + IntToStr(SQLPermisos.FieldByName('PERM_EXA').AsInteger)+'.'),'Aviso',MB_OKCANCEL+MB_ICONQUESTION+MB_APPLMODAL)
+     = IDOK Then
+    Begin
+      Permisos.Active := True;
+      Permisos.FindKey([SQLPermisos.FieldByName('PERM_EXA').AsInteger]);
+      Permisos.Delete;
+      Permisos.Active:=False;
+      SQLPermisos.Active := False;
+      SQLPermisos.Active := True;
+    End;
+end;
+
+end.

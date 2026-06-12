@@ -1,0 +1,349 @@
+unit CargadePermisosWeb;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, kbmMemTable, Grids, DBGrids, StdCtrls, Buttons, ExtCtrls, FuncionesDB,
+  FuncionesConfiguracion, FIBDatabase, pFIBDatabase, FIBQuery, pFIBQuery, DataModule;
+
+type
+  TFrmCargaPermisosWeb = class(TForm)
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    Grilla: TDBGrid;
+    DataSource1: TDataSource;
+    MtPermisos: TkbmMemTable;
+    MtPermisosCOD_ALU: TStringField;
+    MtPermisosNOMBRE: TStringField;
+    MtPermisosCOD_MAT: TStringField;
+    MtPermisosMATERIA: TStringField;
+    MtPermisosFECHA: TDateField;
+    MtPermisosNUMPER: TIntegerField;
+    IbupIns: TpFIBQuery;
+    TrPermisos: TpFIBTransaction;
+    MtPermisosCUTUCO: TIntegerField;
+    MtPermisosMESA: TIntegerField;
+    MtPermisosGRABA: TStringField;
+    procedure GrillaKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormCreate(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrillaEditButtonClick(Sender: TObject);
+    procedure GrillaColExit(Sender: TObject);
+    procedure MtPermisosSetText(Sender: TField; const Text: String);
+    procedure GrabamesaClick(Sender: TObject);
+    procedure CargaGrilla;
+    procedure GrillaTitleClick(Column: TColumn);
+  private
+
+  public
+
+  end;
+
+var
+  FrmCargaPermisosWeb: TFrmCargaPermisosWeb;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+implementation
+
+{$R *.dfm}
+
+
+procedure TFrmCargaPermisosWeb.GrillaKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+Var b:Variant;
+    x:integer;
+begin
+   IF (grilla.SelectedField.FullName='COD_ALU') and (key=VK_F1) then begin
+       if Not (mtPermisos.State=dsInsert) then
+          MtPermisos.Append;
+       FuncionesDB.combobusqueda('SELECT COD_ALU, TRIM(APELLIDO)||'+#39+', '+#39'||TRIM(NOM_APE) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,True);
+       MtPermisos.FieldByName('COD_ALU').AsString:=b[0];
+       MtPermisos.FieldByName('NOMBRE').AsString:=b[1];
+   end
+   else IF (grilla.SelectedField.FullName='COD_MAT') and (key=VK_F1) then begin
+       if Not (mtPermisos.State=dsInsert) then
+          MtPermisos.Append;
+       FuncionesDB.combobusqueda('SELECT CODMAT, MATERIA, CONDICION, CUTUCO, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtPermisos.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+')',['Codigo','Nombre','Condicion'],b,True);
+       if (b[4]=2) then begin
+             MessageDlg( Pchar(VNombreUsuario + vartostr(b[5])),mtInformation, [mbok],0,mbok);
+       end else if (b[4]=1) then begin
+              if MessageDlg(Pchar(VNombreUsuario + vartostr(b[5])),mtConfirmation,[mbyes,mbno],0,mbyes)=mrno  Then
+                  grilla.SelectedField.FieldName:='COD_MAT'
+              else begin
+                 MtPermisos.FieldByName('COD_MAT').AsString:=b[0];
+                 MtPermisos.FieldByName('MATERIA').AsString:=b[1];
+                 MtPermisos.FieldByName('CUTUCO').AsInteger:=b[3];
+              end;
+       end else if (b[4]=0) then begin
+             MtPermisos.FieldByName('COD_MAT').AsString:=b[0];
+             MtPermisos.FieldByName('CUTUCO').AsInteger:=b[3];
+             MtPermisos.FieldByName('MATERIA').AsString:=b[1];
+       end
+   end
+   else IF (grilla.SelectedField.FullName='MESA') and (key=VK_F1) then begin
+       if Not (mtPermisos.State=dsInsert) then
+          MtPermisos.Append;
+       FuncionesDB.combobusqueda('SELECT M.MESA, M.LLAMADO, M.FECH_EXA, M.HORA, T.DESCRI FROM MESAS M LEFT OUTER JOIN MESA_TIPO T ON T.CODIGO=M.TIPMES WHERE M.CARRE='+#39+VCARRERA+#39+'AND M.COD_MAT='+#39+MtPermisos.FieldByName('COD_MAT').Asstring+#39,['Mesa','Llamado','Fecha Exa.','Hora', 'Tipo'],b,True);
+       IF (vartostr(b[0])<>'') then begin
+          MtPermisos.FieldByName('MESA').AsInteger:=b[0];
+          MtPermisos.FieldByName('FECHA').AsDateTime:=b[2];
+       end
+   end
+   else if (key=VK_RETURN) and ((vartostr(mtpermisos.FieldByName(grilla.SelectedField.FullName).value)<>'') or not (mtpermisos.FieldByName(grilla.SelectedField.FullName).Required)) then begin
+      for x:=mtpermisos.Fields.IndexOf(Grilla.SelectedField)+1 to mtpermisos.FieldCount-1 do begin
+        if not (Grilla.Columns.Items[x].ReadOnly) then begin
+          Grilla.SelectedField:=MtPermisos.Fields.Fields[x];
+          break;
+        end
+      end
+   end
+   else if key=VK_DELETE	then begin
+      if MessageDlg(Pchar(VNombreUsuario + ', borra el permiso?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+         MtPermisos.Delete;
+   end
+end;
+
+procedure TFrmCargaPermisosWeb.GrillaTitleClick(Column: TColumn);
+begin
+  if MtPermisos.IndexName = Column.FieldName then
+    MtPermisos.IndexName:= Column.FieldName+'_DESC'
+  else
+    MtPermisos.IndexName:= Column.FieldName;
+end;
+
+procedure TFrmCargaPermisosWeb.FormCreate(Sender: TObject);
+begin
+  TrPermisos.BeforeStart:=CustomerData.BaseBeforeStart;
+  MtPermisos.Active:=True;
+end;
+
+procedure TFrmCargaPermisosWeb.CancelaGrabacionClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmCargaPermisosWeb.GrillaEditButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+ IF (grilla.SelectedField.FullName='COD_ALU')  then begin
+     if Not (mtPermisos.State=dsInsert) then
+        MtPermisos.Append;
+     FuncionesDB.combobusqueda('SELECT COD_ALU, TRIM(APELLIDO)||'+#39+', '+#39'||TRIM(NOM_APE) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,True);
+     MtPermisos.FieldByName('COD_ALU').AsString:=b[0];
+     MtPermisos.FieldByName('NOMBRE').AsString:=b[1];
+ end
+ else IF (grilla.SelectedField.FullName='COD_MAT') and not (MtPermisos.FieldByName('COD_ALU').IsNull) then begin
+     if Not (mtPermisos.State=dsInsert) then
+        MtPermisos.Append;
+     FuncionesDB.combobusqueda('SELECT CODMAT, MATERIA, CONDICION, CUTUCO, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtPermisos.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+')',['Codigo','Nombre','Condicion'],b,True);
+     if (b[4]=2) then begin
+             MessageDlg( Pchar(VNombreUsuario + vartostr(b[5])),mtInformation, [mbok],0,mbok);
+     end else if (b[4]=1) then begin
+              if MessageDlg(Pchar(VNombreUsuario + vartostr(b[5])),mtConfirmation,[mbyes,mbno],0,mbyes)=mrno  Then
+                  grilla.SelectedField.FieldName:='COD_MAT'
+              else begin
+                 MtPermisos.FieldByName('COD_MAT').AsString:=b[0];
+                 MtPermisos.FieldByName('MATERIA').AsString:=b[1];
+                 MtPermisos.FieldByName('CUTUCO').AsInteger:=b[3];
+              end;
+     end else if (b[4]=0) then begin
+            MtPermisos.FieldByName('COD_MAT').AsString:=b[0];
+             MtPermisos.FieldByName('CUTUCO').AsInteger:=b[3];
+             MtPermisos.FieldByName('MATERIA').AsString:=b[1];
+     end
+ end
+ else IF (grilla.SelectedField.FullName='MESA') and not (MtPermisos.FieldByName('COD_MAT').IsNull) then begin
+     if Not (mtPermisos.State=dsInsert) then
+        MtPermisos.Append;
+     FuncionesDB.combobusqueda('SELECT M.MESA, M.LLAMADO, M.FECH_EXA, M.HORA, T.DESCRI FROM MESAS M LEFT OUTER JOIN MESA_TIPO T ON T.CODIGO=M.TIPMES WHERE M.CARRE='+#39+VCARRERA+#39+'AND M.COD_MAT='+#39+MtPermisos.FieldByName('COD_MAT').Asstring+#39,['Mesa','Llamado','Fecha Exa.','Hora', 'Tipo'],b,True);
+     IF (vartostr(b[0])<>'') then begin
+         MtPermisos.FieldByName('MESA').AsInteger:=b[0];
+         MtPermisos.FieldByName('FECHA').AsDateTime:=b[2];//StrToDate(text2);
+     end
+ end
+end;
+
+procedure TFrmCargaPermisosWeb.GrillaColExit(Sender: TObject);
+Var b:Variant;
+begin
+{ IF (grilla.SelectedField.FullName='COD_ALU') and not (MtPermisos.FieldByName('COD_ALU').Isnull) then begin
+     Funciones.combobusqueda('SELECT COD_ALU, TRIM(NOM_APE)||'+#39+', '+#39'||TRIM(APELLIDO) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' AND COD_ALU='+#39+MtPermisos.FieldByName('COD_ALU').AsString+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,False);
+     MtPermisos.FieldByName('COD_ALU').AsString:=null;
+     MtPermisos.FieldByName('NOMBRE').AsString:=null;
+     If (vartostr(b[0])='') then begin
+         MessageBox(FrmCargaPermisos.Handle, Pchar(VNombreUsuario + ', código incorrecto'),'Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+     end
+     else if mtPermisos.State in [dsInsert,dsedit] then begin
+         MtPermisos.FieldByName('COD_ALU').AsString:=b[0];
+         MtPermisos.FieldByName('NOMBRE').AsString:=b[1];
+     end
+ end
+ else IF (grilla.SelectedField.FullName='COD_MAT') and not (MtPermisos.FieldByName('COD_MAT').Isnull) then begin
+     Funciones.combobusqueda('SELECT CUTUCO, MATERIA, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtPermisos.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+') WHERE CODMAT='+#39+MtPermisos.FieldByName('COD_MAT').AsString+#39,['Codigo','Nombre'],b,False);
+     If (vartostr(b[0])='') then begin
+         MessageBox(FrmCargaPermisos.Handle, Pchar(VNombreUsuario + ', código incorrecto'),'Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+         grilla.SelectedIndex:=2;
+         abort;
+     end
+     else if mtPermisos.State in [dsInsert,dsedit] then begin
+         MtPermisos.FieldByName('CUTUCO').AsInteger:=null;
+         MtPermisos.FieldByName('MATERIA').AsString:=null;
+         if (b[2]=2) then begin
+             MessageBox(FrmCargaPermisos.Handle, Pchar(VNombreUsuario + vartostr(b[3])),'Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+             grilla.SelectedIndex:=2;
+             abort;
+         end
+         else if (b[2]=1) then begin
+              if (MessageBox(FrmCargaPermisos.Handle, Pchar(VNombreUsuario + vartostr(b[3])),'Aviso',MB_YESNO+MB_ICONQUESTION+MB_APPLMODAL)=ID_NO) then
+                  grilla.SelectedField.FieldName:='COD_MAT'
+              else begin
+                 MtPermisos.FieldByName('CUTUCO').AsInteger:=b[0];
+                 MtPermisos.FieldByName('MATERIA').AsString:=b[1];
+              end;
+         end
+         else if (b[2]=0) then begin
+             MtPermisos.FieldByName('CUTUCO').AsInteger:=b[0];
+             MtPermisos.FieldByName('MATERIA').AsString:=b[1];
+         end
+     end
+ end
+ else IF (grilla.SelectedField.FullName='MESA') and not (MtPermisos.FieldByName('MESA').IsNull) then begin
+     Funciones.combobusqueda('SELECT M.MESA, M.LLAMADO, M.FECH_EXA, M.HORA FROM MESAS M WHERE M.CARRE='+#39+VCARRERA+#39+'AND M.COD_MAT='+#39+MtPermisos.FieldByName('COD_MAT').Asstring+#39+' AND MESA='+#39+MtPermisos.FieldByName('MESA').AsString+#39,['Mesa','Llamado','Fecha Exa.','Hora'],b,False);
+     MtPermisos.FieldByName('MESA').AsString:=null;
+     MtPermisos.FieldByName('FECHA').AsDateTime:=null;
+     If (vartostr(b[0])='') then begin
+         MessageBox(FrmCargaPermisos.Handle, Pchar(VNombreUsuario + ', código incorrecto'),'Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+     end
+     else if mtPermisos.State in [dsInsert,dsedit] then begin
+            MtPermisos.FieldByName('MESA').AsString:=b[0];
+            MtPermisos.FieldByName('FECHA').AsDateTime:=b[2]//StrToDate(text2);
+     end
+ end}
+end;
+
+procedure TFrmCargaPermisosWeb.MtPermisosSetText(Sender: TField;
+  const Text: String);
+var b:Variant;
+begin
+  if (text<>'') then begin
+       sender.AsString:=UpperCase(text);
+       if (Sender.FullName='COD_ALU') then begin
+            mtPermisos.FieldByName('NOMBRE').AsString:=null;
+            FuncionesDB.combobusqueda('SELECT COD_ALU, TRIM(NOM_APE)||'+#39+', '+#39'||TRIM(APELLIDO) AS NOMBRE FROM ALUMNOS WHERE CARRE='#39+VCARRERA+#39+' AND BAJA='#39+'N'+#39+' AND COD_ALU='+#39+text+#39+' ORDER BY 2',['Codigo','Apellido y Nombre'],b,False);
+            mtPermisos.FieldByName('NOMBRE').AsString:=b[1];
+       end else if (Sender.FullName='COD_MAT') then begin
+            mtPermisos.FieldByName('CUTUCO').AsInteger:=null;//strToInt(text2);
+            mtPermisos.FieldByName('MATERIA').Value:=null;
+            FuncionesDB.combobusqueda('SELECT CODMAT, MATERIA, CUTUCO, FERRCOD, FERRMSG FROM XXX_MATERIAS_FINALES('+#39+MtPermisos.FieldByName('COD_ALU').AsString+#39','+#39+VCARRERA+#39+') WHERE CODMAT='+#39+text+#39,['Codigo','Nombre'],b,False);
+       end else if (Sender.FullName='MESA') then begin
+            MtPermisos.FieldByName('FECHA').AsDateTime:=null;
+            FuncionesDB.combobusqueda('SELECT M.MESA, M.LLAMADO, M.FECH_EXA, M.HORA FROM MESAS M WHERE M.CARRE='+#39+VCARRERA+#39+'AND M.COD_MAT='+#39+MtPermisos.FieldByName('COD_MAT').Asstring+#39+' AND MESA='+#39+text+#39,['Mesa','Llamado','Fecha Exa.','Hora'],b,False);
+            MtPermisos.FieldByName('FECHA').AsDateTime:=b[2];
+       end;
+       If vartostr(b[0])='' Then begin
+          if (MtPermisos.State=DsInsert) then begin
+              MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+              Sender.AsString:='';
+              abort;
+          end
+       end
+       else if (Sender.FullName='COD_MAT') then begin
+            if (b[3]=2) then begin
+                MessageDlg(Pchar(VNombreUsuario + vartostr(b[4])),mtInformation, [mbok],0,mbok);
+                Sender.AsString:='';
+                abort;
+            end
+            else if (b[3]=1) then begin
+              if MessageDlg(Pchar(VNombreUsuario + vartostr(b[4])),mtConfirmation,[mbyes,mbno],0,mbyes)=mrno  Then begin
+                  Sender.AsString:='';
+                  abort;
+              end
+              else begin
+                  Sender.AsString:=b[0];
+                  mtPermisos.FieldByName('CUTUCO').AsInteger:=b[2];//strToInt(text2);
+                  mtPermisos.FieldByName('MATERIA').Value:=b[1];
+              end;
+            end
+            else if (b[3]=0) then begin
+               Sender.AsString:=b[0];
+               mtPermisos.FieldByName('CUTUCO').AsInteger:=b[2];//strToInt(text2);
+               mtPermisos.FieldByName('MATERIA').Value:=b[1];
+            end
+       end
+  end
+  else begin
+        case Sender.DataType of
+          ftInteger:
+              Sender.AsInteger:=0;
+          else
+              Sender.AsString:='';
+        end;
+
+        Abort;
+  end
+end;
+
+procedure TFrmCargaPermisosWeb.GrabamesaClick(Sender: TObject);
+var
+  indice, i: integer;
+begin
+if (mtpermisos.State in [Dsinsert,DsEdit]) then
+   MtPermisos.Post;
+if (mtpermisos.RecordCount=0) then
+  exit;
+if MessageDlg(Pchar(VNombreUsuario + ', graba los permisos seleccionados?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then begin
+    mtpermisos.First;
+    trpermisos.Active:=True;
+    for i:=0 to Grilla.SelectedRows.Count-1 do begin
+        mtpermisos.GotoBookmark(Pointer(grilla.SelectedRows.Items[i]));
+         IbupIns.SQL.Text:='INSERT INTO PERMEXA(PERM_EXA,MESA,LLAMADO,COD_ALU,APELLIDO,CUTUCO,' +
+                             'CARRE,COD_MAT,FECH_EXA,FECH_EMI, NREG,USUARIO) '+
+                             '             VALUES(:PERM_EXA,:MESA,:LLAMADO,:COD_ALU,:APELLIDO,' +
+                             ':CUTUCO,:CARRE,:COD_MAT,:FECH_EXA,:FECH_EMI,:NREG,:USUARIO) returning indice; ';
+         IbupIns.ParamByName('PERM_EXA').AsInteger  := MtPermisos.Fieldbyname('NUMPER').AsInteger;
+         IbupIns.ParamByName('MESA').AsInteger      := MtPermisos.Fieldbyname('MESA').AsInteger;
+         IbupIns.ParamByName('COD_ALU').AsString    := MtPermisos.Fieldbyname('COD_ALU').AsString;
+         IbupIns.ParamByName('CUTUCO').AsInteger    := MtPermisos.FieldByName('CUTUCO').AsInteger;
+         IbupIns.ParamByName('CARRE').AsString      := VCarrera;
+         IbupIns.ParamByName('COD_MAT').AsString    := MtPermisos.Fieldbyname('COD_MAT').AsString;
+         IbupIns.ParamByName('FECH_EMI').AsDateTime := Date();
+         IbupIns.ParamByName('USUARIO').Value := funcionesConfiguracion.CodUsu;
+         //IbUpIns.ExecQuery;
+         //indice := IbUpIns.FieldByName('INDICE').AsInteger;
+         IbupIns.SQL.Text:='UPDATE web_permexa wp SET wp.permexa_id=:indice WHERE wp.indice=:PERM_EXA; ';
+         IbupIns.ParamByName('PERM_EXA').AsInteger:= MtPermisos.Fieldbyname('NUMPER').AsInteger;
+         IbupIns.ParamByName('INDICE').AsInteger:= indice;
+
+         //IbUpIns.ExecQuery;
+    end;
+    TrPermisos.Commit;
+    TrPermisos.Active:=False;
+    MessageDlg(Pchar(VNombreUsuario + ', permisos grabados'),mtInformation, [mbok],0,mbok);
+    close;
+end;
+end;
+
+procedure TFrmCargaPermisosWeb.CargaGrilla;
+var
+  query: string;
+begin
+  MTPermisos.Active:=false;
+  MTPermisos.Active:=True;
+  query:= 'select a.cod_alu, a.nom_ape as nombre, wp.cod_mat, m.descripci as materia, '+
+          '       wp.cutuco, wp.fech_emi as fecha, wp.indice as numper, wp.mesa '+
+          'from web_permexa wp '+
+          'left outer join alumnos a on a.indice = wp.alumno_id '+
+          'left outer join materias m on m.codmateri=wp.cod_mat and m.codcarre = wp.carre '+
+          'where wp.permexa_id is null and wp.carre = '''+VCarrera+'''';
+  FuncionesDB.Carga_MemTable(query,MTPermisos,false);
+
+end;
+
+end.

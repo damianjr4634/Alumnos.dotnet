@@ -1,0 +1,715 @@
+object FrmAltaModifProf: TFrmAltaModifProf
+  Left = 222
+  Top = 130
+  BorderStyle = bsDialog
+  Caption = 'Alta, modificacion de profesores'
+  ClientHeight = 551
+  ClientWidth = 833
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  OnClose = FormClose
+  PixelsPerInch = 96
+  TextHeight = 13
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 0
+    Width = 833
+    Height = 209
+    Align = alTop
+    Caption = 'Profesores'
+    TabOrder = 0
+    object Grilla: TDBGrid
+      Left = 2
+      Top = 15
+      Width = 829
+      Height = 192
+      Align = alClient
+      Color = clWhite
+      DataSource = DataSource1
+      Options = [dgTitles, dgIndicator, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgCancelOnExit]
+      ReadOnly = True
+      TabOrder = 0
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Style = []
+      Columns = <
+        item
+          Expanded = False
+          FieldName = 'CODPROFES'
+          Title.Caption = 'C'#243'digo de Profesor'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'DOCENTE'
+          Title.Caption = 'Apellido y Apellido'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TIPODOC'
+          Title.Caption = 'Tipo de Documento'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'NRODOCUM'
+          Title.Caption = 'N'#250'mero de Documento'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FEC_NAC'
+          Title.Caption = 'Fecha de Nacimiento'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'DI_ECCION'
+          Title.Caption = 'Direcci'#243'n'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'PISO'
+          Title.Caption = 'Piso'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'DEPTO'
+          Title.Caption = 'Depto'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'LOCALIDAD'
+          Title.Caption = 'Localidad'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'COD_POST'
+          Title.Caption = 'Codigo Postal'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'NACIONALI'
+          Title.Caption = 'Nacionalidad'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TELEFONO_P'
+          Title.Caption = 'Telefono Particular'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TELEFONO_M'
+          Title.Caption = 'Telefono Mensajes'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'INTERNO'
+          Title.Caption = 'Interno'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TITULO'
+          Title.Caption = 'Titulo'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'UNIVERDID'
+          Title.Caption = 'Universidad'
+          Width = 258
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECHA_ING'
+          Title.Caption = 'Fecha de Ingreso'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECHA_BAJ'
+          Title.Caption = 'Fecha de Baja'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'ANTCATEDR'
+          Title.Caption = 'Antig'#252'edad en la catedra'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'ANTDOCENT'
+          Title.Caption = 'Antig'#252'edad Docente'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'ANTDOCSUP'
+          Title.Caption = 'Antig'#252'edad en Docencia superior'
+          Visible = True
+        end>
+    end
+  end
+  object Nuevo: TBitBtn
+    Left = 8
+    Top = 216
+    Width = 75
+    Height = 25
+    Caption = '&Nuevo'
+    TabOrder = 1
+    OnClick = NuevoClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000130B0000130B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF0033333333B333
+      333B33FF33337F3333F73BB3777BB7777BB3377FFFF77FFFF77333B000000000
+      0B3333777777777777333330FFFFFFFF07333337F33333337F333330FFFFFFFF
+      07333337F33333337F333330FFFFFFFF07333337F33333337F333330FFFFFFFF
+      07333FF7F33333337FFFBBB0FFFFFFFF0BB37777F3333333777F3BB0FFFFFFFF
+      0BBB3777F3333FFF77773330FFFF000003333337F333777773333330FFFF0FF0
+      33333337F3337F37F3333330FFFF0F0B33333337F3337F77FF333330FFFF003B
+      B3333337FFFF77377FF333B000000333BB33337777777F3377FF3BB3333BB333
+      3BB33773333773333773B333333B3333333B7333333733333337}
+    NumGlyphs = 2
+  end
+  object Buscar: TBitBtn
+    Left = 91
+    Top = 216
+    Width = 75
+    Height = 25
+    Caption = '&Buscar'
+    TabOrder = 2
+    Visible = False
+    OnClick = BuscarClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000130B0000130B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+      333333333333333333FF33333333333330003FF3FFFFF3333777003000003333
+      300077F777773F333777E00BFBFB033333337773333F7F33333FE0BFBF000333
+      330077F3337773F33377E0FBFBFBF033330077F3333FF7FFF377E0BFBF000000
+      333377F3337777773F3FE0FBFBFBFBFB039977F33FFFFFFF7377E0BF00000000
+      339977FF777777773377000BFB03333333337773FF733333333F333000333333
+      3300333777333333337733333333333333003333333333333377333333333333
+      333333333333333333FF33333333333330003333333333333777333333333333
+      3000333333333333377733333333333333333333333333333333}
+    NumGlyphs = 2
+  end
+  object Modificar: TBitBtn
+    Left = 174
+    Top = 216
+    Width = 75
+    Height = 25
+    Caption = '&Modificar'
+    TabOrder = 3
+    OnClick = ModificarClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333000000
+      000033333377777777773333330FFFFFFFF03FF3FF7FF33F3FF700300000FF0F
+      00F077F777773F737737E00BFBFB0FFFFFF07773333F7F3333F7E0BFBF000FFF
+      F0F077F3337773F3F737E0FBFBFBF0F00FF077F3333FF7F77F37E0BFBF00000B
+      0FF077F3337777737337E0FBFBFBFBF0FFF077F33FFFFFF73337E0BF0000000F
+      FFF077FF777777733FF7000BFB00B0FF00F07773FF77373377373330000B0FFF
+      FFF03337777373333FF7333330B0FFFF00003333373733FF777733330B0FF00F
+      0FF03333737F37737F373330B00FFFFF0F033337F77F33337F733309030FFFFF
+      00333377737FFFFF773333303300000003333337337777777333}
+    NumGlyphs = 2
+  end
+  object salir: TBitBtn
+    Left = 741
+    Top = 216
+    Width = 75
+    Height = 25
+    Caption = '&Salir'
+    TabOrder = 4
+    OnClick = salirClick
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00330000000000
+      03333377777777777F333301BBBBBBBB033333773F3333337F3333011BBBBBBB
+      0333337F73F333337F33330111BBBBBB0333337F373F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337FF3337F33330111B0BBBB
+      0333337F337733337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F3F7F33337F333301E10BBBBB0333337F7F7F33337F333301EE0BBBBB
+      0333337F777FFFFF7F3333000000000003333377777777777333}
+    NumGlyphs = 2
+  end
+  object GroupBox2: TGroupBox
+    Left = 4
+    Top = 249
+    Width = 825
+    Height = 297
+    Caption = 'Datos personales'
+    TabOrder = 5
+    object Label1: TLabel
+      Left = 9
+      Top = 20
+      Width = 91
+      Height = 13
+      Caption = 'Codigo del profesor'
+    end
+    object Label3: TLabel
+      Left = 9
+      Top = 47
+      Width = 94
+      Height = 13
+      Caption = 'Tipo de Documento'
+    end
+    object Label6: TLabel
+      Left = 9
+      Top = 74
+      Width = 45
+      Height = 13
+      Caption = 'Direcci'#243'n'
+    end
+    object Label11: TLabel
+      Left = 9
+      Top = 101
+      Width = 62
+      Height = 13
+      Caption = 'Nacionalidad'
+    end
+    object Label12: TLabel
+      Left = 8
+      Top = 128
+      Width = 89
+      Height = 13
+      Caption = 'Telefono Particular'
+    end
+    object Label15: TLabel
+      Left = 8
+      Top = 155
+      Width = 26
+      Height = 13
+      Caption = 'Titulo'
+    end
+    object Label16: TLabel
+      Left = 8
+      Top = 182
+      Width = 56
+      Height = 13
+      Caption = 'Universidad'
+    end
+    object Label17: TLabel
+      Left = 8
+      Top = 209
+      Width = 83
+      Height = 13
+      Caption = 'Fecha de Ingreso'
+    end
+    object Label19: TLabel
+      Left = 8
+      Top = 236
+      Width = 119
+      Height = 13
+      Caption = 'Antig'#252'edad en la catedra'
+    end
+    object Label20: TLabel
+      Left = 255
+      Top = 236
+      Width = 98
+      Height = 13
+      Caption = 'Antig'#252'edad Docente'
+    end
+    object Label18: TLabel
+      Left = 264
+      Top = 209
+      Width = 81
+      Height = 13
+      Caption = 'Fecha de Egreso'
+    end
+    object Label21: TLabel
+      Left = 480
+      Top = 236
+      Width = 160
+      Height = 13
+      Caption = 'Antig'#252'edad en Docencia Superior'
+    end
+    object Label14: TLabel
+      Left = 504
+      Top = 128
+      Width = 33
+      Height = 13
+      Caption = 'Interno'
+    end
+    object Label13: TLabel
+      Left = 264
+      Top = 128
+      Width = 90
+      Height = 13
+      Caption = 'Telefono Mensajes'
+    end
+    object Label7: TLabel
+      Left = 278
+      Top = 74
+      Width = 20
+      Height = 13
+      Caption = 'Piso'
+    end
+    object Label4: TLabel
+      Left = 192
+      Top = 47
+      Width = 110
+      Height = 13
+      Caption = 'Numero de Documento'
+    end
+    object Label2: TLabel
+      Left = 192
+      Top = 20
+      Width = 85
+      Height = 13
+      Caption = 'Apellido y Nombre'
+    end
+    object Label8: TLabel
+      Left = 376
+      Top = 74
+      Width = 32
+      Height = 13
+      Caption = 'Depto.'
+    end
+    object Label9: TLabel
+      Left = 460
+      Top = 74
+      Width = 46
+      Height = 13
+      Caption = 'Localidad'
+    end
+    object Label5: TLabel
+      Left = 460
+      Top = 47
+      Width = 101
+      Height = 13
+      Caption = 'Fecha de Nacimiento'
+    end
+    object Label10: TLabel
+      Left = 640
+      Top = 74
+      Width = 65
+      Height = 13
+      Caption = 'Codigo Postal'
+    end
+    object Label22: TLabel
+      Left = 112
+      Top = 264
+      Width = 73
+      Height = 13
+      Caption = 'Fecha Licencia'
+    end
+    object Label23: TLabel
+      Left = 480
+      Top = 208
+      Width = 98
+      Height = 13
+      Caption = 'Antig'#252'edad en a'#241'os:'
+    end
+    object Grabar: TBitBtn
+      Left = 658
+      Top = 260
+      Width = 75
+      Height = 25
+      Caption = '&Grabar'
+      TabOrder = 15
+      OnClick = GrabarClick
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333330070
+        7700333333337777777733333333008088003333333377F73377333333330088
+        88003333333377FFFF7733333333000000003FFFFFFF77777777000000000000
+        000077777777777777770FFFFFFF0FFFFFF07F3333337F3333370FFFFFFF0FFF
+        FFF07F3FF3FF7FFFFFF70F00F0080CCC9CC07F773773777777770FFFFFFFF039
+        99337F3FFFF3F7F777F30F0000F0F09999937F7777373777777F0FFFFFFFF999
+        99997F3FF3FFF77777770F00F000003999337F773777773777F30FFFF0FF0339
+        99337F3FF7F3733777F30F08F0F0337999337F7737F73F7777330FFFF0039999
+        93337FFFF7737777733300000033333333337777773333333333}
+      NumGlyphs = 2
+    end
+    object Cancelar: TBitBtn
+      Left = 738
+      Top = 260
+      Width = 75
+      Height = 25
+      Caption = '&Cancelar'
+      TabOrder = 16
+      OnClick = CancelarClick
+      Glyph.Data = {
+        F6000000424DF600000000000000760000002800000010000000100000000100
+        0400000000008000000000000000000000001000000000000000000000000000
+        8000008000000080800080000000800080008080000080808000C0C0C0000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00888888888888
+        8888888888888888888888808888888888088800088888888888880000888888
+        8088888000888888088888880008888008888888800088008888888888000008
+        8888888888800088888888888800000888888888800088008888888000088880
+        0888880000888888008888000888888888088888888888888888}
+    end
+    object Codigo: TEdit
+      Left = 108
+      Top = 13
+      Width = 73
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 3
+      TabOrder = 0
+    end
+    object Nombre: TEdit
+      Left = 284
+      Top = 13
+      Width = 341
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 30
+      TabOrder = 1
+      OnKeyPress = NombreKeyPress
+    end
+    object ComboDocumento: TComboBox
+      Left = 109
+      Top = 40
+      Width = 73
+      Height = 21
+      ItemHeight = 13
+      TabOrder = 2
+      OnClick = ComboDocumentoClick
+      Items.Strings = (
+        'DNI'
+        'CI'
+        'LE'
+        'DU'
+        'PAS')
+    end
+    object NumeroDocumento: TEdit
+      Left = 306
+      Top = 40
+      Width = 135
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 8
+      TabOrder = 3
+      OnKeyPress = NumeroDocumentoKeyPress
+    end
+    object Direccion: TEdit
+      Left = 68
+      Top = 67
+      Width = 197
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 30
+      TabOrder = 4
+      OnKeyPress = DireccionKeyPress
+    end
+    object Piso: TEdit
+      Left = 308
+      Top = 67
+      Width = 61
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 2
+      TabOrder = 5
+      OnKeyPress = PisoKeyPress
+    end
+    object depto: TEdit
+      Left = 411
+      Top = 67
+      Width = 45
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 2
+      TabOrder = 6
+      OnKeyPress = deptoKeyPress
+    end
+    object localidad: TEdit
+      Left = 510
+      Top = 67
+      Width = 125
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 30
+      TabOrder = 7
+      OnKeyPress = localidadKeyPress
+    end
+    object codigopostal: TEdit
+      Left = 716
+      Top = 67
+      Width = 93
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 4
+      TabOrder = 8
+      OnKeyPress = codigopostalKeyPress
+    end
+    object combonacionalidad: TComboBox
+      Left = 80
+      Top = 94
+      Width = 145
+      Height = 21
+      ItemHeight = 13
+      TabOrder = 9
+      OnClick = combonacionalidadClick
+      Items.Strings = (
+        'Argentino'
+        'Extranjero')
+    end
+    object TelefonoParti: TEdit
+      Left = 103
+      Top = 121
+      Width = 141
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 8
+      TabOrder = 10
+      OnKeyPress = TelefonoPartiKeyPress
+    end
+    object TelefonoMensa: TEdit
+      Left = 357
+      Top = 121
+      Width = 141
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 8
+      TabOrder = 11
+      OnKeyPress = TelefonoMensaKeyPress
+    end
+    object Interno: TEdit
+      Left = 548
+      Top = 121
+      Width = 77
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 4
+      TabOrder = 12
+      OnKeyPress = InternoKeyPress
+    end
+    object Titulo: TEdit
+      Left = 52
+      Top = 148
+      Width = 437
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 40
+      TabOrder = 13
+      OnKeyPress = TituloKeyPress
+    end
+    object Universidad: TEdit
+      Left = 68
+      Top = 175
+      Width = 421
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 40
+      TabOrder = 14
+    end
+    object Licencia: TCheckBox
+      Left = 8
+      Top = 264
+      Width = 97
+      Height = 17
+      Caption = 'Licencia'
+      TabOrder = 17
+    end
+    object Fechaingreso: TDateEdit
+      Left = 101
+      Top = 202
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 18
+    end
+    object FechaEgreso: TDateEdit
+      Left = 359
+      Top = 200
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 19
+    end
+    object AntiguedadCatedra: TDateEdit
+      Left = 136
+      Top = 232
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 20
+    end
+    object AntiguedadDocente: TDateEdit
+      Left = 360
+      Top = 232
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 21
+    end
+    object AntiguedadDocSup: TDateEdit
+      Left = 648
+      Top = 232
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 22
+    end
+    object FechaLicencia: TDateEdit
+      Left = 192
+      Top = 260
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      TabOrder = 23
+    end
+    object fechanacimiento: TDateEdit
+      Left = 568
+      Top = 40
+      Width = 94
+      Height = 21
+      NumGlyphs = 2
+      Weekends = [Sun, Sat]
+      YearDigits = dyFour
+      TabOrder = 24
+    end
+  end
+  object DataSource1: TDataSource
+    DataSet = CustomerData.IBProfesores
+    Left = 24
+    Top = 152
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 280
+    Top = 216
+    object BusquedaporApellido1: TMenuItem
+      Caption = 'Busqueda por &Apellido'
+      OnClick = BusquedaporApellido1Click
+    end
+    object BusquedaporCodigo1: TMenuItem
+      Caption = 'Busqueda por &Codigo'
+      OnClick = BusquedaporCodigo1Click
+    end
+  end
+end

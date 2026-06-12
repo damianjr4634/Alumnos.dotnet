@@ -1,0 +1,514 @@
+unit lst_impresion_equivalencia_terc;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, funcionesConfiguracion, FuncionesDB, FuncionesText, StdCtrls, Mask, RXToolEdit, Buttons,
+  Imprimir, GmTypes, GmPreview,gmprinter, Printers,DataModule, FIBDatabase,
+  pFIBDatabase, DB, FIBDataSet, pFIBDataSet, Vcl.ExtCtrls ;
+
+type
+  TFrmImpresionEqTerc = class(TForm)
+    Imprimir: TBitBtn;
+    salir: TBitBtn;
+    Label3: TLabel;
+    ComboMateria: TComboEdit;
+    label0: TLabel;
+    ComboDocente: TComboEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    txtmateriacursada: TEdit;
+    txtcarreracursada: TEdit;
+    txtinstituto: TEdit;
+    PrintDialog1: TPrintDialog;
+    PrinterSetupDialog1: TPrinterSetupDialog;
+    Ds: TpFIBDataSet;
+    Tr: TpFIBTransaction;
+    GroupBox1: TGroupBox;
+    ChB: TCheckBox;
+    FechaImpresion: TDateEdit;
+    Label7: TLabel;
+    BtnImprimirFormatoNuevo: TBitBtn;
+    procedure ComboMateriaButtonClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure ComboMateriaExit(Sender: TObject);
+    procedure ComboDocenteButtonClick(Sender: TObject);
+    procedure ComboDocenteExit(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure BtnImprimirFormatoNuevoClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmImpresionEqTerc: TFrmImpresionEqTerc;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  VCarreraLarga : String; //Trae el nombre completo de la carrera
+  Vcodalu:String;
+implementation
+
+{$R *.dfm}
+
+procedure TFrmImpresionEqTerc.ComboMateriaButtonClick(Sender: TObject);
+Var QR:String; b:Variant;
+begin
+  QR:='SELECT A.COD_MAT, M.DESCRIPCI, A.FEQDOCE,A.FEQMATE,A.FEQCARRE,A.FEQINST FROM ANALITIC A LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE WHERE A.COD_ALU='#39+vcodalu+#39+' AND A.CARRE='#39+vcarrera+#39+' AND A.CONDICION='+#39'EQUIVALENCIA'+#39;
+  FuncionesDB.combobusqueda(QR,['Codigo','Descripción'],b,True);
+  Combomateria.Text:=b[0];
+  label1.Caption:=b[1];
+  ComboDocente.Text:=b[2];
+  TxtMateriaCursada.Text:=b[3];
+  TxtCarreraCursada.Text:=b[4];
+  TxtInstituto.Text:=b[5];
+  ComboDocenteExit(Sender);
+end;
+
+procedure TFrmImpresionEqTerc.FormActivate(Sender: TObject);
+begin
+  label1.caption:='';
+  label2.Caption:='';
+  FechaImpresion.Date:=Date;
+end;
+
+procedure TFrmImpresionEqTerc.FormCreate(Sender: TObject);
+begin
+  Tr.BeforeStart:=CustomerData.BaseBeforeStart;
+end;
+
+procedure TFrmImpresionEqTerc.ComboMateriaExit(Sender: TObject);
+Var QR:String; B:Variant;
+begin
+  if (Combomateria.Text<>'') Then Begin
+      ComBomateria.Text:=Lpad(Combomateria.Text,2,'0');
+      QR:='SELECT A.COD_MAT, M.DESCRIPCI, A.FEQDOCE,A.FEQMATE,A.FEQCARRE,A.FEQINST FROM ANALITIC A LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE WHERE A.COD_ALU='#39+vcodalu+#39+' AND A.CARRE='#39+vcarrera+#39+' AND A.CONDICION='+#39'EQUIVALENCIA'+#39+' AND A.COD_MAT='+#39+combomateria.Text+#39;
+      FuncionesDB.combobusqueda(QR,['Codigo','Descripción'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         Combomateria.SetFocus;
+      end
+      else begin
+         Combomateria.Text:=b[0];
+         label1.Caption:=b[1];
+         ComboDocente.Text:=b[2];
+         TxtMateriaCursada.Text:=b[3];
+         TxtCarreraCursada.Text:=b[4];
+         TxtInstituto.Text:=b[5];
+         ComboDocenteExit(Sender);
+      end
+  end
+
+end;
+
+procedure TFrmImpresionEqTerc.BtnImprimirFormatoNuevoClick(Sender: TObject);
+Var
+    Picture, Sello: TPicture;
+    texto, cuat: string;
+    _contHeight, ATextHeight: extended;
+begin
+
+  Cuat := InputBox('Cuatrimestres a Imprimir. Puede ser uno solo o mas de uno separados por comas. Ejemplo 2,3','Ingrese Cuatrimestre','0');
+  if (trim(cuat) = '') then begin
+    MessageDlg('Ingrese al menos un numero de cuatrimestre',mtError,[mbok],0,mbok);
+    exit;
+  end;
+
+  if (tr.Active) then
+    tr.Rollback;
+  ds.active:=False;
+  tr.active:=False;
+
+  _contHeight:= 0;
+
+  if (printdialog1.Execute) then begin
+     ds.SQLs.SelectSQL.Text:='SELECT extract(year from current_date) as aanio, replace(L.COD_ALU,''DNI'',''DNI '') as cod_alu , '+
+                             '       TRIM(L.APELLIDO)||'+#39+' '+#39+ '||TRIM(L.nom_ape) AS ALU, '+
+                             '       (SELECT LIST(DISTINCT substring(cast(A.ACTINT as integer) from 1 for char_length(cast(A.ACTINT as integer))-2)||''/''||substring(cast(A.ACTINT as integer) from char_length(cast(A.ACTINT as integer))-1)) '+
+                             '         FROM ANALITIC A '+
+                             '         WHERE A.COD_ALU=L.COD_ALU AND A.CARRE=L.CARRE AND A.CONDICION=''EQUIVALENCIA'') as ACTINT     '+
+                             'FROM ALUMNOS L '+
+                             'WHERE L.COD_ALU='+#39+VCODALU+#39+' AND L.CARRE='+#39+VCARRERA+#39;
+
+     tr.Active:=true;
+     ds.Active:=true;
+     FormPreview:=tFormPreview.create(self);
+     Picture:= TPicture.Create;
+     Sello:= TPicture.Create;
+
+
+     if (chb.Checked) then begin
+        Picture.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+        FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,28.5,Picture.Graphic,GmCentimeters);
+
+        Sello.LoadFromFile(vUnidad+CARPETA_FIRMAS+'\sello2.jpg');
+
+     end;
+
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 10;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     FormPreview.VistaPrevia1.Canvas.Brush.Color := clWhite;
+     _contHeight:=4.5;
+     FormPreview.VistaPrevia1.Canvas.TextOut(13 ,_contHeight,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',FechaImpresion.date),GmCentimeters);
+     _contHeight:= _contHeight + 0.5;
+     FormPreview.VistaPrevia1.Canvas.TextOut(13 ,_contHeight,'Acta Interna: '+ds.fieldbyname('ACTINT').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+     _contHeight:= _contHeight + 0.5;
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,_contHeight,'VISTO:',GmCentimeters);
+
+
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     texto:='    La solicitud presentada por el/la alumno/a '+ds.fieldbyname('ALU').AsString+' '+
+            ds.fieldbyname('COD_ALU').AsString+' matriculado/a en  año '+ds.fieldbyname('AANIO').AsString+
+            ' en el/los cuatrimestre/s '+cuat+' de la carrera '+
+            VCarreraLarga+
+            ' en el sentido de que se le por aprobada por equivalencia la/s asignatura/s del plan de estudios de la citada carrera especificado en el Artículo 1 de la presente Resolución. ';
+
+     FormPreview.VistaPrevia1.Canvas.Pen.Width:=1;
+     FormPreview.VistaPrevia1.Canvas.Pen.Color:=ClWhite;
+     _contHeight:= _contHeight + 0.6;
+     FormPreview.VistaPrevia1.Canvas.TextBox(1,_contHeight,20,0,texto,Talignment.taLeftJustify,GmCentimeters);
+
+      ATextHeight := FormPreview.VistaPrevia1.Canvas.TextBoxHeight(19, texto, gmCentimeters).AsCentimeters;
+     _contHeight := _contHeight + ATextHeight + 0.6;
+
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,_contHeight,'CONSIDERANDO:',GmCentimeters);
+     _contHeight := _contHeight + 0.6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     texto:='    La documentación presentada y las opiniones formuladas por el/los profesor/es de '+
+            'la/s respectiva/s asignatura/s y en uso de las atribuciones que le confiere (el Art. 6° '+
+            'inciso 7 de la Disp. N° 377/96 de la Dirección General de Educación de Gestión Privada; según corresponda a Institutos Técnicos o Institutos del Profesorado) ';
+
+           //FuncionesConfiguracion.Rector;
+     FormPreview.VistaPrevia1.Canvas.Pen.Width:=1;
+     FormPreview.VistaPrevia1.Canvas.Pen.Color:=ClWhite;
+
+     FormPreview.VistaPrevia1.Canvas.TextBox(1,_contHeight,20,0,texto,Talignment.taLeftJustify,GmCentimeters);
+      ATextHeight := FormPreview.VistaPrevia1.Canvas.TextBoxHeight(19, texto, gmCentimeters).AsCentimeters;
+     _contHeight := _contHeight + ATextHeight + 0.6;
+
+     _contHeight := _contHeight + 3;
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13,_contHeight,funcionesConfiguracion.Rector,GmCentimeters);
+
+     //segunda hoja
+      _contHeight := 4.5;
+      FormPreview.VistaPrevia1.NewPage;
+      if (chb.Checked) then begin
+        Picture.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+        FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,28.5,Picture.Graphic,GmCentimeters);
+     end;
+
+      FormPreview.VistaPrevia1.Canvas.TextOut(13 ,_contHeight,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',FechaImpresion.date),GmCentimeters);
+     _contHeight:= _contHeight + 0.5;
+     FormPreview.VistaPrevia1.Canvas.TextOut(13 ,_contHeight,'Acta Interna: '+ds.fieldbyname('ACTINT').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+     _contHeight:= _contHeight + 0.5;
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,_contHeight,'VISTO:',GmCentimeters);
+
+
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     texto:='    La solicitud presentada por el/la alumno/a '+ds.fieldbyname('ALU').AsString+' '+
+            ds.fieldbyname('COD_ALU').AsString+' matriculado/a en  año '+ds.fieldbyname('AANIO').AsString+
+            ' en el/los cuatrimestre/s '+cuat+' de la carrera '+
+            VCarreraLarga+
+            ' en el sentido de que se le por aprobada por equivalencia la/s asignatura/s del plan de estudios de la citada carrera especificado en el Artículo 1 de la presente Resolución. ';
+
+     FormPreview.VistaPrevia1.Canvas.Pen.Width:=1;
+     FormPreview.VistaPrevia1.Canvas.Pen.Color:=ClWhite;
+     _contHeight:= _contHeight + 0.6;
+     FormPreview.VistaPrevia1.Canvas.TextBox(1,_contHeight,20,0,texto,Talignment.taLeftJustify,GmCentimeters);
+
+      ATextHeight := FormPreview.VistaPrevia1.Canvas.TextBoxHeight(19, texto, gmCentimeters).AsCentimeters;
+     _contHeight := _contHeight + ATextHeight + 0.6;
+
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,_contHeight,'CONSIDERANDO:',GmCentimeters);
+     _contHeight := _contHeight + 0.6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     texto:='    La documentación presentada y las opiniones formuladas por el/los profesor/es de '+
+            'la/s respectiva/s asignatura/s y en uso de las atribuciones que le confiere (el Art. 280 y 272 / 23 y 24 '+
+            'de la Dirección General de Educación de Gestión Privada; '+
+            'según corresponda a Institutos Técnicos o Institutos del Profesorado) '+#13+
+            'El/La Rector/a del Instituto '+FuncionesConfiguracion.Rector;
+
+     FormPreview.VistaPrevia1.Canvas.Pen.Width:=1;
+     FormPreview.VistaPrevia1.Canvas.Pen.Color:=ClWhite;
+
+     FormPreview.VistaPrevia1.Canvas.TextBox(1,_contHeight,20,0,texto,Talignment.taLeftJustify,GmCentimeters);
+      ATextHeight := FormPreview.VistaPrevia1.Canvas.TextBoxHeight(19, texto, gmCentimeters).AsCentimeters;
+     _contHeight := _contHeight + ATextHeight + 0.6;
+
+
+     {FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,_contHeight,'RESUELVE:',GmCentimeters);
+     _contHeight := _contHeight + 0.6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,_contHeight,'Art 1° Dar aprobada/s por equivalencia/s las siguientes materias:',GmCentimeters);
+     _contHeight := _contHeight + 0.6;
+
+     ds.Active:= false;
+     ds.SQLs.SelectSQL.Text:= 'SELECT M.DESCRIPCI, a.carre, m.cuatrim, d.docente, a.FEQMATE, a.FEQCARRE, a.FEQINST, '+
+                         '  substring(cast(A.ACTINT as integer) from 1 for char_length(cast(A.ACTINT as integer))-2)||''/''||substring(cast(A.ACTINT as integer) from char_length(cast(A.ACTINT as integer))-1) as ACTINT '+
+                         'FROM ANALITIC A '+
+                         'LEFT OUTER JOIN ALUMNOS L ON L.carre=A.CARRE AND A.cod_alu=L.cod_alu '+
+                         'LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE '+
+                         'left outer join docentes d on d.codprofes=a.FEQDOCE '+
+                         'WHERE A.COD_ALU='#39+VCODALU+#39' AND A.CARRE='#39+VCARRERA+#39' AND A.CONDICION=''EQUIVALENCIA'' '+
+                         '     and  '''+cuat+''' containing m.cuatrim '+
+                         'order by m.cuatrim, m.orden';
+     ds.active:= true;
+
+     ds.First;
+     while not ds.Eof do begin
+        _contHeight := _contHeight + 0.6;
+
+
+        texto:= 'Materia '+ds.fieldbyname('descripci').AsString+' del '+LetrasCuat(ds.fieldbyname('cuatrim').AsInteger)+' cuatrimestre con Acta Interna N° '+
+                ds.fieldbyname('ACTINT').AsString+'. Habiendo cursado la materia '+ ds.fieldbyname('feqmate').AsString+' de la carrera '+ds.fieldbyname('feqcarre').AsString+' en el Establecimiento' +
+                ds.fieldbyname('feqinst').AsString+'. La misma fue evaluada por el docente '+ds.fieldbyname('DOCENTE').AsString;
+
+        FormPreview.VistaPrevia1.Canvas.Pen.Width:=1;
+        FormPreview.VistaPrevia1.Canvas.Pen.Color:=ClWhite;
+
+        ATextHeight := FormPreview.VistaPrevia1.Canvas.TextBoxHeight(18, texto, gmCentimeters).AsCentimeters;
+
+        if (_contHeight+ATextHeight+0.6 >= 25.8) then begin
+          _contHeight := 4.5;
+          FormPreview.VistaPrevia1.NewPage;
+          if (chb.Checked) then begin
+            Picture.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+            FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,28.5,Picture.Graphic,GmCentimeters);
+         end;
+        end;
+
+        FormPreview.VistaPrevia1.Canvas.TextBox(2,_contHeight,20,0,texto,Talignment.taLeftJustify,GmCentimeters);
+        _contHeight := _contHeight + ATextHeight + 0.6;
+        FormPreview.VistaPrevia1.Canvas.TextOut(12,_contHeight,'Firma Docente: ',GmCentimeters);
+
+        ds.Next;
+     end;
+
+     if (chb.Checked) then begin
+        _contHeight := _contHeight + 3;
+        if (_contHeight+5.5 >= 25.8) then begin
+          _contHeight := 4.5;
+          FormPreview.VistaPrevia1.NewPage;
+          if (chb.Checked) then begin
+            Picture.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+            FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,28.5,Picture.Graphic,GmCentimeters);
+          end;
+        end;
+        FormPreview.VistaPrevia1.Canvas.StretchDraw(7,_contHeight,11.5,_contHeight+5.5,sello.Graphic, GmCentimeters);
+
+        _contHeight := _contHeight + 3;
+
+        FormPreview.VistaPrevia1.Canvas.TextOut(13,_contHeight,funcionesConfiguracion.Rector,GmCentimeters);
+
+     end;
+              }
+     FormPreview.VistaPrevia1.EndUpdate;
+
+     FormPreview.VistaPrevia1.CurrentPage := 1;
+
+     if (tr.Active) then
+        tr.Rollback;
+     ds.active:=False;
+     tr.active:=False;
+     FormPreview.ShowModal;
+     FormPreview.Free;
+  end
+end;
+
+procedure TFrmImpresionEqTerc.ComboDocenteButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL ORDER BY 1',['Codigo','Nombre'],b,True);
+  Combodocente.Text:=b[0];
+  label2.Caption:=b[1];
+end;
+
+procedure TFrmImpresionEqTerc.ComboDocenteExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (Combodocente.Text<>'') Then Begin
+      ComBodocente.Text:=Lpad(Combodocente.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL AND CODPROFES='''+combodocente.Text+''' ORDER BY 1',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         Combodocente.SetFocus;
+      end
+      else begin
+         Combodocente.Text:=b[0];
+         label2.Caption:=b[1];
+      end
+  end
+end;
+
+procedure TFrmImpresionEqTerc.ImprimirClick(Sender: TObject);
+Var
+    Imagen : TMetaFile;
+begin
+ if (combomateria.text='') then
+    exit;
+ if (tr.Active) then
+    tr.Rollback;
+  ds.active:=False;
+  tr.active:=False;
+  if (printdialog1.Execute) then begin
+     ds.SQLs.SelectSQL.Text:='SELECT M.DESCRIPCI, TRIM(L.APELLIDO)||'+#39+' '+#39+ '||TRIM(L.nom_ape) AS ALU, A.ACTINT '+
+                             'FROM ANALITIC A '+
+                             'LEFT OUTER JOIN ALUMNOS L ON L.carre=A.CARRE AND A.cod_alu=L.cod_alu '+
+                             'LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE '+
+                             'WHERE A.COD_ALU='+#39+VCODALU+#39+' AND A.CARRE='+#39+VCARRERA+#39+' AND A.CONDICION='+#39+'EQUIVALENCIA'+#39+' AND A.COD_MAT='+#39+combomateria.Text+#39;
+     if MessageDlg('Graba la información de la Equivalencia?',mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then begin
+          With  datamodule.CustomerData do begin
+              //grabo informacion en la base de analitico
+              if TrUpVarios.Active then
+                 TrUpVarios.Rollback;
+              TrUpVarios.Active:=False;
+              IbUpvarios.SQL.Text:= 'UPDATE ANALITIC A SET FEQDOCE='+#39+ComboDocente.Text+#39+' , FEQMATE='+#39+txtmateriacursada.text+#39+' ,FEQCARRE='+#39+txtcarreracursada.Text+#39+', FEQINST='+#39+ txtinstituto.text+#39+
+                                    'WHERE A.COD_ALU='+#39+VCODALU+#39+' AND A.CARRE='+#39+VCARRERA+#39+' AND A.COD_MAT='+#39+combomateria.Text+#39+' AND A.CONDICION='+#39+'EQUIVALENCIA'+#39;
+              TrUpvarios.Active:=True;
+              IbupVArios.ExecQuery;
+              if IbupVArios.RowsAffected=0 then
+                  MessageDlg('No se pudo grabar la informacion informe este error',mtError,[mbok],0,mbok);
+              TrUpVarios.Commit;
+              TrUpVarios.Active:=False;
+              IbUpvarios.SQL.Text:='';
+              //
+          end
+     end;
+     tr.Active:=true;
+     ds.Active:=true;
+     FormPreview:=tFormPreview.create(self);
+     Imagen := TMetaFile.Create;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\Equivalencia_terciaria_cm_h1.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\Equivalencia_terciaria_h1.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 11;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13 ,5.5,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',FechaImpresion.date),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,7.8,ds.fieldbyname('ALU').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,8.3,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,9.3,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.Newpage;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\Equivalencia_terciaria_cm_h2.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\Equivalencia_terciaria_h2.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+
+    // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,1,'.',GmCentimeters);
+    // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 11;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.5,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',FechaImpresion.date),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(8.5,9.3,ds.fieldbyname('ALU').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(12.8,9.8,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,10.8,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.5,19,Label2.Caption,GmCentimeters);
+
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.Newpage;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\Equivalencia_terciaria_cm_h3.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\Equivalencia_terciaria_h3.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+
+     // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,1,'.',GmCentimeters);
+     // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 11;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.2,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',FechaImpresion.date),GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.7,'Resolución Interna Nº: '+COPY(ds.fieldbyname('actint').AsString,1,LENGTH(Ds.fieldbyname('actint').AsString)-2)+'/'+COPY(ds.fieldbyname('actint').AsString,LENGTH(Ds.fieldbyname('actint').AsString)-1,2),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.5,6.3,Label2.Caption,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(5.0,6.8,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(7.3,7.3,copy(VCarreraLarga,1,funcionesText.position(VCarreralarga,65,' '))+' //',GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(2.0,7.8,copy(VCarreraLarga,funcionesText.position(VCarreralarga,65,' ')+1,60),GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(4.8,8.3,inttostr(currentyear),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(11.9,8.8,ds.fieldbyname('ALU').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(9.3,12.8,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(8.6,13.3,copy(VCarreraLarga,1,funcionesText.position(VCarreralarga,60,' '))+' //',GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.0,13.8,copy(VCarreraLarga,funcionesText.position(VCarreralarga,60,' ')+1,60),GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(5.6,14.3,inttostr(currentyear),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.1,14.8,txtmateriacursada.text,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.1,15.4,'en '+txtcarreracursada.text,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.1,16.0,'cursada/s en '+txtinstituto.text,GmCentimeters);
+
+
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.CurrentPage := 1;
+     if (tr.Active) then
+        tr.Rollback;
+     ds.active:=False;
+     tr.active:=False;
+     FormPreview.ShowModal;
+     FormPreview.Free;
+  end
+end;
+
+procedure TFrmImpresionEqTerc.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+end.

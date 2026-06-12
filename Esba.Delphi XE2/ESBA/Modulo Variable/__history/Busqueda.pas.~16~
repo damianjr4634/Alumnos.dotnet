@@ -1,0 +1,174 @@
+unit Busqueda;
+
+interface
+
+uses
+  Windows, Messages,  Classes, Controls, Forms,
+  DB, Grids, DBGrids, StrUtils, StdCtrls, ExtCtrls, IBCustomDataSet,
+   DataModuleZeosLib,
+   RXDBCtrl, sysutils, kbmMemTable, Vcl.Buttons, FIBDatabase, pFIBDatabase,
+  FIBDataSet, pFIBDataSet;
+
+type
+  TFrmBusqueda = class(TForm)
+    Panel1: TPanel;
+    TxtBsq: TEdit;
+    Panel2: TPanel;
+    DataSource1: TDataSource;
+    Button1: TBitBtn;
+    Button2: TBitBtn;
+    DBGrid1: TDBGrid;
+    MemTable: TkbmMemTable;
+    procedure QueryFilterRecord(DataSet: TDataSet; var Accept: Boolean);
+    procedure TxtBsqChange(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure TxtBsqKeyPress(Sender: TObject; var Key: Char);
+    procedure FormActivate(Sender: TObject);
+    procedure TxtBsqKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure DBGrid1CellClick(Column: TColumn);
+    procedure pFIBTransaction1BeforeStart(Sender: TObject);
+    procedure QueryBeforeOpen(DataSet: TDataSet);
+    procedure DBGrid1DblClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmBusqueda: TFrmBusqueda;
+  Titulos:Array Of String;
+  procedure Split_2 (const Delimiter: Char; Input: string;  Strings: TStrings);
+
+implementation
+
+{$R *.dfm}
+
+procedure Split_2 (const Delimiter: Char; Input: string; Strings: TStrings);
+begin
+   Assert(Assigned(Strings)) ;
+   Strings.Clear;
+   Strings.Delimiter := Delimiter;
+   Strings.DelimitedText := Input;
+end;
+
+procedure TFrmBusqueda.QueryFilterRecord(DataSet: TDataSet;
+  var Accept: Boolean);
+Var
+  x,y :integer;
+  c:TStringList;
+  text:string;
+begin
+   If (TxtBsq.Text='') Then
+      Accept:=True
+   Else
+      Accept:=False;
+  { text:=txtbsq.text+'#';
+   c := TStringList.Create;
+   AnsiReplaceText(Text,' ','#');
+   Split_2('#',Text,c);}
+  For x:=0 to  DataSet.FieldCount-1 Do begin
+    // for y:=0 to c.Count-1 do begin
+         if PosEx(uppercase(TxtBsq.Text),uppercase(DataSet.Fields.Fields[x].AsString),1)>0 Then
+             Accept:=True
+         {else begin
+             Accept:=False;
+             //Break;
+         end         }
+     //end;
+   end;
+end;
+
+procedure TFrmBusqueda.TxtBsqChange(Sender: TObject);
+Var x:Integer;
+begin
+  MemTable.Filtered:=False;
+  MemTable.Filtered:=True;
+ { For x:=0 to Query.FieldCount-1 do
+    Begin
+     DbGrid1.Columns.Items[x].Field:=Query.Fields.Fields[x];
+     DbGrid1.Columns.Items[x].Field.DisplayLabel:=Titulos[x];
+     DbGrid1.Columns.Items[x].Field.DisplayWidth:=Query.Fields.Fields[x].DisplayWidth;
+    End; }
+end;
+
+procedure TFrmBusqueda.Button1Click(Sender: TObject);
+begin
+ MemTable.Active:=False;
+ Close;
+end;
+
+procedure TFrmBusqueda.Button2Click(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmBusqueda.TxtBsqKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key=#13 Then
+    Close
+  else If Key=#27 Then begin
+    MemTable.Active:=False;
+    Close;
+  end
+end;
+
+procedure TFrmBusqueda.FormActivate(Sender: TObject);
+begin
+  TxtBsq.SetFocus;
+end;
+
+procedure TFrmBusqueda.TxtBsqKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  If Key=40 Then
+    MemTable.Next;
+  If Key=38 Then
+    MemTable.Prior;
+  If (Key=34) And Not (MemTable.Eof) Then
+    MemTable.RecNo:=MemTable.RecNo+10;
+  If (Key=33) And Not(MemTable.Bof) Then
+    MemTable.RecNo:=MemTable.RecNo-10;
+end;
+
+procedure TFrmBusqueda.DBGrid1CellClick(Column: TColumn);
+begin
+  //TxtBsq.Text:=Dbf1.Fields.Fields[0].AsString;
+  //TxtBsq.SetFocus;
+end;
+
+procedure TFrmBusqueda.FormCreate(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  pFIBTransaction1.BeforeStart:=CustomerData.BaseBeforeStart;
+  }
+end;
+
+procedure TFrmBusqueda.pFIBTransaction1BeforeStart(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  If (not Datamodule.CustomerData.FBase.Connected ) then
+      Datamodule.CustomerData.FBase.Connected:=True;
+      }
+end;
+
+procedure TFrmBusqueda.QueryBeforeOpen(DataSet: TDataSet);
+begin
+{
+    PASAR ZLIB
+  If (not Datamodule.CustomerData.FBase.Connected) then
+      Datamodule.CustomerData.FBase.Connected:=True;
+      }
+end;
+
+procedure TFrmBusqueda.DBGrid1DblClick(Sender: TObject);
+begin
+  Close;
+end;
+
+end.

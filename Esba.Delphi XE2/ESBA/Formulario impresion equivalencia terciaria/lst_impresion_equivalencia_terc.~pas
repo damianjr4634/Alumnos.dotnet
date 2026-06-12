@@ -1,0 +1,240 @@
+unit lst_impresion_equivalencia_terc;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, funciones, StdCtrls, Mask, ToolEdit, Buttons,
+  Imprimir, GmTypes, GmPreview,gmprinter, Printers,DataModule, FIBDatabase,
+  pFIBDatabase, DB, FIBDataSet, pFIBDataSet;
+
+type
+  TFrmImpresionEqTerc = class(TForm)
+    Imprimir: TBitBtn;
+    salir: TBitBtn;
+    Label3: TLabel;
+    ComboMateria: TComboEdit;
+    label0: TLabel;
+    ComboDocente: TComboEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    txtmateriacursada: TEdit;
+    txtcarreracursada: TEdit;
+    txtinstituto: TEdit;
+    PrintDialog1: TPrintDialog;
+    PrinterSetupDialog1: TPrinterSetupDialog;
+    Ds: TpFIBDataSet;
+    Tr: TpFIBTransaction;
+    ChB: TCheckBox;
+    procedure ComboMateriaButtonClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure ComboMateriaExit(Sender: TObject);
+    procedure ComboDocenteButtonClick(Sender: TObject);
+    procedure ComboDocenteExit(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmImpresionEqTerc: TFrmImpresionEqTerc;
+  VCarrera : String[6]; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String[50]; //Pasa el nomnbre del instituto
+  VCaracteristica : String[5]; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String[4]; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  VCarreraLarga : String; //Trae el nombre completo de la carrera
+  Vcodalu:String[11];
+implementation
+
+{$R *.dfm}
+
+procedure TFrmImpresionEqTerc.ComboMateriaButtonClick(Sender: TObject);
+Var Text1,Text2, QR:String;
+begin
+  QR:='SELECT A.COD_MAT, M.DESCRIPCI FROM ANALITIC A LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE WHERE A.COD_ALU='#39+vcodalu+#39+' AND A.CARRE='#39+vcarrera+#39+' AND A.CONDICION='+#39'EQUIVALENCIA'+#39;
+  Funciones.combobusqueda(QR,['Codigo','Descripción'],Text1,Text2,0,1,True);
+  Combomateria.Text:=Text1;
+  label1.Caption:=Text2;
+end;
+
+procedure TFrmImpresionEqTerc.FormActivate(Sender: TObject);
+begin
+  label1.caption:='';
+  label2.Caption:='';
+end;
+
+procedure TFrmImpresionEqTerc.ComboMateriaExit(Sender: TObject);
+Var Text1,Text2, QR:String;
+begin
+  Text1:='';
+  if (Combomateria.Text<>'') Then Begin
+      ComBomateria.Text:=Lpad(Combomateria.Text,2,'0');
+      QR:='SELECT A.COD_MAT, M.DESCRIPCI FROM ANALITIC A LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE WHERE A.COD_ALU='#39+vcodalu+#39+' AND A.CARRE='#39+vcarrera+#39+' AND A.CONDICION='+#39'EQUIVALENCIA'+#39+' AND A.COD_MAT='+#39+combomateria.Text+#39;
+      Funciones.combobusqueda(QR,['Codigo','Descripción'],Text1,Text2,0,1,False);
+      If (Text1='') then begin
+         MessageBox(FrmImpresionEqTerc.Handle,'Codigo Incorrecto','Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+         Combomateria.SetFocus;
+      end
+      else begin
+         Combomateria.Text:=Text1;
+         label1.Caption:=Text2;
+      end
+  end
+
+end;
+
+procedure TFrmImpresionEqTerc.ComboDocenteButtonClick(Sender: TObject);
+Var Text1,Text2:String;
+begin
+  Funciones.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES ORDER BY 1',['Codigo','Nombre'],Text1,Text2,0,1,True);
+  Combodocente.Text:=Text1;
+  label2.Caption:=Text2;
+end;
+
+procedure TFrmImpresionEqTerc.ComboDocenteExit(Sender: TObject);
+Var Text1,Text2:String;
+begin
+  Text1:='';
+  if (Combodocente.Text<>'') Then Begin
+      ComBodocente.Text:=Lpad(Combodocente.Text,3,'0');
+      Funciones.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE CODPROFES='''+combodocente.Text+''' ORDER BY 1',['Codigo','Nombre'],Text1,Text2,0,1,False);
+      If (Text1='') then begin
+         MessageBox(FrmImpresionEqTerc.Handle, Pchar(VNombreUsuario + ', codigo Incorrecto'),'Aviso',MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+         Combodocente.SetFocus;
+      end
+      else begin
+         Combodocente.Text:=Text1;
+         label2.Caption:=Text2;
+      end
+  end
+end;
+
+procedure TFrmImpresionEqTerc.ImprimirClick(Sender: TObject);
+Var
+    Imagen : TMetaFile;
+begin
+ if (combomateria.text='') then
+    exit;
+ if (tr.Active) then
+    tr.Rollback;
+  ds.active:=False;
+  tr.active:=False;
+  if (printdialog1.Execute) then begin
+     ds.SQLs.SelectSQL.Text:='SELECT M.DESCRIPCI, TRIM(L.APELLIDO)||'+#39+' '+#39+ '||TRIM(L.nom_ape) AS ALU, A.ACTINT '+
+                             'FROM ANALITIC A '+
+                             'LEFT OUTER JOIN ALUMNOS L ON L.carre=A.CARRE AND A.cod_alu=L.cod_alu '+
+                             'LEFT OUTER JOIN MATERIAS M ON A.COD_MAT=M.CODMATERI AND M.CODCARRE=A.CARRE '+
+                             'WHERE A.COD_ALU='+#39+VCODALU+#39+' AND A.CARRE='+#39+VCARRERA+#39+' AND A.CONDICION='+#39+'EQUIVALENCIA'+#39+' AND A.COD_MAT='+#39+combomateria.Text+#39;
+     tr.Active:=true;
+     ds.Active:=true;
+     FormPreview:=tFormPreview.create(self);
+     Imagen := TMetaFile.Create;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_terciaria_cm_h1.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_terciaria_h1.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 11;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13 ,5.5,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',date),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,7.8,ds.fieldbyname('ALU').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,8.3,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,9.3,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.Newpage;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_terciaria_cm_h2.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_terciaria_h2.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+
+    // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,1,'.',GmCentimeters);
+    // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 11;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.5,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',date),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(8.5,9.3,ds.fieldbyname('ALU').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(12.8,9.8,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.8,10.8,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.5,19,Label2.Caption,GmCentimeters);
+
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.Newpage;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_terciaria_cm_h3.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_terciaria_h3.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+
+     // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 6;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+     FormPreview.VistaPrevia1.Canvas.TextOut(1,1,'.',GmCentimeters);
+     // esto lo hago proque si no me cambia la fuente y me cagaba la impresion //
+
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 11;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.2,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',date),GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.7,'Resolución Interna Nº: '+COPY(ds.fieldbyname('actint').AsString,1,LENGTH(Ds.fieldbyname('actint').AsString)-2)+'/'+COPY(ds.fieldbyname('actint').AsString,LENGTH(Ds.fieldbyname('actint').AsString)-1,2),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.5,6.3,Label2.Caption,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(5.0,6.8,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(7.3,7.3,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(4.8,7.8,inttostr(currentyear),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(11.9,8.3,ds.fieldbyname('ALU').AsString,GmCentimeters);
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(9.3,12.3,ds.fieldbyname('DESCRIPCI').AsString,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(8.6,12.8,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(5.6,13.3,inttostr(currentyear),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.1,13.8,txtmateriacursada.text,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.1,14.4,'en '+txtcarreracursada.text,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(3.1,15.0,'cursada/s en '+txtinstituto.text,GmCentimeters);
+
+
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.CurrentPage := 1;
+     if (tr.Active) then
+        tr.Rollback;
+     ds.active:=False;
+     tr.active:=False;
+     FormPreview.ShowModal;
+     FormPreview.Free;
+  end
+end;
+
+procedure TFrmImpresionEqTerc.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+end.

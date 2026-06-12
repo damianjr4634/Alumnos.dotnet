@@ -1,0 +1,313 @@
+object ConstanciadelAlumno: TConstanciadelAlumno
+  Left = 206
+  Top = 167
+  Width = 661
+  Height = 544
+  Caption = 'Constancia del Alumno'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Label1: TLabel
+    Left = 16
+    Top = 32
+    Width = 88
+    Height = 13
+    Caption = 'Codigo del Alumno'
+  end
+  object Label3: TLabel
+    Left = 16
+    Top = 64
+    Width = 85
+    Height = 13
+    Caption = 'Apellido y Nombre'
+  end
+  object Label4: TLabel
+    Left = 282
+    Top = 64
+    Width = 54
+    Height = 13
+    Caption = 'Libro Matriz'
+  end
+  object Label2: TLabel
+    Left = 282
+    Top = 32
+    Width = 85
+    Height = 13
+    Caption = 'Carrera que Cursa'
+  end
+  object MateriasCodigoAlumno: TEdit
+    Left = 112
+    Top = 24
+    Width = 121
+    Height = 21
+    ReadOnly = True
+    TabOrder = 0
+  end
+  object MateriasApellidoyNombre: TEdit
+    Left = 112
+    Top = 56
+    Width = 121
+    Height = 21
+    ReadOnly = True
+    TabOrder = 1
+  end
+  object MateriasCarreraCursa: TEdit
+    Left = 386
+    Top = 24
+    Width = 121
+    Height = 21
+    ReadOnly = True
+    TabOrder = 2
+  end
+  object MateriasLibroMatriz: TEdit
+    Left = 386
+    Top = 56
+    Width = 121
+    Height = 21
+    ReadOnly = True
+    TabOrder = 3
+  end
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 0
+    Width = 653
+    Height = 97
+    Align = alTop
+    Caption = 'Datos Académicos del Alumno'
+    TabOrder = 4
+    object Label5: TLabel
+      Left = 16
+      Top = 32
+      Width = 88
+      Height = 13
+      Caption = 'Código del Alumno'
+    end
+    object Label6: TLabel
+      Left = 325
+      Top = 32
+      Width = 85
+      Height = 13
+      Caption = 'Carrera que Cursa'
+    end
+    object Label7: TLabel
+      Left = 16
+      Top = 64
+      Width = 85
+      Height = 13
+      Caption = 'Apellido y Nombre'
+    end
+    object Label8: TLabel
+      Left = 325
+      Top = 64
+      Width = 54
+      Height = 13
+      Caption = 'Libro Matriz'
+    end
+    object CodigodelAlumno: TEdit
+      Left = 112
+      Top = 24
+      Width = 145
+      Height = 21
+      ReadOnly = True
+      TabOrder = 0
+    end
+    object CarreraCursa: TEdit
+      Left = 429
+      Top = 24
+      Width = 121
+      Height = 21
+      ReadOnly = True
+      TabOrder = 1
+    end
+    object ApellidoyNombre: TEdit
+      Left = 112
+      Top = 56
+      Width = 145
+      Height = 21
+      ReadOnly = True
+      TabOrder = 2
+    end
+    object LibroyFolio: TEdit
+      Left = 429
+      Top = 56
+      Width = 121
+      Height = 21
+      ReadOnly = True
+      TabOrder = 3
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 0
+    Top = 97
+    Width = 652
+    Height = 272
+    Caption = 'Estado de Materias'
+    TabOrder = 5
+    object Constanciaalumno: TStringGrid
+      Left = 2
+      Top = 15
+      Width = 648
+      Height = 255
+      Align = alClient
+      Color = clBackground
+      ColCount = 13
+      FixedColor = clGray
+      RowCount = 2
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindow
+      Font.Height = -13
+      Font.Name = 'MS Sans Serif'
+      Font.Style = [fsBold]
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goRowSizing, goColSizing]
+      ParentFont = False
+      TabOrder = 0
+      RowHeights = (
+        24
+        24)
+    end
+  end
+  object FiltroMaterias: TQuery
+    DatabaseName = 'STANDARD1'
+    SQL.Strings = (
+      
+        'SELECT Codmateri, Cuatrim, Codcarre, Sigla FROM Materias WHERE C' +
+        'odcarre=:Carreraelegida ORDER BY Cuatrim,Codmateri')
+    Left = 360
+    Top = 368
+    ParamData = <
+      item
+        DataType = ftString
+        Name = 'Carreraelegida'
+        ParamType = ptUnknown
+        Value = '1'
+      end>
+    object FiltroMateriasCodmateri: TStringField
+      FieldName = 'Codmateri'
+      Size = 2
+    end
+    object FiltroMateriasCuatrim: TSmallintField
+      FieldName = 'Cuatrim'
+    end
+    object FiltroMateriasCodcarre: TStringField
+      FieldName = 'Codcarre'
+      Size = 3
+    end
+    object FiltroMateriasSigla: TStringField
+      FieldName = 'Sigla'
+      Size = 10
+    end
+  end
+  object FiltroAnaliticos: TQuery
+    DatabaseName = 'STANDARD1'
+    SQL.Strings = (
+      
+        'SELECT Cod_Alu, Cod_Mat, Cua_Anio, Nota_Mat, Fec_Final, Condicio' +
+        'n, Institut, Carac, Actint, Actdge, Actsne FROM Analitic WHERE C' +
+        'od_Alu=:CodigoAlumno ORDER BY Cod_Mat')
+    Left = 184
+    Top = 368
+    ParamData = <
+      item
+        DataType = ftString
+        Name = 'CodigoAlumno'
+        ParamType = ptUnknown
+        Value = '1'
+      end>
+    object FiltroAnaliticosCod_Alu: TStringField
+      FieldName = 'Cod_Alu'
+      Origin = 'STANDARD1."Analitic.DBF".COD_ALU'
+      Size = 11
+    end
+    object FiltroAnaliticosCod_Mat: TStringField
+      FieldName = 'Cod_Mat'
+      Origin = 'STANDARD1."Analitic.DBF".COD_MAT'
+      Size = 2
+    end
+    object FiltroAnaliticosNota_Mat: TFloatField
+      FieldName = 'Nota_Mat'
+      Origin = 'STANDARD1."Analitic.DBF".NOTA_MAT'
+    end
+    object FiltroAnaliticosFec_Final: TDateField
+      FieldName = 'Fec_Final'
+      Origin = 'STANDARD1."Analitic.DBF".FEC_FINAL'
+    end
+    object FiltroAnaliticosCondicion: TStringField
+      FieldName = 'Condicion'
+      Origin = 'STANDARD1."Analitic.DBF".CONDICION'
+      Size = 15
+    end
+    object FiltroAnaliticosInstitut: TStringField
+      FieldName = 'Institut'
+      Origin = 'STANDARD1."Analitic.DBF".INSTITUT'
+      Size = 30
+    end
+    object FiltroAnaliticosCarac: TStringField
+      FieldName = 'Carac'
+      Origin = 'STANDARD1."Analitic.DBF".CARAC'
+      Size = 5
+    end
+    object FiltroAnaliticosActint: TStringField
+      FieldName = 'Actint'
+      Origin = 'STANDARD1."Analitic.DBF".ACTINT'
+      Size = 7
+    end
+    object FiltroAnaliticosActdge: TStringField
+      FieldName = 'Actdge'
+      Origin = 'STANDARD1."Analitic.DBF".ACTDGE'
+      Size = 7
+    end
+    object FiltroAnaliticosActsne: TStringField
+      FieldName = 'Actsne'
+      Origin = 'STANDARD1."Analitic.DBF".ACTSNE'
+      Size = 7
+    end
+    object FiltroAnaliticosCua_Anio: TStringField
+      FieldName = 'Cua_Anio'
+      Origin = 'STANDARD1."Analitic.DBF".CUA_ANIO'
+      Size = 3
+    end
+  end
+  object FiltroCursada: TQuery
+    DatabaseName = 'STANDARD1'
+    SQL.Strings = (
+      
+        'SELECT Cod_Alu, Cod_Mat,  Condicion, Cua_Anio FROM Cursada WHERE' +
+        ' Cod_Alu=:CodigoAlumno ORDER BY Cod_Mat')
+    Left = 264
+    Top = 368
+    ParamData = <
+      item
+        DataType = ftString
+        Name = 'CodigoAlumno'
+        ParamType = ptUnknown
+        Value = '1'
+      end>
+    object FiltroCursadaCod_Alu: TStringField
+      FieldName = 'Cod_Alu'
+      Origin = 'STANDARD1."Cursada.DBF".COD_ALU'
+      Size = 11
+    end
+    object FiltroCursadaCod_Mat: TStringField
+      FieldName = 'Cod_Mat'
+      Origin = 'STANDARD1."Cursada.DBF".COD_MAT'
+      Size = 2
+    end
+    object FiltroCursadaCondicion: TStringField
+      FieldName = 'Condicion'
+      Origin = 'STANDARD1."Cursada.DBF".CONDICION'
+      Size = 15
+    end
+    object FiltroCursadaCua_Anio: TStringField
+      FieldName = 'Cua_Anio'
+      Origin = 'STANDARD1."Cursada.DBF".CUA_ANIO'
+      Size = 3
+    end
+  end
+end

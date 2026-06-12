@@ -1,0 +1,114 @@
+unit lst_impresion_equivalencia_bac;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, Imprimir, GmTypes, GmPreview,gmprinter, Printers, Datamodule,
+  FIBDatabase, pFIBDatabase, DB, FIBDataSet, pFIBDataSet, StdCtrls, Buttons;
+
+type
+  TFrmImpresionEqBac = class(TForm)
+    PrintDialog1: TPrintDialog;
+    PrinterSetupDialog1: TPrinterSetupDialog;
+    Imprimir: TBitBtn;
+    salir: TBitBtn;
+    ChB: TCheckBox;
+    Ds: TpFIBDataSet;
+    Tr: TpFIBTransaction;
+    procedure salirClick(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmImpresionEqBac: TFrmImpresionEqBac;
+  VCarrera : String[6]; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String[50]; //Pasa el nomnbre del instituto
+  VCaracteristica : String[5]; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String[4]; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  VCarreraLarga : String; //Trae el nombre completo de la carrera
+  Vcodalu:String[11];
+implementation
+
+{$R *.dfm}
+
+procedure TFrmImpresionEqBac.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmImpresionEqBac.ImprimirClick(Sender: TObject);
+Var
+    Imagen : TMetaFile;
+    linea:Real;
+begin
+if (tr.Active) then
+    tr.Rollback;
+  ds.active:=False;
+  tr.active:=False;
+  if (printdialog1.Execute) then begin
+     ds.SQLs.SelectSQL.Text:='SELECT FIRST 1 TRIM(L.APELLIDO)||'+#39+' '+#39+ '||TRIM(L.nom_ape) AS ALU, A.ACTINT, A.A_C, A.COLEGIO, A."PLAN" '+
+                             'FROM ANALITIC A '+
+                             'LEFT OUTER JOIN ALUMNOS L ON L.carre=A.CARRE AND A.cod_alu=L.cod_alu '+
+                             'WHERE A.COD_ALU='+#39+VCODALU+#39+' AND A.CARRE='+#39+VCARRERA+#39;
+     tr.Active:=true;
+     ds.Active:=true;
+     FormPreview:=tFormPreview.create(self);
+     Imagen := TMetaFile.Create;
+     if (chb.Checked) then
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_bachiller_cm_h1.wmf')
+     else
+        Imagen.LoadFromFile(vUnidad+'\Equivalencia_bachiller_h1.wmf');
+     FormPreview.VistaPrevia1.PaperSize:=A4;
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+     FormPreview.VistaPrevia1.BeginUpdate;
+     FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+     FormPreview.VistaPrevia1.Canvas.Font.Size := 10;
+     FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+
+     FormPreview.VistaPrevia1.Canvas.TextOut(13 ,5.5,'Buenos Aires, '+FormatDateTime('dd "de" MMMM "de" yyyy',date),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(13.0,4.7,'Resolución Interna Nº: '+COPY(ds.fieldbyname('actint').AsString,1,LENGTH(Ds.fieldbyname('actint').AsString)-2)+'/'+COPY(ds.fieldbyname('actint').AsString,LENGTH(Ds.fieldbyname('actint').AsString)-1,2),GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(9.8,8,ds.fieldbyname('ALU').AsString+' '+VCODALU,GmCentimeters);
+     FormPreview.VistaPrevia1.Canvas.TextOut(1.1,8.9,VCarreraLarga+' Ciclo Lectivo:'+IntToStr(CurrentYear),GmCentimeters);
+     if (ds.fieldbyname('A_C').AsString='C') then begin
+         FormPreview.VistaPrevia1.Canvas.TextOut(1.1,9.3,'y teniendo a la vista la (*) constancia de título en trámite otorgado por ',GmCentimeters);
+         FormPreview.VistaPrevia1.Canvas.TextOut(1.1,9.7,ds.fieldbyname('COLEGIO').AsString+' '+ds.fieldbyname('PLAN').AsString,GmCentimeters);
+         FormPreview.VistaPrevia1.Canvas.TextOut(1.1,25.8,'(*) NOTA: Condicional AD-REFERENDUM del Certificado Analítico ',GmCentimeters);
+     end else begin
+         FormPreview.VistaPrevia1.Canvas.TextOut(1.1,9.3,'y teniendo a la vista el Certificado Analítico del nivel medio otorgado por ',GmCentimeters);
+         FormPreview.VistaPrevia1.Canvas.TextOut(1.1,9.7,ds.fieldbyname('COLEGIO').AsString+' '+ds.fieldbyname('PLAN').AsString,GmCentimeters);
+     end;
+     if (tr.Active) then
+        tr.Rollback;
+     ds.active:=False;
+     tr.active:=False;
+     ds.SQLs.SelectSQL.Text:= 'SELECT COLUMNA1, COLUMNA2 FROM XXX_IMPRESION_EQ_BAC('+#39+VCODALU+#39','+#39+VCARRERA+#39+')';
+     tr.Active:=true;
+     ds.Active:=true;
+     ds.First;
+     linea:=14.1;
+     while not ds.Eof do begin
+        FormPreview.VistaPrevia1.Canvas.TextOut(1.9,linea,ds.fieldbyname('COLUMNA1').AsString,GmCentimeters);
+        FormPreview.VistaPrevia1.Canvas.TextOut(10.6,linea,ds.fieldbyname('COLUMNA2').AsString,GmCentimeters);
+        linea:=linea+0.45;
+        ds.Next;
+     end;
+     FormPreview.VistaPrevia1.Canvas.TextOut(6.1,24.8,VCarreraLarga,GmCentimeters);
+     FormPreview.VistaPrevia1.EndUpdate;
+     FormPreview.VistaPrevia1.CurrentPage := 1;
+     if (tr.Active) then
+        tr.Rollback;
+     ds.active:=False;
+     tr.active:=False;
+     FormPreview.ShowModal;
+     FormPreview.Free;
+  end;
+end;
+
+end.

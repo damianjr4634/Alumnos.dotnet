@@ -1,0 +1,178 @@
+unit Tutores;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, DBCtrls, Mask, Buttons, DB, kbmMemTable, Grids,
+  DBGrids;
+
+type
+  TFrmTutores = class(TForm)
+    GbGrilla: TGroupBox;
+    DataSource1: TDataSource;
+    DBGrid1: TDBGrid;
+    MtTutores: TkbmMemTable;
+    MtTutoresFNOMBRE: TStringField;
+    MtTutoresFAPELLIDO: TStringField;
+    MtTutoresFDNI: TIntegerField;
+    MtTutoresFDIRECC: TStringField;
+    MtTutoresFTELEFO: TStringField;
+    MtTutoresFCELULAR: TStringField;
+    MtTutoresFEMAIL: TStringField;
+    MtTutoresFPARENT: TStringField;
+    MtTutoresFRETIRA: TStringField;
+    NuevoTutor: TBitBtn;
+    modificaTutor: TBitBtn;
+    eliminaTutor: TBitBtn;
+    salir: TBitBtn;
+    GroupBox1: TGroupBox;
+    GrabaPermiso: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    MtTutoresFLOCALI: TStringField;
+    MtTutoresFCODPOS: TStringField;
+    GroupBox2: TGroupBox;
+    Label1: TLabel;
+    Dbnombre: TDBEdit;
+    Label2: TLabel;
+    DBApellido: TDBEdit;
+    Label3: TLabel;
+    DBdni: TDBEdit;
+    Label8: TLabel;
+    DBCparentesco: TDBComboBox;
+    DBretira: TDBCheckBox;
+    GroupBox3: TGroupBox;
+    Label4: TLabel;
+    DBdireccion: TDBEdit;
+    Label9: TLabel;
+    DBlocali: TDBEdit;
+    Label10: TLabel;
+    DBcodpos: TDBEdit;
+    GroupBox4: TGroupBox;
+    Label7: TLabel;
+    Label5: TLabel;
+    DBTelefono: TDBEdit;
+    DBMail: TDBEdit;
+    DBCelular: TDBEdit;
+    Label6: TLabel;
+    MtTutoresFRESPON: TStringField;
+    DBCheckBox1: TDBCheckBox;
+    procedure FormCreate(Sender: TObject);
+    procedure NuevoTutorClick(Sender: TObject);
+    procedure GrabaPermisoClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure modificaTutorClick(Sender: TObject);
+    procedure eliminaTutorClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure DBretiraClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmTutores: TFrmTutores;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmTutores.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if MtTutores.State in [DsInsert, DsEdit] then
+     Action:=caNone;
+end;
+
+procedure TFrmTutores.FormCreate(Sender: TObject);
+begin
+   If not MtTutores.Active then
+      Mttutores.Active:=True;
+//   FrmTutores.Height:=247;   //407
+end;
+
+procedure TFrmTutores.NuevoTutorClick(Sender: TObject);
+begin
+  If MtTutores.State in [DsInsert,dsEdit] then
+      MtTutores.Cancel;
+  MtTutores.Append;
+  Gbgrilla.Enabled:=False;
+  FrmTutores.Height:=547;
+  DbNombre.SetFocus;
+end;
+
+procedure TFrmTutores.GrabaPermisoClick(Sender: TObject);
+begin
+  Try
+     MtTutores.Post;
+  Except
+     MtTutores.Cancel;
+  end;
+  Gbgrilla.Enabled:=True;
+  FrmTutores.Height:=247;
+end;
+
+procedure TFrmTutores.CancelaGrabacionClick(Sender: TObject);
+begin
+  MtTutores.Cancel;
+  Gbgrilla.Enabled:=True;
+  FrmTutores.Height:=247;
+end;
+
+procedure TFrmTutores.modificaTutorClick(Sender: TObject);
+begin
+  If MtTutores.State in [DsInsert,dsEdit] then
+      MtTutores.Cancel;
+  MtTutores.Edit;
+  DbRetira.Checked:=False;
+  Gbgrilla.Enabled:=False;
+  FrmTutores.Height:=547;
+  {$IFNDEF ESBA.CUOTAS}
+    if (MtTutoresFRESPON.AsString='S') then begin
+      ShowMessage('El '+MtTutoresFPARENT.AsString+', es responsable economico. Algunos datos solo lo puede modificar Administracion');
+      DbNombre.Enabled:=False;
+      DBCparentesco.Enabled:=False;
+      DBApellido.Enabled:=False;
+      DBdni.Enabled:=False;
+      DBCheckBox1.Enabled:=False;
+      DBdireccion.SetFocus;
+    end;
+  {$ELSE}
+    DbNombre.Enabled:=True;
+    DBCparentesco.Enabled:=True;
+    DBApellido.Enabled:=True;
+    DBdni.Enabled:=True;
+    DBCheckBox1.Enabled:=True;
+    DbNombre.SetFocus;
+  {$ENDIF}
+
+end;
+
+procedure TFrmTutores.eliminaTutorClick(Sender: TObject);
+begin
+  If MtTutores.State in [DsInsert,dsEdit] then
+      MtTutores.Cancel;
+  {$IFNDEF ESBA.CUOTAS}
+     if MtTutoresFRESPON.Value='S' then
+       ShowMessage('El tutor es Responsable Economico. Sólo puede ser borrado por administración')
+     else
+       MtTutores.Delete;
+  {$ELSE}
+     MtTutores.Delete;
+end;
+
+procedure TFrmTutores.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmTutores.DBretiraClick(Sender: TObject);
+begin
+{  if Dbretira.Checked then
+     MtTutores.FieldByName('').AsString:='S'
+  else
+     MtTutores.FieldByName('').AsString:='N'}
+end;
+
+end.

@@ -1,0 +1,577 @@
+unit enviocorreo;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Db, StdCtrls, Buttons, FuncionesConfiguracion, FuncionesSystem, FuncionesText, FuncionesDB, ShellApi, IdMessage,
+  IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
+  IdMessageClient, IdSMTP, IdMessageCoder, IdException, CnfMail,
+  inifiles, DataModule, IdAttachmentFile, IdExplicitTLSClientServerBase,
+  IdSMTPBase, IdReplyRFC, idStack, IdText, StrUtils, IdServerIOHandler, IdSSL,
+  IdSSLOpenSSL, IdIOHandler, IdIOHandlerSocket, IdIOHandlerStack, variants;
+
+type
+  TFrmenviomail = class(TForm)
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    GroupBox3: TGroupBox;
+    GroupBox4: TGroupBox;
+    comision: TEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    buscar: TBitBtn;
+    Conmail: TListBox;
+    Sinmail: TListBox;
+    Lbpara: TListBox;
+    DlgAbrir: TOpenDialog;
+    IdSMTP: TIdSMTP;
+    GroupBox5: TGroupBox;
+    GroupBox6: TGroupBox;
+    LbCC: TListBox;
+    LbCCO: TListBox;
+    GroupBox7: TGroupBox;
+    Configurar: TBitBtn;
+    enviar: TBitBtn;
+    salir: TBitBtn;
+    Mesaje: TGroupBox;
+    Mensaje: TMemo;
+    GroupBox8: TGroupBox;
+    ArchAdj: TListBox;
+    Examinar: TBitBtn;
+    BtnQuitar: TBitBtn;
+    GroupBox9: TGroupBox;
+    DEPara: TEdit;
+    Label3: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    DECc: TEdit;
+    DECco: TEdit;
+    GroupBox10: TGroupBox;
+    Asunto: TEdit;
+    Toponeuno: TSpeedButton;
+    Toponetodos: TSpeedButton;
+    Tosacauno: TSpeedButton;
+    Tosacatodos: TSpeedButton;
+    CCPoneUno: TSpeedButton;
+    CCPoneTodos: TSpeedButton;
+    CCSacaUno: TSpeedButton;
+    CCSacaTodos: TSpeedButton;
+    CCOSacaTodos: TSpeedButton;
+    CCOSacaUno: TSpeedButton;
+    CCOPoneTodos: TSpeedButton;
+    CCOPoneuno: TSpeedButton;
+    Firma: TCheckBox;
+    TxtCuat: TEdit;
+    IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL;
+    Label4: TLabel;
+    procedure buscarClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure poneunoClick(Sender: TObject);
+    procedure ponetodosClick(Sender: TObject);
+    procedure sacaunoClick(Sender: TObject);
+    procedure sacatodosClick(Sender: TObject);
+    procedure enviarClick(Sender: TObject);
+    procedure ExaminarClick(Sender: TObject);
+    procedure ArchAdjKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure DEParaChange(Sender: TObject);
+    procedure ConfigurarClick(Sender: TObject);
+    procedure MailDragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
+    procedure MailDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure BtnQuitarClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    Procedure SetButtons;
+    Function Pos1(Str1, Str2 :String):Integer;
+  end;
+
+var
+  Frmenviomail: TFrmenviomail;
+  VUnidad : String;
+  Vcarrera: String;
+  VUsuario: String;
+  LogEnvio: boolean;
+
+implementation
+
+{$R *.DFM}
+Function TFrmenviomail.Pos1(Str1, Str2 :String):Integer;
+var x,i:integer;
+    sw:boolean;
+    str3:string;
+begin
+   Sw:=False;
+   Pos1:=0;
+   str3:='';
+   For i:=1 to Length(str1)-Length(str2) do
+    begin
+     for x:=0 to Length(str2)-1 do
+        str3:=str3+str1[i+x];
+     if (str3=str2) then
+       begin
+         Pos1:=i;
+         Break;
+       end
+     else
+         str3:='';
+    end;
+end;
+
+Procedure TFrmenviomail.SetButtons;
+Begin
+ ToPoneuno.Enabled   := (Conmail.Items.Count <> 0);
+ ToPoneTodos.Enabled := (Conmail.Items.Count <> 0);
+ ToSacaUno.Enabled   := (LbPara.Items.Count <> 0);
+ ToSacaTodos.Enabled := (LbPara.Items.Count <> 0);
+
+ CCPoneuno.Enabled   := (Conmail.Items.Count <> 0);
+ CCPoneTodos.Enabled := (Conmail.Items.Count <> 0);
+ CCSacaUno.Enabled   := (LbCC.Items.Count <> 0);
+ CCSacaTodos.Enabled := (LbCC.Items.Count <> 0);
+
+ CCOPoneuno.Enabled   := (Conmail.Items.Count <> 0);
+ CCOPoneTodos.Enabled := (Conmail.Items.Count <> 0);
+ CCOSacaUno.Enabled   := (LbCCO.Items.Count <> 0);
+ CCOSacaTodos.Enabled := (LbCCO.Items.Count <> 0);
+
+ BtnQuitar.Enabled := ArchAdj.Count>=1;
+ Enviar.Enabled  := (LbPara.Items.Count <> 0) or (Lbcc.Items.Count <> 0) or (LbCCO.Items.Count <> 0) or (DEPara.Text <> '') or (DECC.Text <> '') or (DECCO.Text <> '');
+End;
+
+procedure TFrmenviomail.BtnQuitarClick(Sender: TObject);
+begin
+ ArchAdj.Items.Delete(ArchAdj.ItemIndex);
+end;
+
+procedure TFrmenviomail.buscarClick(Sender: TObject);
+begin
+ If (Comision.Text <> '') and (TxtCuat.Text<>'') Then
+  Begin
+    Conmail.Items.Text := '';
+    LbPara.Items.Text := '';
+    LbCC.Items.Text := '';
+    LbCCO.Items.Text := '';
+    SinMail.Items.Text := '';
+    With Datamodule.CustomerData Do
+      Begin
+        If TrDSVarios.Active Then
+          TrDSVarios.Rollback;
+        IBDSVarios.SQLs.SelectSQL.Clear;
+        IBdsVarios.Active:=False;
+        TrdsVarios.Active:=False;
+        IbdsVarios.SQLs.SelectSQL.Text:= 'SELECT DISTINCT A.COD_ALU, TRIM(A.APELLIDO) AS APELLIDO, TRIM(A.NOM_APE) AS NOM_APE, TRIM(A.MAIL) AS MAIL FROM CURSADA C LEFT OUTER JOIN ALUMNOS A ON A.COD_ALU=C.COD_ALU AND A.CARRE=C.CARRE '+
+                              ' WHERE C.CUTUCO= :COMI AND C.CUA_ANIO=:CUAT AND TRIM(C.CONDICION) IN ('+#39+'CURSANDO'+#39+','+#39+'RECURSANDO'+#39+') AND A.CARRE=:CARRE  AND A.BAJA='+#39+'N'+#39 +
+                              ' ORDER BY A.APELLIDO, A.NOM_APE ';
+        IbdsVarios.ParamByName('COMI').Value := StrToInt(Comision.text);
+        IbdsVarios.ParamByName('CUAT').Value := TxtCuat.Text;
+        IbdsVarios.ParamByName('CARRE').Value := VCarrera;
+        IbdsVarios.Active:=True;
+        TrdsVarios.Active:=true;
+        IBdsVarios.FetchAll;
+      End;
+    If Datamodule.CustomerData.IBdsVarios.RecordCount = 0 Then
+      MessageDlg(Pchar(Vusuario+', no hay alumnos en la comision que escribiste.'),mtInformation,[mbok],0,mbok)
+    Else
+      Begin
+        Datamodule.CustomerData.IBdsVarios.First;
+        While Not Datamodule.CustomerData.IBdsVarios.Eof do
+          Begin
+            If Datamodule.CustomerData.IBdsVarios.FieldByName('MAIL').Asstring = '' Then
+              SinMail.Items.Add(IntToStr(Datamodule.CustomerData.IBdsVarios.RecNo)+'-'+
+                                Datamodule.CustomerData.IBdsVarios.FieldByName('APELLIDO').AsString
+                                +', '+ Datamodule.CustomerData.IBdsVarios.FieldByName('NOM_APE').AsString)
+            Else
+              ConMail.Items.Add(IntToStr(Datamodule.CustomerData.IBdsVarios.RecNo)+'-'+
+                                Datamodule.CustomerData.IBdsVarios.FieldByName('APELLIDO').AsString
+                                +', '+ Datamodule.CustomerData.IBdsVarios.FieldByName('NOM_APE').AsString+';'+Datamodule.CustomerData.IBdsVarios.FieldByName('MAIL').AsString);
+            Datamodule.CustomerData.IBdsVarios.Next;
+          End;
+        SetButtons;
+        ConMail.Enabled := True;
+        SinMail.Enabled := True;
+        LbPara.Enabled  := True;
+        LbCC.Enabled  := True;
+        LbCCO.Enabled  := True;
+      End;
+     With Datamodule.CustomerData Do
+      Begin
+        If TrdsVarios.Active Then
+          TrdsVarios.Rollback;
+        IBdsVarios.SQLs.SelectSQL.Clear;
+        IBdsVarios.Active:=False;
+        TrdsVarios.Active:=False;
+     end;
+  End;
+end;
+
+procedure TFrmenviomail.FormActivate(Sender: TObject);
+var
+   Buffer : array [0..255] of Char;
+begin
+  GetModuleFileName(HInstance, Buffer, SizeOf(Buffer));
+  if not fileexists(VUnidad+CARPETA_FIRMAS+'\'+vusuario+'.jpg') then begin
+    firma.Checked:=False;
+    firma.enabled:=False;
+  end;
+  ConMail.Enabled := False;
+  SinMail.Enabled := False;
+  LbPara.Enabled := False;
+  LbCC.Enabled := False;
+  LbCCO.Enabled := False;
+  if groupbox4.Enabled then
+     Comision.Setfocus;
+  TxtCuat.Text := Cuatrimestre(vcarrera);
+  //Label2.Caption := 'Cuatrimestre actual ' + Cuatrimestre();
+  SetButtons;
+end;
+
+procedure TFrmenviomail.salirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmenviomail.poneunoClick(Sender: TObject);
+Var
+   i : Integer;
+begin
+ If conmail.ItemIndex <> -1 Then
+  Begin
+     For i := (Conmail.Items.Count - 1) DownTo 0 Do
+      Begin
+        If Conmail.Selected[i] Then
+          Begin
+            if (UpperCase(TSpeedButton(Sender).Name)='TOPONEUNO') then
+                 LbPara.Items.Add(Conmail.Items.Strings[i]);
+            if (UpperCase(TSpeedButton(Sender).Name)='CCPONEUNO') then
+                 LbCC.Items.Add(Conmail.Items.Strings[i]);
+            if (UpperCase(TSpeedButton(Sender).Name)='CCOPONEUNO') then
+                 LbCCO.Items.Add(Conmail.Items.Strings[i]);
+            Conmail.Items.Delete(i);
+          End;
+      End;
+    SetButtons;
+  End;
+end;
+
+procedure TFrmenviomail.ponetodosClick(Sender: TObject);
+Var
+  i : Integer;
+begin
+  For i := (Conmail.Items.Count - 1) DownTo 0 Do
+    Begin
+       if (UpperCase(TSpeedButton(Sender).Name)='TOPONETODOS') then
+                 LbPara.Items.Add(Conmail.Items.Strings[i]);
+       if (UpperCase(TSpeedButton(Sender).Name)='CCPONETODOS') then
+                 LbCC.Items.Add(Conmail.Items.Strings[i]);
+       if (UpperCase(TSpeedButton(Sender).Name)='CCOPONETODOS') then
+                 LbCCO.Items.Add(Conmail.Items.Strings[i]);
+       Conmail.Items.Delete(i);
+    End;
+  SetButtons;
+end;
+
+procedure TFrmenviomail.sacaunoClick(Sender: TObject);
+Var
+  i : Integer;
+begin
+ If (UpperCase(TSpeedButton(Sender).Name)='TOSACAUNO') and (LbPAra.ItemIndex <> -1)  Then Begin
+     For i := (LbPAra.Items.Count - 1) DownTo 0 Do Begin
+        If LbPara.Selected[i] Then Begin
+            Conmail.Items.Add(LbPara.Items.Strings[i]);
+            LbPara.Items.Delete(i);
+        End;
+     End;
+ End
+ else If (UpperCase(TSpeedButton(Sender).Name)='CCSACAUNO') and (LbCC.ItemIndex <> -1)  Then Begin
+     For i := (LbCC.Items.Count - 1) DownTo 0 Do Begin
+        If LbCC.Selected[i] Then Begin
+            Conmail.Items.Add(LbCC.Items.Strings[i]);
+            LbCC.Items.Delete(i);
+        End;
+     End;
+ End
+ else If (UpperCase(TSpeedButton(Sender).Name)='CCOSACAUNO') and (LbCCo.ItemIndex <> -1)  Then Begin
+     For i := (LbCCo.Items.Count - 1) DownTo 0 Do Begin
+        If LbCCo.Selected[i] Then Begin
+            Conmail.Items.Add(LbCCo.Items.Strings[i]);
+            LbCCo.Items.Delete(i);
+        End;
+     End;
+ End;
+ SetButtons;
+end;
+
+procedure TFrmenviomail.sacatodosClick(Sender: TObject);
+Var
+  i : Integer;
+begin
+ If (UpperCase(TSpeedButton(Sender).Name)='TOSACATODOS')  Then Begin
+      For i := (LbPara.Items.Count - 1) DownTo 0 Do Begin
+         Conmail.Items.Add(LbPara.Items.Strings[i]);
+         LbPara.Items.Delete(i);
+      End;
+ End
+ else If (UpperCase(TSpeedButton(Sender).Name)='CCSACATODOS') Then Begin
+     For i := (LbCC.Items.Count - 1) DownTo 0 Do Begin
+            Conmail.Items.Add(LbCC.Items.Strings[i]);
+            LbCC.Items.Delete(i);
+     End;
+ End
+ else If (UpperCase(TSpeedButton(Sender).Name)='CCOSACATODOS') Then Begin
+     For i := (LbCCo.Items.Count - 1) DownTo 0 Do Begin
+            Conmail.Items.Add(LbCCo.Items.Strings[i]);
+            LbCCo.Items.Delete(i);
+     End;
+ End;
+ SetButtons;
+end;
+
+
+procedure TFrmenviomail.enviarClick(Sender: TObject);
+Var
+  i: Integer;
+  DireccionesTo, DireccionesCC, DireccionesCCO,LsGIdImage : String;
+  Attach: TIdAttachmentFile;
+  IniFile :TiniFile;
+  Buffer : array [0..255] of Char;
+
+  Html:Tstrings;
+  htmpart, txtpart : TIdText;
+  idMessage, idMessageCC: TidMessage;
+  datosMailcopia:Variant;
+begin
+  idMessage:=TidMessage.Create(nil);
+  idMessageCC:=TidMessage.Create(nil);
+  GetModuleFileName(HInstance, Buffer, SizeOf(Buffer));
+  IniFile := TIniFile.Create(VUnidad+'\Esba_prg.ini');
+  DireccionesTo := '';
+  DireccionesCC := '';
+  DireccionesCCO := '';
+  GenID(LsGIdImage);
+  if firma.checked then begin
+    html:=TStringList.Create();
+
+    html.add('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> '+
+               '<HTML><HEAD> '+
+              ' <META content="text/html; charset=iso-8859-1" = http-equiv=Content-Type> '+
+              ' <META name=GENERATOR content="MSHTML 8.00.6001.23487"> '+
+              ' <STYLE></STYLE> '+
+              ' </HEAD> '+
+              '<body> <TABLE> '+
+              '<TR> '+ AnsiReplaceText(mensaje.Lines.Text,#13+#10,'<br>') + ' <br> '+
+              '</TR> '+
+              '<TR> '+
+        		  '<img src="cid:'+LsGIdImage+'" width="400" border="0"/> '+
+              '</TR> '+
+              '</TABLE>'+
+              '</body></html>');
+ end;
+
+ with idMessage do begin
+    From.Text := IniFile.ReadString(VUsuario,'Correo','');
+    Body.Clear;
+    if Not firma.Checked then begin
+       body.Text:=mensaje.Lines.Text;
+    end
+    else begin
+          with TIdText.Create(IdMessage.MessageParts, nil) do begin
+            ContentType := 'multipart/alternative';
+          end;
+          with TIdText.Create(IdMessage.MessageParts, nil) do begin
+            Body.Text := '';
+            ContentType := 'text/plain';
+            ParentPart := 0;
+          end;
+          with TIdText.Create(IdMessage.MessageParts, nil) do begin
+            Body.Text := html.Text;
+            ContentType := 'text/html';
+            ParentPart := 0;
+          end;
+          with TIdAttachmentFile.Create(IdMessage.MessageParts, VUnidad+CARPETA_FIRMAS+'\'+vusuario+'.jpg') do begin
+             ContentID := '<'+LsGIdImage+'>';
+             ContentType := 'image/jpeg';
+             //FileName := vusuario+'.jpg';
+             ContentDisposition:='inline';
+          end;
+          IdMessage.ContentType := 'multipart/related; type="multipart/alternative"';
+    end;
+
+    if (LbPara.Items.Count <> 0) Then
+      For i:=0 to LbPara.Items.Count-1 do
+        DireccionesTo := DireccionesTo + COPY(LbPara.Items.Strings[i],Pos1(LbPara.Items.Strings[i],';')+1,Length(LbPara.Items.Strings[i]))+';';
+    DireccionesTo := DireccionesTo + DEPara.Text;  //StrPos(PChar(Aquien.Items.Strings[i]),PChar(';'))
+
+    if (LbCC.Items.Count <> 0) Then
+      For i:=0 to LbCC.Items.Count-1 do
+        DireccionesCC := DireccionesCC + COPY(LbCC.Items.Strings[i],Pos1(LbCC.Items.Strings[i],';')+1,Length(LbCC.Items.Strings[i]))+';';
+    DireccionesCC := DireccionesCC + DECC.Text;  //StrPos(PChar(Aquien.Items.Strings[i]),PChar(';'))
+
+
+    if (LbCCo.Items.Count <> 0) Then
+      For i:=0 to LbCCo.Items.Count-1 do
+        DireccionesCCo := DireccionesCCo + COPY(LbCCo.Items.Strings[i],Pos1(LbCCo.Items.Strings[i],';')+1,Length(LbCCo.Items.Strings[i]))+';';
+    DireccionesCCo := DireccionesCCo + DECCo.Text;  //StrPos(PChar(Aquien.Items.Strings[i]),PChar(';'))
+
+
+
+    Recipients.EMailAddresses := DireccionesTo;
+    BccList.EMailAddresses:=DireccionesCCO;
+    CCList.EMailAddresses:=DireccionesCC;
+    Subject := Asunto.Text;
+    Priority := TidMessagePriority(mpHighest);
+    if (ArchAdj.Items.Count <> 0) Then
+       For i:=0 to ArchAdj.Items.Count-1 do
+         Attach := TIdAttachmentFile.Create(MessageParts,ArchAdj.Items.strings[i]);
+  end;
+
+  FuncionesDB.Consulta('SELECT VALOR FROM XXX_CONF WHERE PARAME=''Mail_EnvCopia''',datosMailcopia);
+  with idMessagecc do begin
+    Body.Clear;
+    body.Add('El Usuario '+VUsuario+' envio este correo el dia de la fecha.');
+    body.Add('Direcciones de destino:');
+    body.Add('Para: '+idMessage.Recipients.EMailAddresses);
+    body.Add('Copia: '+idMessage.BccList.EMailAddresses);
+    body.Add('CCO: '+idMessage.CCList.EMailAddresses);
+    body.Add('Asunto del mensaje: '+Asunto.Text);
+    body.Add('Cuerpo del mensaje: ');
+    body.AddStrings(mensaje.Lines);
+
+    if (not varisnull(DatosMailCopia)) and (vartostr(DatosMailCopia[0])<>'') then begin
+      Recipients.EMailAddresses := DatosMailCopia[0];
+      FuncionesDB.Consulta('SELECT VALOR FROM XXX_CONF WHERE PARAME=''Mail_EnvCopiaCC''',datosMailcopia);
+      BccList.EMailAddresses:=vartostr(DatosMailCopia[0]);
+      FuncionesDB.Consulta('SELECT VALOR FROM XXX_CONF WHERE PARAME=''Mail_EnvCopiaCCO''',datosMailcopia);
+      CCList.EMailAddresses:=vartostr(DatosMailCopia[0]);
+    end;
+    Subject := 'SISTEMA DE ALUMNO - Envio de correo por el usuario '+Vusuario;
+    From.Text := IniFile.ReadString(VUsuario,'Correo','');
+    Priority := TidMessagePriority(mpHighest);
+    if (ArchAdj.Items.Count <> 0) Then
+       For i:=0 to ArchAdj.Items.Count-1 do
+         Attach := TIdAttachmentFile.Create(MessageParts,ArchAdj.Items.strings[i]);
+   end;
+
+   LogEnvio:=false;
+   with IdSMTP do begin
+      if IniFile.ReadInteger(VUsuario,'Autenticacion',0)=1 then begin
+         IdSMTP.IOHandler:=IdSSLIOHandlerSocketOpenSSL1;
+         IdSmtp.UseTLS:= utUseRequireTLS;
+         IdSSLIOHandlerSocketOpenSSL1.SSLOptions.Method:=sslvTLSv1;
+      end
+      else if IniFile.ReadInteger(VUsuario,'Autenticacion',0)=2 then begin
+         IdSMTP.IOHandler:=IdSSLIOHandlerSocketOpenSSL1;
+         IdSmtp.UseTLS:= utUseImplicitTLS;
+         IdSSLIOHandlerSocketOpenSSL1.SSLOptions.Method:=sslvSSLv23;
+      end
+      else begin
+         IdSMTP.IOHandler:= nil;
+         IdSmtp.UseTLS:= utNoTLSSupport;
+      end;
+      AuthType  := satDefault;
+      Username := IniFile.ReadString(VUsuario,'Usuario','');
+      Password := CnfMail.EncriptarPass(IniFile.ReadString(VUsuario,'Password',''),-1);
+      Host := IniFile.ReadString(VUsuario,'Smtp','');
+      Port := IniFile.ReadInteger(VUsuario,'Puerto',0);
+      try
+         Connect;
+         try
+           Send(idMessage);
+           if idMessageCC.Recipients.EMailAddresses<>'' then
+             Send(idMessageCC);
+         except
+           Disconnect;
+           raise;
+         end;
+         Disconnect;
+         MessageDlg(Pchar(Vusuario+', se envió de mail Satisfactorio.'),mtInformation, [mbok],0,mbok);
+         LogEnvio:=true;
+      except
+       ON E: EIdReplyRFCError {EIdProtocolReplyError} do begin
+          MessageDlg(Pchar(Vusuario+', No se ha podido enviar el email. Incorrecto el email o el usuario o la password.'+#13+E.Message),mtError,[mbok],0,mbok);
+       end;
+       on E: EFOpenError do begin
+          MessageDlg(Pchar(Vusuario+', No se ha podido enviar el email. Fichero Adjunto desconocido o erróneo.'+#13+E.Message),mtError,[mbok],0,mbok);
+       end;
+       on E: EIdSocketError do begin
+          MessageDlg(Pchar(Vusuario+', No se ha podido enviar el email. Host desconocido o incorrecto.'+#13+E.Message),mtError,[mbok],0,mbok);
+       end;
+       on e: exception do
+          MessageDlg(Pchar(Vusuario+', Fallo en el envio de email. '+e.message),mtError,[mbok],0,mbok);
+       else begin
+          MessageDlg(Pchar(Vusuario+', Fallo en el envio de email'),mtError,[mbok],0,mbok);
+       end;
+     end;
+    If connected Then Disconnect;
+  end;
+  IniFile.Free;
+  html.Free;
+  Attach.Free;
+  htmpart.Free;
+  txtpart.Free;
+  idMessage.Free;
+  idMessagecc.Free;
+
+  IniFile:=nil;
+  html:=nil;
+  Attach:=nil;
+  htmpart:=nil;
+  txtpart:=nil;
+  idMessage:=nil;
+  idMessagecc:=nil;
+end;
+
+procedure TFrmenviomail.ExaminarClick(Sender: TObject);
+begin
+ If (DlgAbrir.Execute) Then
+    ArchAdj.Items.Add(DlgAbrir.FileName);
+ SetButtons;
+end;
+
+procedure TFrmenviomail.ArchAdjKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  If (key = 46) then
+      ArchAdj.Items.Delete(ArchAdj.ItemIndex);
+end;
+
+procedure TFrmenviomail.DEParaChange(Sender: TObject);
+begin
+  SetButtons;
+end;
+
+procedure TFrmenviomail.ConfigurarClick(Sender: TObject);
+begin
+  CnfMail.VUsuario := VUsuario;
+  CnfMail.VUnidadPrograma:=VUnidad;
+  FrmCnfMail := TFrmCnfMail.Create(Self);
+  FrmCnfMail.ShowModal;
+  FrmCnfMail.Free;
+end;
+
+procedure TFrmenviomail.MailDragDrop(Sender, Source: TObject; X, Y: Integer);
+var i:Integer;
+begin
+   if Source is TlistBox then begin
+       For i := (TListBox(Source).Items.Count - 1) DownTo 0 Do Begin
+          If TListBox(Source).Selected[i] Then Begin
+             TListBox(Sender).Items.Add(TListBox(Source).Items.Strings[i]);
+             TListBox(Source).Items.Delete(i);
+          End;
+       End;
+       SetButtons;
+   end;
+end;
+
+procedure TFrmenviomail.MailDragOver(Sender, Source: TObject; X, Y: Integer;
+  State: TDragState; var Accept: Boolean);
+begin
+   if Source is TlistBox then
+       Accept:=True;
+end;
+
+end.

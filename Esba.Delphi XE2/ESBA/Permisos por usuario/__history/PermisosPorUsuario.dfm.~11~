@@ -1,0 +1,174 @@
+object FrmPermisosUsuario: TFrmPermisosUsuario
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsDialog
+  Caption = 'Permisos por Usuario'
+  ClientHeight = 370
+  ClientWidth = 602
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 330
+    Width = 602
+    Height = 40
+    Align = alBottom
+    TabOrder = 0
+    object BtnGrabar: TBitBtn
+      Left = 436
+      Top = 6
+      Width = 75
+      Height = 25
+      Caption = '&Aceptar'
+      Kind = bkYes
+      NumGlyphs = 2
+      TabOrder = 0
+      OnClick = BtnGrabarClick
+    end
+    object BtnSalir: TBitBtn
+      Left = 515
+      Top = 6
+      Width = 75
+      Height = 25
+      Caption = '&Salir'
+      Kind = bkClose
+      NumGlyphs = 2
+      TabOrder = 1
+      OnClick = BtnSalirClick
+    end
+  end
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 41
+    Width = 281
+    Height = 289
+    Align = alLeft
+    Caption = 'Opciones Disponibles'
+    TabOrder = 1
+    object LstDisponibles: TListBox
+      Left = 2
+      Top = 15
+      Width = 277
+      Height = 272
+      Style = lbOwnerDrawFixed
+      Align = alClient
+      TabOrder = 0
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 319
+    Top = 41
+    Width = 283
+    Height = 289
+    Align = alRight
+    Caption = 'Opciones habilitadas'
+    TabOrder = 2
+    object LstHabilitadas: TListBox
+      Left = 2
+      Top = 15
+      Width = 279
+      Height = 272
+      Align = alClient
+      ItemHeight = 13
+      TabOrder = 0
+    end
+  end
+  object GroupBox3: TGroupBox
+    Left = 281
+    Top = 41
+    Width = 38
+    Height = 289
+    Align = alClient
+    TabOrder = 3
+    object BtnPuno: TButton
+      Left = 6
+      Top = 30
+      Width = 26
+      Height = 25
+      Caption = '>'
+      TabOrder = 0
+      OnClick = BtnPunoClick
+    end
+    object BtnPTodos: TButton
+      Left = 6
+      Top = 70
+      Width = 26
+      Height = 25
+      Caption = '>>'
+      TabOrder = 1
+      OnClick = BtnPTodosClick
+    end
+    object BtnSUno: TButton
+      Left = 6
+      Top = 110
+      Width = 26
+      Height = 25
+      Caption = '<'
+      TabOrder = 2
+      OnClick = BtnSUnoClick
+    end
+    object BtnStodos: TButton
+      Left = 6
+      Top = 150
+      Width = 26
+      Height = 25
+      Caption = '<<'
+      TabOrder = 3
+      OnClick = BtnStodosClick
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 0
+    Width = 602
+    Height = 41
+    Align = alTop
+    TabOrder = 4
+    object Label1: TLabel
+      Left = 10
+      Top = 12
+      Width = 36
+      Height = 13
+      Caption = 'Usuario'
+    end
+    object LblUsuario: TLabel
+      Left = 123
+      Top = 12
+      Width = 36
+      Height = 13
+      Caption = 'Usuario'
+    end
+    object Usuario: TComboEdit
+      Left = 52
+      Top = 9
+      Width = 65
+      Height = 21
+      ClickKey = 112
+      GlyphKind = gkEllipsis
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 0
+      OnButtonClick = UsuarioButtonClick
+      OnChange = UsuarioChange
+      OnExit = UsuarioExit
+    end
+    object BtnCargar: TButton
+      Left = 521
+      Top = 7
+      Width = 75
+      Height = 25
+      Caption = '&Cargar'
+      TabOrder = 1
+      OnClick = BtnCargarClick
+    end
+  end
+end

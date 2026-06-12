@@ -1,0 +1,557 @@
+unit FrmAltaModProfes;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, Buttons, Grids, DBGrids, Menus, Db, ComCtrls,DataModule,
+  Mask, RXToolEdit, Variants, kbmMemTable, StrUtils, Vcl.ExtCtrls, FuncionesDB;
+
+type
+  TFrmAltaModifProf = class(TForm)
+    GroupBox1: TGroupBox;
+    Grilla: TDBGrid;
+    GroupBox2: TGroupBox;
+    Label1: TLabel;
+    DataSource1: TDataSource;
+    Codigo: TEdit;
+    Mt: TkbmMemTable;
+    MtCODPROFES: TStringField;
+    MtDOCENTE: TStringField;
+    MtTELEFONO_P: TStringField;
+    MtTELEFONO_M: TStringField;
+    MtINTERNO: TStringField;
+    gb2: TGroupBox;
+    Label13: TLabel;
+    TelefonoMensa: TEdit;
+    Label14: TLabel;
+    Interno: TEdit;
+    Label12: TLabel;
+    TelefonoParti: TEdit;
+    gb4: TGroupBox;
+    Label6: TLabel;
+    Direccion: TEdit;
+    Label7: TLabel;
+    Piso: TEdit;
+    Label8: TLabel;
+    depto: TEdit;
+    Label9: TLabel;
+    localidad: TEdit;
+    Label10: TLabel;
+    codigopostal: TEdit;
+    gb5: TGroupBox;
+    Label21: TLabel;
+    AntiguedadDocSup: TDateEdit;
+    Label20: TLabel;
+    AntiguedadDocente: TDateEdit;
+    gb6: TGroupBox;
+    Label17: TLabel;
+    Fechaingreso: TDateEdit;
+    Label18: TLabel;
+    FechaEgreso: TDateEdit;
+    Label19: TLabel;
+    AntiguedadCatedra: TDateEdit;
+    Label23: TLabel;
+    gb3: TGroupBox;
+    Licencia: TCheckBox;
+    Label22: TLabel;
+    FechaLicencia: TDateEdit;
+    gb1: TGroupBox;
+    Label2: TLabel;
+    Nombre: TEdit;
+    Label11: TLabel;
+    combonacionalidad: TComboBox;
+    Label3: TLabel;
+    ComboDocumento: TComboBox;
+    Label4: TLabel;
+    NumeroDocumento: TEdit;
+    Label5: TLabel;
+    fechanacimiento: TDateEdit;
+    Label25: TLabel;
+    CbSexo: TComboBox;
+    Label26: TLabel;
+    CbGenero: TComboBox;
+    GroupBox3: TGroupBox;
+    Grabar: TBitBtn;
+    Cancelar: TBitBtn;
+    DBGrid1: TDBGrid;
+    MtTitulos: TkbmMemTable;
+    DataSource2: TDataSource;
+    MtTitulosTITULO: TStringField;
+    MtTitulosNIVEL: TStringField;
+    MtTitulosOTORGADO: TStringField;
+    MtTitulosFECHA: TDateField;
+    Panel1: TPanel;
+    salir: TBitBtn;
+    TxtBusqueda: TEdit;
+    Label24: TLabel;
+    Modificar: TBitBtn;
+    Nuevo: TBitBtn;
+    BitBtn1: TBitBtn;
+    procedure salirClick(Sender: TObject);
+    procedure NuevoClick(Sender: TObject);
+    procedure GrabarClick(Sender: TObject);
+    procedure CancelarClick(Sender: TObject);
+    procedure ModificarClick(Sender: TObject);
+    procedure NombreKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboDocumentoClick(Sender: TObject);
+    procedure NumeroDocumentoKeyPress(Sender: TObject; var Key: Char);
+    procedure DireccionKeyPress(Sender: TObject; var Key: Char);
+    procedure PisoKeyPress(Sender: TObject; var Key: Char);
+    procedure deptoKeyPress(Sender: TObject; var Key: Char);
+    procedure localidadKeyPress(Sender: TObject; var Key: Char);
+    procedure codigopostalKeyPress(Sender: TObject; var Key: Char);
+    procedure combonacionalidadClick(Sender: TObject);
+    procedure TelefonoPartiKeyPress(Sender: TObject; var Key: Char);
+    procedure TelefonoMensaKeyPress(Sender: TObject; var Key: Char);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
+    procedure TxtBusquedaChange(Sender: TObject);
+    procedure MtFilterRecord(DataSet: TDataSet; var Accept: Boolean);
+    procedure TxtBusquedaKeyPress(Sender: TObject; var Key: Char);
+    procedure FormShow(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    Procedure ResetearControles(Seteo:Boolean);
+    Procedure PasoCampos;
+    Procedure CargaMT;
+  end;
+
+var
+  VUsuario : String;
+  Modificacion : Boolean;
+  FrmAltaModifProf: TFrmAltaModifProf;
+
+implementation
+
+{$R *.DFM}
+
+Procedure TFrmAltaModifProf.PasoCampos;
+Begin
+ With  CustomerData do Begin
+   IBUpdateProf.ParamByName('CODPROFES').AsString   := Codigo.Text;
+//   fechaingreso.GetDateMask;
+   IBUpdateProf.ParamByName('DOCENTE').AsString     := Nombre.Text;
+   if (fechaIngreso.date<>0) then
+      IBUpdateProf.ParamByName('FECHA_ING').AsDatetime := strtodate(fechaIngreso.text);
+   if (fechaegreso.date<>0) then
+      IBUpdateProf.ParamByName('FECHA_BAJ').AsDatetime := strtodate(FechaEgreso.text);
+   IBUpdateProf.ParamByName('DI_ECCION').AsString   := Direccion.Text;
+   IBUpdateProf.ParamByName('PISO').AsString        := Piso.Text;
+   IBUpdateProf.ParamByName('DEPTO').AsString       := Depto.Text;
+   IBUpdateProf.ParamByName('TELEFONO_P').AsString  := TelefonoParti.Text;
+   IBUpdateProf.ParamByName('TELEFONO_M').AsString  := TelefonoMensa.Text;
+   IBUpdateProf.ParamByName('INTERNO').AsString     := Interno.Text;
+   IBUpdateProf.ParamByName('LOCALIDAD').AsString   := Localidad.Text;
+   IBUpdateProf.ParamByName('CODPROFES').AsString   := Codigo.Text;
+   IBUpdateProf.ParamByName('NRODOCUM').AsString    := NumeroDocumento.Text;
+   IBUpdateProf.ParamByName('TIPODOC').AsString     := ComboDocumento.Text;
+   if (fechanacimiento.date<>0) then
+      IBUpdateProf.ParamByName('FEC_NAC').AsDateTime   := strtodate(FechaNacimiento.text);
+   IBUpdateProf.ParamByName('COD_POST').AsString    := CodigoPostal.Text;
+   IBUpdateProf.ParamByName('NACIONALI').AsString   := Copy(ComboNacionalidad.Text,1,1);
+   if (antiguedaddocente.date<>0) then
+      IBUpdateProf.ParamByName('ANTDOCENT').AsDateTime :=  strtodate(AntiguedadDocente.text)
+   else
+      IBUpdateProf.ParamByName('ANTDOCENT').AsDateTime := null;
+   if (antiguedaddocsup.date<>0) then
+      IBUpdateProf.ParamByName('ANTDOCSUP').AsDateTime :=  strtodate(AntiguedadDocSup.text)
+   else
+      IBUpdateProf.ParamByName('ANTDOCSUP').AsDateTime := null;
+   if (antiguedadcatedra.date<>0) then
+      IBUpdateProf.ParamByName('ANTCATEDR').AsDateTime :=  strtodate(AntiguedadCatedra.text)
+   else
+      IBUpdateProf.ParamByName('ANTCATEDR').AsDateTime := null;
+   if (fechalicencia.date<>0) then
+       IBUpdateProf.ParamByName('LICENFECH').AsDateTime :=  strtodate(FechaLicencia.text)
+   else
+       IBUpdateProf.ParamByName('LICENFECH').AsDateTime := null;
+   if Licencia.Checked then
+     IBUpdateProf.ParamByName('LICENCIA').AsString :=  'S'
+   else
+     IBUpdateProf.ParamByName('LICENCIA').AsString :=  'N';
+   case CbSexo.ItemIndex of
+      0: IBUpdateProf.ParamByName('SEXO').AsString :=  'M';
+      1: IBUpdateProf.ParamByName('SEXO').AsString :=  'F';
+      else IBUpdateProf.ParamByName('SEXO').Value:=null;
+   end;
+   if CbGenero.ItemIndex<>-1 then
+     IBUpdateProf.ParamByName('GENERO').AsInteger := CbGenero.ItemIndex
+   else
+     IBUpdateProf.ParamByName('GENERO').Value :=  null;
+ end
+End;
+
+Procedure TFrmAltaModifProf.ResetearControles(Seteo:Boolean);
+Begin
+   Nombre.Text := '';
+//   fechaIngreso.Date := StrToDate('01/01/1900');
+//   FechaEgreso.Date := StrToDate('01/01/1900');
+   fechaEgreso.Text:='';
+   Direccion.Text := '';
+   Piso.Text := '';
+   Depto.Text := '';
+   TelefonoParti.Text := '';
+   TelefonoMensa.Text := '';
+   Interno.Text := '';
+   Localidad.Text := '';
+   Codigo.Text := '';
+   NumeroDocumento.Text := '';
+   ComboDocumento.Text := '';
+//  FechaNacimiento.Date := StrToDate('01/01/1900');
+   CodigoPostal.Text := '';
+   ComboNacionalidad.Text := '';
+   Grilla.Enabled := Seteo;
+   Nuevo.Enabled := Seteo;
+   Modificar.Enabled := Seteo;
+   Salir.Enabled := Seteo;
+   TxtBusqueda.Enabled:=Seteo;
+   CbSexo.ItemIndex:=-1;
+   CbGenero.ItemIndex:=-1;
+//   AntiguedadCatedra.Date := StrToDate('01/01/1900');
+//   AntiguedadDocente.Date := StrToDate('01/01/1900');
+//   AntiguedadDocSup.Date := StrToDate('01/01/1900');
+End;
+
+
+procedure TFrmAltaModifProf.salirClick(Sender: TObject);
+begin
+ Close
+end;
+
+procedure TFrmAltaModifProf.NuevoClick(Sender: TObject);
+begin
+ Modificacion := False;
+ FrmAltaModifProf.Height := 579;
+ ResetearControles(False);
+ Nombre.SetFocus;
+ Codigo.Enabled := True;
+ MtTitulos.Active:=False;
+ MtTitulos.Active:=True;
+end;
+
+procedure TFrmAltaModifProf.GrabarClick(Sender: TObject);
+begin
+ if MessageDlg(Pchar(VUsuario+', estas seguro de grabar la información?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+   CustomerData.IBUpdateProf.SQL.Clear;
+   If Modificacion Then
+       CustomerData.IBUpdateProf.SQL.Text := 'UPDATE DOCENTES SET DOCENTE=:DOCENTE,FECHA_ING=:FECHA_ING,FECHA_BAJ=:FECHA_BAJ,'+
+                                             'DI_ECCION=:DI_ECCION,PISO=:PISO, DEPTO=:DEPTO,TELEFONO_P=:TELEFONO_P,'+
+                                             'TELEFONO_M=:TELEFONO_M,INTERNO=:INTERNO,LOCALIDAD=:LOCALIDAD,TITULO=:TITULO,'+
+                                             'UNIVERDID=:UNIVERDID,NROREGIST=:NROREGIST,ANTDOCENT=:ANTDOCENT,ANTDOCSUP=:ANTDOCSUP,'+
+                                             'ANTCATEDR=:ANTCATEDR,CODPROFES=:CODPROFES,NRODOCUM=:NRODOCUM,TIPODOC=:TIPODOC,'+
+                                             'FEC_NAC=:FEC_NAC,COD_POST=:COD_POST, NACIONALI=:NACIONALI, LICENCIA=:LICENCIA, LICENFECH=:LICENFECH, SEXO=:SEXO, GENERO=:GENERO '+
+                                             'WHERE CODPROFES=:CODPROFES;'
+   Else
+      CustomerData.IBUpdateProf.SQL.Text := 'INSERT INTO DOCENTES (CODPROFES,DOCENTE,FECHA_ING,FECHA_BAJ,DI_ECCION,PISO, DEPTO, TELEFONO_P,  TELEFONO_M,'+
+                                            '  INTERNO,LOCALIDAD,    TITULO,    UNIVERDID,    NROREGIST,'+
+                                            '  ANTDOCENT,    ANTDOCSUP,    ANTCATEDR, NRODOCUM,'+
+                                            '  TIPODOC,    FEC_NAC,    COD_POST, NACIONALI, LICENCIA, LICENFECH, SEXO, GENERO)'+
+                                            '  VALUES (:CODPROFES,:DOCENTE,:FECHA_ING,:FECHA_BAJ,:DI_ECCION,:PISO,:DEPTO,:TELEFONO_P,:TELEFONO_M,'+
+                                            '  :INTERNO,:LOCALIDAD,:TITULO,:UNIVERDID,:NROREGIST,'+
+                                            '  :ANTDOCENT,:ANTDOCSUP,:ANTCATEDR,:NRODOCUM,'+
+                                            '  :TIPODOC,:FEC_NAC,:COD_POST,:NACIONALI,:LICENCIA,:LICENFECH, :SEXO, :GENERO );';
+   PasoCampos;
+
+   Try
+     CustomerData.TRUpdateProf.Active := True;
+     CustomerData.IBUpdateProf.ExecQuery;
+     ExecQuery_Params('DELETE FROM DOC_TITULOS WHERE CODPROF= :CODPROF',['CODPROF'],[Codigo.Text],CustomerData.TRUpdateProf);
+     if mtTitulos.State in [dsInsert,dsEdit] then
+        MtTitulos.Post;
+     mttitulos.First;
+     while not MtTitulos.Eof do begin
+        ExecQuery_Params('INSERT INTO DOC_TITULOS (CODPROF, TITULO, NIVEL, OTORGADO, FECHA) VALUES (:CODPROF, :TITULO, :NIVEL, :OTORGADO, :FECHA)',['CODPROF', 'TITULO', 'NIVEL', 'OTORGADO', 'FECHA'],[Codigo.Text,MtTitulosTITULO.value,MtTitulosNIVEL.value,MtTitulosOTORGADO.value, MtTitulosFECHA.value],CustomerData.TRUpdateProf);
+        MtTitulos.Next;
+     end;
+     CustomerData.TRUpdateProf.Commit;
+   Except
+     CustomerData.TRUpdateProf.Rollback;
+   end;
+   CustomerData.TRUpdateProf.Active := False;
+  End;
+ ResetearControles(True);
+ FrmAltaModifProf.Height := 276;
+ Modificacion := False;
+ CargaMt;
+end;
+
+procedure TFrmAltaModifProf.BitBtn1Click(Sender: TObject);
+begin
+  if MtTitulos.RecordCount>0 then
+      MtTitulos.Delete;
+end;
+
+procedure TFrmAltaModifProf.CancelarClick(Sender: TObject);
+begin
+ ResetearControles(True);
+ FrmAltaModifProf.Height := 276;
+ Modificacion := False;
+end;
+
+procedure TFrmAltaModifProf.ModificarClick(Sender: TObject);
+begin
+ With CustomerData do begin
+   if TrDsVarios.Active Then begin
+     TrDsVarios.RollBack;
+     TrDsVarios.Active:=False;
+     IbDsVarios.Active:=False;
+   end;
+   Ibdsvarios.SQLs.SelectSQL.Text:= 'SELECT  DOCENTE,    FECHA_ING,    FECHA_BAJ,    DI_ECCION, '+
+                                    '        PISO,    DEPTO,    TELEFONO_P,    TELEFONO_M,    INTERNO, '+
+                                    '        LOCALIDAD,    TITULO,    UNIVERDID,    NROREGIST,    ANTDOCENT, '+
+                                    '        ANTDOCSUP,    ANTCATEDR,    CODPROFES,                         '+
+                                    '        NRODOCUM,    TIPODOC,    FEC_NAC,    COD_POST, NACIONALI, LICENCIA, '+
+                                    '        LICENFECH, FLOOR((CURRENT_DATE-ANTCATEDR)/365) AS ANIOS, SEXO, GENERO '+
+                                    'FROM DOCENTES '+
+                                    'WHERE CODPROFES='+#39+MtCodprofes.Value+#39;
+   TrDsVarios.Active:=True;
+   IbDsVarios.Active:=True;
+ end;
+ Codigo.Enabled := False;
+ Modificacion := True;
+ FrmAltaModifProf.Height := 579;
+ ResetearControles(False);
+ With CustomerData do Begin
+   Nombre.SetFocus;
+   Nombre.Text := Ibdsvarios.FieldByName('DOCENTE').AsString;
+   Try
+     fechaIngreso.Date := Ibdsvarios.FieldByName('FECHA_ING').AsDateTime;
+   Except
+     fechaIngreso.Date := StrToDate('01/01/1900');
+   End;
+   Try
+    FechaEgreso.Date := Ibdsvarios.FieldByName('FECHA_BAJ').AsDateTime;
+   Except
+    FechaEgreso.Date := StrToDate('01/01/1900');
+   End;
+   Direccion.Text := Ibdsvarios.FieldByName('DI_ECCION').AsString;
+   Piso.Text := Ibdsvarios.FieldByName('PISO').AsString;
+   Depto.Text := Ibdsvarios.FieldByName('DEPTO').AsString;
+   TelefonoParti.Text := Ibdsvarios.FieldByName('TELEFONO_P').AsString;
+   TelefonoMensa.Text := Ibdsvarios.FieldByName('TELEFONO_M').AsString;
+   Interno.Text := Ibdsvarios.FieldByName('INTERNO').AsString;
+   Localidad.Text := Ibdsvarios.FieldByName('LOCALIDAD').AsString;
+   Codigo.Text := Ibdsvarios.FieldByName('CODPROFES').AsString;
+   NumeroDocumento.Text := Ibdsvarios.FieldByName('NRODOCUM').AsString;
+   ComboDocumento.Text := Ibdsvarios.FieldByName('TIPODOC').AsString;
+   Try
+     FechaNacimiento.Date := Ibdsvarios.FieldByName('FEC_NAC').AsDateTime;
+   Except
+     FechaNacimiento.Text:='';
+   End;
+   CodigoPostal.Text := Ibdsvarios.FieldByName('COD_POST').AsString;
+   if (Ibdsvarios.FieldByName('NACIONALI').AsString='A') then
+       ComboNacionalidad.ItemIndex:=0
+   Else
+       ComboNacionalidad.ItemIndex:=1;
+   try
+     AntiguedadDocSup.Date := Ibdsvarios.FieldByName('ANTDOCSUP').AsDateTime;
+   except
+     AntiguedadDocSup.Text:='';
+   end;
+   try
+     AntiguedadDocente.Date := Ibdsvarios.FieldByName('ANTDOCENT').AsDateTime;
+   except
+     AntiguedadDocente.Text:='';
+   end;
+   try
+     AntiguedadCatedra.Date := Ibdsvarios.FieldByName('ANTCATEDR').AsDateTime;
+   except
+     AntiguedadCatedra.Text:='';
+   end;
+   if (Ibdsvarios.FieldByName('LICENCIA').AsString='S') Then
+       Licencia.Checked:=True
+   else
+       Licencia.Checked:=False;
+   try
+     FechaLicencia.Date := Ibdsvarios.FieldByName('LICENFECH').AsDateTime;
+   except
+     FechaLicencia.Text:='';
+   end;
+   if Ibdsvarios.FieldByName('SEXO').AsString='M' then
+      CbSexo.ItemIndex:=0
+   else if Ibdsvarios.FieldByName('SEXO').AsString='F' then
+      CbSexo.ItemIndex:=1;
+   if not Ibdsvarios.FieldByName('GENERO').IsNull then
+      CbGenero.ItemIndex:=Ibdsvarios.FieldByName('GENERO').AsInteger
+   else
+      CbGenero.ItemIndex:=-1;
+
+   label23.Caption:='Antigüedad en años: '+IntToStr(Ibdsvarios.FieldByName('ANIOS').asinteger);
+   FuncionesDB.Carga_MemTable(' SELECT TITULO, NIVEL, OTORGADO, FECHA FROM DOC_TITULOS WHERE CODPROF='''+MtCodprofes.Value+'''',MtTitulos, false);
+ end;
+ With CustomerData do begin
+   if TrDsVarios.Active Then begin
+     TrDsVarios.RollBack;
+     TrDsVarios.Active:=False;
+     IbDsVarios.Active:=False;
+   end;
+ end;
+end;
+
+
+procedure TFrmAltaModifProf.MtFilterRecord(DataSet: TDataSet;
+  var Accept: Boolean);
+begin
+ If (TxtBusqueda.Text='') Then
+      Accept:=True
+   Else begin
+      Accept:=False;
+      if PosEx(SysUtils.UpperCase(TxtBusqueda.Text),SysUtils.UpperCase(MtDocente.Value),1)>0 Then
+           Accept:=True;
+   end;
+end;
+
+procedure TFrmAltaModifProf.NombreKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+   ComboDocumento.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.ComboDocumentoClick(Sender: TObject);
+begin
+ NumeroDocumento.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.NumeroDocumentoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+   FechaNacimiento.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.DireccionKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Piso.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.PisoKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+   Depto.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.deptoKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+   Localidad.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.localidadKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   CodigoPostal.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.codigopostalKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   ComboNacionalidad.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.combonacionalidadClick(Sender: TObject);
+begin
+   TelefonoParti.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.TelefonoPartiKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   TelefonoMensa.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.TelefonoMensaKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Interno.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.TxtBusquedaChange(Sender: TObject);
+begin
+ If (TxtBusqueda.Text <> '') Then Begin
+        Mt.Filtered:=False;
+        MT.Filtered:=True;
+  End
+  else begin
+       Mt.Filtered:=False;
+       Mt.Filter:='';
+  end;
+end;
+
+procedure TFrmAltaModifProf.TxtBusquedaKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key=#13 then
+     ModificarCLick(Sender);
+end;
+
+procedure TFrmAltaModifProf.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if CustomerData.TrProfesores.Active then
+      CustomerData.TrProfesores.Rollback;
+  CustomerData.TrProfesores.Active := False;
+  if CustomerData.TrDsVarios.Active then
+      CustomerData.TrDsVarios.Rollback;
+  CustomerData.IbDsVarios.Active := False;
+  Mt.Active:=False;
+end;
+
+procedure TFrmAltaModifProf.FormCreate(Sender: TObject);
+begin
+ Modificacion := False;
+ CargaMt;
+end;
+
+procedure TFrmAltaModifProf.FormShow(Sender: TObject);
+begin
+  Height := 276;
+end;
+
+procedure TFrmAltaModifProf.CargaMt;
+Var I:Integer;
+begin
+ If CustomerData.IBProfesores.Active Then begin
+     CustomerData.TrProfesores.Rollback;
+     CustomerData.TrProfesores.Active := False;
+     CustomerData.IBProfesores.Active := False;
+ end;
+ Try
+     CustomerData.TrProfesores.Active := True;
+     CustomerData.IBProfesores.Active := True;
+ Except
+     CustomerData.TrProfesores.Rollback;
+     CustomerData.TrProfesores.Active := False;
+ end;
+ Mt.Active:=False;
+ DataSource1.DataSet:=nil;
+ Mt.Filtered:=False;
+ Mt.Active:=True;
+ With CustomerData do begin
+    IbProfesores.First;
+    while Not IbProfesores.Eof do begin
+       Mt.Append;
+       for I := 0 to Mt.FieldCount-1 do
+           Mt.Fields.Fields[i].Value:=IbProfesores.FieldByName(Mt.Fields.Fields[i].FullName).Value;
+       IbProfesores.Next;
+       Mt.Post;
+    end;
+ end;
+ mt.Filtered:=true;
+ DataSource1.DataSet:=Mt;
+ CustomerData.TrProfesores.Rollback;
+ CustomerData.TrProfesores.Active := False;
+ CustomerData.IBProfesores.Active := False;
+end;
+
+end.

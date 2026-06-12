@@ -1,0 +1,331 @@
+unit NotasExamenFinal;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, Db, DBTables, StdCtrls, Buttons, ComCtrls;
+
+type
+  TNotasExamenes = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    MateriasCarreraCursa: TEdit;
+    MateriasApellidoyNombre: TEdit;
+    MateriasLibroMatriz: TEdit;
+    DataSource1: TDataSource;
+    GroupBox2: TGroupBox;
+    Carganota: TBitBtn;
+    salir: TBitBtn;
+    GroupBox3: TGroupBox;
+    GrabaNotaFinal: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    Permisos: TTable;
+    grilla: TDBGrid;
+    Analitico: TTable;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    nota1: TEdit;
+    nota2: TEdit;
+    nota3: TEdit;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    fecha1: TDateTimePicker;
+    fecha2: TDateTimePicker;
+    fecha3: TDateTimePicker;
+    Cursada: TTable;
+    SQLCursada: TQuery;
+    procedure FormActivate(Sender: TObject);
+    procedure CarganotaClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure GrabaNotaFinalClick(Sender: TObject);
+    procedure nota1KeyPress(Sender: TObject; var Key: Char);
+    procedure nota2KeyPress(Sender: TObject; var Key: Char);
+    procedure nota3KeyPress(Sender: TObject; var Key: Char);
+    procedure fecha1KeyPress(Sender: TObject; var Key: Char);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  NotasExamenes: TNotasExamenes;
+  VCarrera : String[6]; //sirve para saber la carrera activa
+  VUnidad : String[1]; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String[11]; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String[15]; // nose
+  VApellido : String[25]; //Pasa el apellido del alumno activo
+  VNombre : String[25];  //Pasa el nombre del alumno activo
+  VLibroMatriz : String[5]; //Pasa el libro matriz del alumno
+  VInstituto  : String[30]; //Pasa el nomnbre del instituto
+  VCaracteristica : String[5]; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String[4]; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+implementation
+
+{$R *.DFM}
+
+
+procedure TNotasExamenes.FormActivate(Sender: TObject);
+begin
+  { //Borrar despues
+   VCondicion := 'CURSANDO';
+   VUnidad := 'G';
+   VCarrera := 'ASC';
+   VCodAlu := 'DNI25829686';//'DNI25682464'; //'DNI24997773'; //'DNI23453509';//'DNI22493865'; //'DNI24999589'; //'DNI33333333'
+   VApellido := 'GUSTAVO MARCELO';
+   VNombre := 'ERNESTO';
+   VLibroMatriz := '12176';
+   VInstituto := 'I. Estudios Superiores Bs. As.';
+   VCaracteristica := 'A-781';
+   VNombreUsuario := 'Damian';}
+   //Hasta Aca
+   MateriasCodigoAlumno.Text    := VCODALU;
+   MateriasCarreraCursa.Text    := VCarrera;
+   MateriasApellidoyNombre.Text := VApellido + ', ' + VNombre;
+   MateriasLibroMatriz.Text     := Copy(VlibroMatriz,1,2) + '/' + copy(VlibroMatriz,3,3);
+   NotasExamenes.Height := 355;
+   SQLCursada.DataBaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   SQLCursada.Params.Items[0].Value := VCODALU;
+   SQLCursada.Active := True;
+   Analitico.DataBaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   Analitico.TableName := 'Analitic.Dbf';
+   Cursada.DataBaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   Cursada.TableName := 'Cursada.Dbf';
+   Permisos.DatabaseName := Vunidad + ':\New pailot\Archivos\' + Vcarrera;
+   Permisos.TableName := 'Permexa.Dbf';
+   If SQLCursada.RecordCount = 0 Then
+       CargaNota.Enabled := False;
+end;
+
+procedure TNotasExamenes.CarganotaClick(Sender: TObject);
+Var
+  Sigo : Boolean;
+begin
+  NotasExamenes.Height := 523;
+  Carganota.Enabled := False;
+  Salir.Enabled :=  False;
+  Grilla.Enabled := False;
+  Nota1.Enabled := False;
+  Nota2.Enabled := False;
+  Nota3.Enabled := False;
+  Fecha2.Enabled := False;
+  Fecha1.Enabled := False;
+  Fecha3.Enabled := False;
+  Sigo := False;
+  Permisos.Active := True;
+  Permisos.IndexFieldNames := 'COD_ALU';
+  If Permisos.FindKey([VCodAlu]) Then
+    Begin
+      While (Not Permisos.Eof)  And
+            (Permisos.FieldByName('COD_MAT').AsString <> SQLCursada.FieldByName('COD_MAT').AsString) And
+            (Permisos.FieldByName('COD_ALU').AsString  = VCodAlu) Do
+         Permisos.Next;
+      If Permisos.FieldByName('COD_MAT').AsString = SQLCursada.FieldByName('COD_MAT').AsString Then
+         Sigo:=True;
+    End;
+  If Sigo Then
+    Begin
+       If SqlCursada.FieldByName('FINAL1').AsFloat = 0 Then
+          Begin
+            Nota1.Enabled := True;
+            Nota1.SetFocus;
+          End
+       Else
+          Begin
+            If SqlCursada.FieldByName('FINAL2').AsFloat = 0 Then
+              Begin
+                 Nota1.Text := FloatToStr(SqlCursada.FieldByName('FINAL1').AsFloat);
+                 Fecha1.Date := SqlCursada.FieldByName('FECHA1').AsDateTime;
+                 Nota2.Enabled := True;
+                 Nota2.SetFocus;
+              End
+            Else
+              Begin
+                 Nota1.Text := FloatToStr(SqlCursada.FieldByName('FINAL1').AsFloat);
+                 Fecha1.Date := SqlCursada.FieldByName('FECHA1').AsDateTime;
+                 Nota2.Text := FloatToStr(SqlCursada.FieldByName('FINAL2').AsFloat);
+                 Fecha2.Date := SqlCursada.FieldByName('FECHA2').AsDateTime;
+                 Nota3.Enabled := True;
+                 Nota3.SetFocus;
+              End
+          End;
+    End
+  Else
+   Begin
+    MessageBox(NotasExamenes.Handle, Pchar(VNombreUsuario + ', no existe ningun permiso de examen para esa materia'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+    CancelaGrabacionClick(Sender);
+   End;
+end;
+
+procedure TNotasExamenes.CancelaGrabacionClick(Sender: TObject);
+begin
+  NotasExamenes.Height := 355;
+  CargaNota.Enabled := True;
+  Salir.Enabled :=  True;
+  Grilla.Enabled := True;
+  Grilla.SetFocus;
+end;
+
+procedure TNotasExamenes.salirClick(Sender: TObject);
+begin
+  Close;
+  SQLCursada.Active := False;
+end;
+
+procedure TNotasExamenes.GrabaNotaFinalClick(Sender: TObject);
+Var
+  NotaAna : Real;
+  FechaAna : TDate;
+begin
+    NotaAna := 0;
+    If MessageBox(NotasExamenes.Handle, Pchar(VNombreUsuario + ', grabas la nota de examen final?'),'Aviso',MB_OKCANCEL+MB_ICONQUESTION+MB_APPLMODAL)
+     = IDOK Then
+    Begin
+         If Nota1.Text = '' Then
+            Nota1.text := '0';
+         If Nota2.Text = '' Then
+            Nota2.text := '0';
+         If Nota3.Text = '' Then
+            Nota3.text := '0';
+         If (StrToFloat(Nota1.Text) >=4 ) And (StrToFloat(nota1.Text) <= 10) Then
+            Begin
+              NotaAna := StrToFloat(Nota1.Text);
+              FechaAna := Fecha1.Date;
+            End
+         Else
+          Begin
+           If (StrToFloat(Nota2.Text) >=4 ) And (StrToFloat(nota2.Text) <= 10) Then
+             Begin
+               NotaAna := StrToFloat(Nota2.Text);
+               FechaAna := Fecha2.Date;
+             End
+           Else
+             If (StrToFloat(Nota3.Text) >=4 ) And (StrToFloat(nota3.Text) <= 10) Then
+               Begin
+                 NotaAna := StrToFloat(Nota3.Text);
+                 FechaAna := Fecha3.Date;
+               End
+          End;
+         If (NotaAna >= 4) And (NotaAna <= 10) Then
+           Begin
+             Analitico.Active := True;
+             Analitico.Append;
+             Analitico.FieldByName('COD_ALU').AsString := VCodAlu;
+             Analitico.FieldByName('APELLIDO').AsString := VApellido;
+             Analitico.FieldByName('COD_MAT').AsString := SQLCursada.FieldbyName('COD_MAT').AsString;
+             Analitico.FieldByName('CUA_ANIO').AsString := SQLCursada.FieldbyName('CUA_ANIO').AsString;
+             Analitico.FieldByName('NOTA_MAT').AsFloat := NotaAna;
+             Analitico.FieldByName('FEC_FINAL').AsDateTime := FechaAna;
+             Analitico.FieldByName('MATRIZ').AsString := VLibroMatriz;
+             Analitico.FieldByName('CONDICION').AsString := 'FINAL';
+             Analitico.FieldByName('INSTITUT').AsString := VInstituto;
+             Analitico.FieldByName('CARAC').AsString := VCaracteristica;
+             Analitico.Post;
+             Analitico.Active := False;
+             Cursada.Active := True;
+             Cursada.IndexFieldNames := 'COD_ALU';
+             Cursada.FindKey([SQLCursada.FieldByName('COD_ALU').AsString]);
+             While (Not Cursada.Eof) And (SQLCursada.FieldByName('COD_ALU').AsString <> Cursada.FieldByName('COD_ALU').AsString) Do
+               Cursada.Next;
+             Cursada.Delete;
+             Cursada.Active := False;
+             SQLcursada.Active := False;
+             SQLcursada.Active := True;
+             If SQLCursada.RecordCount = 0 Then
+               CargaNota.Enabled := False;
+           End
+         Else
+           Begin
+             Cursada.Active := True;
+             Cursada.IndexFieldNames := 'COD_ALU';
+             Cursada.FindKey([SQLCursada.FieldByName('COD_ALU').AsString]);
+             While (Not Cursada.Eof) And (SQLCursada.FieldByName('COD_ALU').AsString <> Cursada.FieldByName('COD_ALU').AsString) Do
+               Cursada.Next;
+             Cursada.Edit;
+             Cursada.FieldByName('FINAL1').AsFloat := StrToFloat(Nota1.Text);
+             Cursada.FieldByName('FINAL2').AsFloat := StrToFloat(Nota2.Text);
+             Cursada.FieldByName('FINAL3').AsFloat := StrToFloat(Nota3.Text);
+             If Nota1.Text <> '0' Then
+                Cursada.FieldByName('FECHA1').AsDateTime := Fecha1.Date;
+             If Nota2.Text <> '0' Then
+                Cursada.FieldByName('FECHA2').AsDateTime := Fecha2.Date;
+             If Nota3.Text <> '0' Then
+                Cursada.FieldByName('FECHA3').AsDateTime := Fecha3.Date;
+             If (StrToFloat(Nota1.Text) > 0 ) And (StrToFloat(nota1.Text) < 4) Then
+               If (StrToFloat(Nota2.Text) > 0 ) And (StrToFloat(nota2.Text) < 4) Then
+                 If (StrToFloat(Nota3.Text) > 0 ) And (StrToFloat(nota3.Text) < 4) Then
+                   Begin
+                    MessageBox(NotasExamenes.Handle, Pchar(VNombreUsuario + ', el alumno ha superado el limete de 3 intentos fallidos. Cambia su condicion a RECURSA'),Pchar(VNombreUsuario + ', Decile que se dedique a otra cosa!!!!!!'),MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+                    Cursada.FieldByName('CONDICION').AsString := 'RECURSA';
+                   End;
+             Cursada.Post;
+             Cursada.Active := False;
+             SQLcursada.Active := False;
+             SQLcursada.Active := True;
+             If SQLCursada.RecordCount = 0 Then
+               CargaNota.Enabled := False;  
+           End;
+        CancelaGrabacionClick(Sender);
+    End;
+end;
+
+
+procedure TNotasExamenes.nota1KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9),'.',',']) Then
+    Key := #0;
+ If Key = #13 Then
+   Begin
+     Fecha1.Enabled := True;
+     Fecha1.Date := Date();
+     Fecha1.SetFocus;
+     GrabaNotaFinal.Enabled := True;
+   End;
+end;
+
+procedure TNotasExamenes.nota2KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9),'.',',']) Then
+    Key := #0;
+ If Key = #13 Then
+   Begin
+     Fecha2.Enabled := True;
+     Fecha2.Date := Date();
+     Fecha2.SetFocus;
+     GrabaNotaFinal.Enabled := True;
+   End;
+end;
+
+procedure TNotasExamenes.nota3KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (Key In ['0'..'9',Chr(8), Chr(7), Chr(13), chr(9),'.',',']) Then
+    Key := #0;
+ If Key = #13 Then
+   Begin
+     Fecha3.Enabled := True;
+     Fecha3.Date := Date();
+     Fecha3.SetFocus;
+     GrabaNotaFinal.Enabled := True;
+   End;
+end;
+
+procedure TNotasExamenes.fecha1KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+    GrabaNotaFinalClick(Sender);
+end;
+
+end.

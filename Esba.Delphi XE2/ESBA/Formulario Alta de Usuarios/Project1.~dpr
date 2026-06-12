@@ -1,0 +1,13 @@
+program Project1;
+
+uses
+  Forms,
+  AltaUsuario in 'AltaUsuario.pas' {FrmAltaUsuario};
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TFrmAltaUsuario, FrmAltaUsuario);
+  Application.Run;
+end.

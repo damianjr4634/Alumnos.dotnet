@@ -1,0 +1,122 @@
+unit ConsultaReincorporaciones;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, kbmMemTable, StdCtrls, Buttons, Grids, DBGrids, ExtCtrls, DataModule,
+  Impresiones, FIBDatabase, pFIBDatabase, FIBDataSet, pFIBDataSet, Mask,
+  ToolEdit, CurrEdit;
+
+type
+  TFrmConsulRein = class(TForm)
+    Panel1: TPanel;
+    Gruilla: TDBGrid;
+    CancelaGrabacion: TBitBtn;
+    DataSource1: TDataSource;
+    MtFaltas: TkbmMemTable;
+    MtFaltasCOD_ALU: TStringField;
+    MtFaltasNOMBRE: TStringField;
+    MtFaltasCUTUCO: TIntegerField;
+    MtFaltasINAJUS: TFloatField;
+    MtFaltasINAINJUS: TFloatField;
+    MtFaltasINATAR: TFloatField;
+    MtFaltasINATOT: TFloatField;
+    BtnAnalitico: TBitBtn;
+    BitBtn1: TBitBtn;
+    MtFaltasPRISEG: TStringField;
+    DsFaltas: TpFIBDataSet;
+    TrFaltas: TpFIBTransaction;
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Reinpri: TCurrencyEdit;
+    Reinseg: TCurrencyEdit;
+    Libre: TCurrencyEdit;
+    BtnRecalcular: TBitBtn;
+    MtFaltasFECHA: TDateField;
+    MtFaltasACTDISC: TIntegerField;
+    procedure FormActivate(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure BtnRecalcularClick(Sender: TObject);
+    procedure BtnAnaliticoClick(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+  private
+    procedure RecalculaFaltas;
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmConsulRein: TFrmConsulRein;
+  Carrera,cutuco, cuat :string;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmConsulRein.RecalculaFaltas;
+var
+   x:integer;
+begin
+  DsFaltas.SQLs.SelectSQL.Text:='SELECT COD_ALU, NOMBRE, CUTUCO, INAJUS, INAINJUS, INATAR, INATOT, PRISEG, FECHA, ACTDISC '+
+                                'FROM XXX_FALTAS_IMPRESI('+#39+CARRERA+#39+', '+#39+cutuco+#39+', '+cuat+','+#39+reinpri.text+#39+','+#39+reinseg.Text+#39+','+#39+libre.Text+#39+')';
+  if TrFaltas.Active then
+     TrFaltas.Rollback;
+  MtFaltas.Active:=False;
+  trFaltas.Active:=true;
+  DsFaltas.Active:=true;
+  dsFaltas.First;
+  mtfaltas.Active:=True;
+  while not (dsfaltas.Eof) do begin
+      MtFaltas.Append;
+      For x:=0 to mtfaltas.fieldcount-1 do
+          Mtfaltas.FieldByName(MtFaltas.Fields.Fields[x].FullName).Value:=dsFaltas.FieldByName(MtFaltas.Fields.Fields[x].FullName).Value;
+      MtFaltas.Post;
+      dsFaltas.Next;
+  end;
+  TrFaltas.Rollback;
+  trFaltas.Active:=False;
+  DsFaltas.Active:=False;
+  MtFaltas.First;
+end;
+
+procedure TFrmConsulRein.FormActivate(Sender: TObject);
+begin
+  RecalculaFaltas;
+end;
+
+procedure TFrmConsulRein.CancelaGrabacionClick(Sender: TObject);
+begin
+  close;
+end;
+
+procedure TFrmConsulRein.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  Mtfaltas.Active:=False;
+end;
+
+procedure TFrmConsulRein.BtnRecalcularClick(Sender: TObject);
+begin
+  RecalculaFaltas;
+end;
+
+procedure TFrmConsulRein.BtnAnaliticoClick(Sender: TObject);
+begin
+  Impresiones.Imp_Recincorp_todos(MtFaltas,vunidad,VCarrera,VInstituto,'');
+end;
+
+procedure TFrmConsulRein.BitBtn1Click(Sender: TObject);
+begin
+   Impresiones.Imp_Recincorp_todos(MtFaltas,vunidad,VCarrera,VInstituto,MtFaltas.FieldByName('COD_ALU').Value);
+end;
+
+end.

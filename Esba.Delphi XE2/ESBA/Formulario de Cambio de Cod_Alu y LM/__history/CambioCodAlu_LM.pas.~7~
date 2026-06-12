@@ -1,0 +1,156 @@
+unit CambioCodAlu_LM;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, Buttons, ComCtrls, Datamodule;
+
+type
+  TModifCodAlu_LM = class(TForm)
+    ProgressBar1: TProgressBar;
+    Label3: TLabel;
+    Tipodoc: TComboBox;
+    Label4: TLabel;
+    CodAlu_NumLibro: TEdit;
+    cambiar: TBitBtn;
+    salir: TBitBtn;
+    NumeroFolio: TEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure CodAlu_NumLibroKeyPress(Sender: TObject; var Key: Char);
+    procedure salirClick(Sender: TObject);
+    procedure cambiarClick(Sender: TObject);
+    procedure NumeroFolioKeyPress(Sender: TObject; var Key: Char);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  ModifCodAlu_LM: TModifCodAlu_LM;
+  TipodeCambio        : String;
+  UnidadPrograma      : String;
+  UsuarioActivo       : String;
+  CodigoAlumnoViejo   : String;
+  LibroMatrizViejo    : String;
+  CarreraActiva       : String;
+  LibroMatrizNuevo    : String;
+  Secambio : Boolean;
+  CodigoACambiar : String;
+
+implementation
+
+{$R *.DFM}
+
+procedure TModifCodAlu_LM.FormActivate(Sender: TObject);
+begin
+ SeCambio := False;
+ CodigoACambiar := '';
+ If TipodeCambio = 'MATRIZ' Then
+    CodAlu_NumLibro.SetFocus
+ else  TipoDoc.SetFocus;
+{ ModifCodAlu_LM.Caption := 'Modificacion del codigo de alumno';
+ If TipodeCambio = 'MATRIZ' Then
+  Begin
+    ModifCodAlu_LM.Caption := 'Modificacion del libro matriz';
+    Label3.Visible  := False;
+    Tipodoc.Visible := False;
+    Label4.Caption  := 'Libro Matriz';
+    Label4.Left     := 6;
+    CodAlu_NumLibro.Left := 72;
+    Cambiar.Left := 168;
+    Salir.Left := 248;
+    ModifCodAlu_LM.Width := 341;
+    CodAlu_NumLibro.MaxLength := 2;
+    NumeroFolio.MaxLength := 3;
+    CodAlu_NumLibro.Width := 57;
+    CodAlu_NumLibro.SetFocus;
+    Label1.Top := 23;
+    NumeroFolio.Top := 15;
+    Label1.Visible := True;
+    NumeroFolio.Visible := True;
+  End; }
+end;
+
+procedure TModifCodAlu_LM.CodAlu_NumLibroKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9',chr(8)])) Then
+     Key := #0
+ Else
+  Begin
+   If TipodeCambio = 'MATRIZ' Then
+     If (Length(CodAlu_NumLibro.Text + key) = 2) And (Key <> Chr(8)) Then
+         NumeroFolio.SetFocus;
+  End;
+end;
+
+procedure TModifCodAlu_LM.salirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TModifCodAlu_LM.cambiarClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  With DataModule.CustomerData do
+   Begin
+      If TrUpVarios.Active Then
+        TrUpVarios.Rollback;
+      TrUpVarios.Active:=False;
+      IbUpVarios.SQL.Clear;
+      IbUpVarios.SQL.Text:='SELECT FERRCOD,FERRMSG FROM XXX_CAMBIA_DNI_LM(:CODALU,:LM,:NCODALU,:TIPO,:CARRE)';
+      IbUpVarios.ParamByName('CODALU').Value:= CodigoAlumnoViejo;
+      IbUpVarios.ParamByName('NCODALU').Value:=TipoDoc.Text+CodAlu_numlibro.Text;
+      If TipodeCambio = 'Cod_Alu' Then
+        ibupVarios.ParamByName('TIPO').Value:='D'
+      Else
+       Begin
+        ibupVarios.ParamByName('TIPO').Value:='L';
+        IBUpvarios.ParamByName('LM').Value:=CodAlu_numlibro.Text+numerofolio.text;
+       End;
+      IbUpvarios.ParamByName('CARRE').Value:=CarreraActiva;
+      TrUpvarios.Active:=True;
+      IbupVarios.ExecQuery;
+      If (IbUpVarios.FieldByName('FERRCOD').Value=0) Then
+        Begin
+          MessageDlg( Pchar(UsuarioActivo + ', '+IBUpVarios.FieldByName('FERRMSG').AsString),mtInformation, [mbok],0,mbok);
+          TrUpVarios.Commit;
+        end
+      Else If (IbUpVarios.FieldByName('FERRCOD').Value=1) Then
+             Begin
+               if MessageDlg(Pchar(UsuarioActivo + ', '+IBUpVarios.FieldByName('FERRMSG').AsString),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+                    TrupVarios.Commit
+               Else
+                    TrupVarios.Rollback;
+             End
+      Else If (IbUpVarios.FieldByName('FERRCOD').Value=2) Then
+             Begin
+               MessageDlg(Pchar(UsuarioActivo + ', '+IBUpVarios.FieldByName('FERRMSG').AsString),mtError, [mbok],0,mbok);
+               TrupVarios.Rollback;
+             End;
+     If TrUpVarios.Active Then
+       TrUpVarios.Rollback;
+     TrupVarios.Active:=False;
+   End;
+   }
+end;
+
+procedure TModifCodAlu_LM.NumeroFolioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9',chr(8)])) Then
+     Key := #0
+ Else
+  Begin
+   If TipodeCambio = 'MATRIZ' Then
+     If (Length(Numerofolio.Text + key) = 3) And (Key <> Chr(8)) Then
+         Cambiar.SetFocus;
+  End;
+end;
+
+end.

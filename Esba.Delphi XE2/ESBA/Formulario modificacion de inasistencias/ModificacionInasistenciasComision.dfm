@@ -1,0 +1,217 @@
+object FrmModiInaComi: TFrmModiInaComi
+  Left = 579
+  Top = 41
+  BorderStyle = bsDialog
+  Caption = 'Carga de Inasistencias'
+  ClientHeight = 448
+  ClientWidth = 740
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnActivate = FormActivate
+  OnClose = FormClose
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Grilla: TDBGrid
+    Left = 0
+    Top = 0
+    Width = 740
+    Height = 401
+    DataSource = DataSource1
+    TabOrder = 0
+    TitleFont.Charset = DEFAULT_CHARSET
+    TitleFont.Color = clWindowText
+    TitleFont.Height = -11
+    TitleFont.Name = 'MS Sans Serif'
+    TitleFont.Style = []
+    OnColExit = GrillaColExit
+    OnDrawColumnCell = GrillaDrawColumnCell
+    OnEditButtonClick = GrillaEditButtonClick
+    OnKeyUp = GrillaKeyUp
+    Columns = <
+      item
+        ButtonStyle = cbsEllipsis
+        Expanded = False
+        FieldName = 'CUTUCO'
+        Title.Caption = 'Comision'
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'FECHA'
+        Title.Caption = 'Fecha'
+        Visible = True
+      end
+      item
+        ButtonStyle = cbsEllipsis
+        Expanded = False
+        FieldName = 'CODFAL'
+        Title.Caption = 'Codigo Falta'
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'DESFAL'
+        ReadOnly = True
+        Title.Caption = 'Descripcion'
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'CANTID'
+        ReadOnly = True
+        Title.Caption = 'Cantidad'
+        Visible = True
+      end>
+  end
+  object Grabamesa: TBitBtn
+    Left = 556
+    Top = 408
+    Width = 89
+    Height = 33
+    Caption = '&Grabar'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+      555555555555555555555555555555555555555555FF55555555555559055555
+      55555555577FF5555555555599905555555555557777F5555555555599905555
+      555555557777FF5555555559999905555555555777777F555555559999990555
+      5555557777777FF5555557990599905555555777757777F55555790555599055
+      55557775555777FF5555555555599905555555555557777F5555555555559905
+      555555555555777FF5555555555559905555555555555777FF55555555555579
+      05555555555555777FF5555555555557905555555555555777FF555555555555
+      5990555555555555577755555555555555555555555555555555}
+    NumGlyphs = 2
+    TabOrder = 1
+    OnClick = GrabamesaClick
+  end
+  object CancelaGrabacion: TBitBtn
+    Left = 648
+    Top = 408
+    Width = 89
+    Height = 33
+    Caption = '&Salir'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000130B0000130B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+      333333333333333333333333333333333333333FFF33FF333FFF339993370733
+      999333777FF37FF377733339993000399933333777F777F77733333399970799
+      93333333777F7377733333333999399933333333377737773333333333990993
+      3333333333737F73333333333331013333333333333777FF3333333333910193
+      333333333337773FF3333333399000993333333337377737FF33333399900099
+      93333333773777377FF333399930003999333337773777F777FF339993370733
+      9993337773337333777333333333333333333333333333333333333333333333
+      3333333333333333333333333333333333333333333333333333}
+    NumGlyphs = 2
+    TabOrder = 2
+    OnClick = CancelaGrabacionClick
+  end
+  object BtnEliminar: TBitBtn
+    Left = 7
+    Top = 409
+    Width = 89
+    Height = 33
+    Caption = '&Eliminar'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000130B0000130B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+      333333333333333333FF33333333333330003333333333333777333333333333
+      300033FFFFFF3333377739999993333333333777777F3333333F399999933333
+      3300377777733333337733333333333333003333333333333377333333333333
+      3333333333333333333F333333333333330033333F33333333773333C3333333
+      330033337F3333333377333CC3333333333333F77FFFFFFF3FF33CCCCCCCCCC3
+      993337777777777F77F33CCCCCCCCCC399333777777777737733333CC3333333
+      333333377F33333333FF3333C333333330003333733333333777333333333333
+      3000333333333333377733333333333333333333333333333333}
+    NumGlyphs = 2
+    TabOrder = 3
+    OnClick = BtnEliminarClick
+  end
+  object DataSource1: TDataSource
+    DataSet = MtFaltas
+    Left = 272
+    Top = 72
+  end
+  object MtFaltas: TkbmMemTable
+    DesignActivation = True
+    AttachedAutoRefresh = True
+    AttachMaxCount = 1
+    FieldDefs = <
+      item
+        Name = 'CODFAL'
+        DataType = ftString
+        Size = 2
+      end
+      item
+        Name = 'CANTID'
+        DataType = ftFloat
+      end>
+    IndexDefs = <>
+    SortOptions = []
+    PersistentBackup = False
+    ProgressFlags = [mtpcLoad, mtpcSave, mtpcCopy]
+    LoadedCompletely = False
+    SavedCompletely = False
+    FilterOptions = []
+    Version = '7.15.00 Professional Edition'
+    LanguageID = 0
+    SortID = 0
+    SubLanguageID = 1
+    LocaleID = 1024
+    AfterPost = MtFaltasAfterPost
+    Left = 328
+    Top = 72
+    object MtFaltasFECHA: TDateField
+      FieldName = 'FECHA'
+      Required = True
+      EditMask = '!99/99/0000;1;_'
+    end
+    object MtFaltasCUTUCO: TIntegerField
+      FieldName = 'CUTUCO'
+      Required = True
+      OnSetText = MtFaltasCUTUCOSetText
+    end
+    object MtFaltasCODFAL: TStringField
+      FieldName = 'CODFAL'
+      Required = True
+      OnSetText = MtFaltasCODFALSetText
+      Size = 2
+    end
+    object MtFaltasCANTID: TFloatField
+      FieldName = 'CANTID'
+    end
+    object MtFaltasDESFAL: TStringField
+      FieldName = 'DESFAL'
+      Size = 50
+    end
+  end
+  object IbupIns: TpFIBQuery
+    Transaction = TrFaltas
+    Database = CustomerData.FBase
+    Left = 224
+    Top = 353
+  end
+  object TrFaltas: TpFIBTransaction
+    DefaultDatabase = CustomerData.FBase
+    TimeoutAction = TARollback
+    Left = 176
+    Top = 353
+  end
+  object DsFaltas: TpFIBDataSet
+    Transaction = TrFaltas
+    Database = CustomerData.FBase
+    Left = 128
+    Top = 352
+  end
+end

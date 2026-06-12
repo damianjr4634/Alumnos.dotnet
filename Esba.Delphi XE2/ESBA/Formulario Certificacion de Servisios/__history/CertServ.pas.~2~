@@ -1,0 +1,332 @@
+unit CertServ;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, StdCtrls, Buttons, Db, Funciones, DataModule,
+  Mask, ToolEdit, Variants;
+
+type
+  TFrmCertServ = class(TForm)
+    GroupBox1: TGroupBox;
+    Grilla: TDBGrid;
+    Nuevo: TBitBtn;
+    Modificar: TBitBtn;
+    salir: TBitBtn;
+    GroupBox2: TGroupBox;
+    Eliminar: TBitBtn;
+    DataSource1: TDataSource;
+    GroupBox3: TGroupBox;
+    Label1: TLabel;
+    CodigoProfesor: TEdit;
+    comboProfesor: TComboBox;
+    VerHist: TBitBtn;
+    Label2: TLabel;
+    ComboCarreras: TComboBox;
+    Label3: TLabel;
+    Label4: TLabel;
+    Horas: TEdit;
+    Label5: TLabel;
+    Comision: TEdit;
+    label6: TLabel;
+    Cuatrimestre: TEdit;
+    GroupBox4: TGroupBox;
+    titular: TRadioButton;
+    suplente: TRadioButton;
+    Grabar: TBitBtn;
+    Cancelar: TBitBtn;
+    NombreMat: TLabel;
+    ComboMaterias: TComboEdit;
+    procedure FormActivate(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure comboProfesorChange(Sender: TObject);
+    procedure VerHistClick(Sender: TObject);
+    procedure NuevoClick(Sender: TObject);
+    procedure ModificarClick(Sender: TObject);
+    procedure GrabarClick(Sender: TObject);
+    procedure CancelarClick(Sender: TObject);
+    procedure CodigoProfesorKeyPress(Sender: TObject; var Key: Char);
+    procedure HorasKeyPress(Sender: TObject; var Key: Char);
+    procedure ComisionKeyPress(Sender: TObject; var Key: Char);
+    procedure EliminarClick(Sender: TObject);
+    procedure ComboMateriasButtonClick(Sender: TObject);
+    procedure ComboMateriasExit(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    Procedure ResetearControles(Seteo:Array Of Boolean);
+    Function PasoCampos : Boolean;
+  end;
+
+var
+  VUsuario : String;
+  Vunidad : String[1];
+  Modificacion : Boolean;
+  FrmCertServ: TFrmCertServ;
+
+implementation
+
+
+{$R *.DFM}
+Function TFrmCertServ.PasoCampos : Boolean;
+Begin
+  Result := True;
+  With DataModule.CustomerData Do
+    Begin
+      If Not Modificacion Then
+         IBupvarios.ParamByName('CODPROF').AsString  := CodigoProfesor.Text
+      else
+         IBupvarios.ParamByName('INDICE').AsInteger  := IBSertCerv.FieldByname('INDICE').AsInteger;
+      IBupvarios.ParamByName('CARRE').AsString   := ComboCarreras.Text;
+      IBupvarios.ParamByName('CODMAT').AsString     := Copy(ComboMaterias.Text,1,2);
+      Try
+       IBupvarios.ParamByName('HORAS').AsInteger      := StrToInt(Horas.Text);
+      Except
+       MessageDlg(Pchar(VUsuario+', las horas de clases deben ser numerias.'),mtError,[mbok],0,mbok);
+       Result := False;
+      End;
+      try
+        IBupvarios.ParamByName('COMISION').AsInteger   := StrToInt(Comision.Text);
+      except
+        MessageDlg(Pchar(VUsuario+', la comisión debe ser numerica'),mtError,[mbok],0,mbok);
+        Result := False;
+      end;
+      IBupvarios.ParamByName('CUAANIO').AsString    := Cuatrimestre.Text;
+      If Titular.Checked Then
+        IBupvarios.ParamByName('TITSUP').AsString     := 'T'
+      Else
+        IBupvarios.ParamByName('TITSUP').AsString     := 'S';
+    end;
+End;
+
+
+Procedure TFrmCertServ.ResetearControles(Seteo: Array of Boolean);
+Begin
+   Grilla.Enabled := Seteo[0];
+   Nuevo.Enabled := Seteo[1];
+   Eliminar.Enabled := Seteo[2];
+   Modificar.Enabled := Seteo[3];
+   Salir.Enabled := Seteo[4];
+   comboCarreras.Enabled := Seteo[5];
+   ComboMaterias.Enabled := Seteo[7];
+   Horas.Enabled := Seteo[8];
+   Comision.Enabled := Seteo[9];
+   cuatrimestre.Enabled := Seteo[10];
+   titular.Enabled := Seteo[11];
+   suplente.Enabled := Seteo[12];
+   grabar.Enabled := Seteo[13];
+End;
+
+procedure TFrmCertServ.FormActivate(Sender: TObject);
+begin
+ //BORRAR
+ ResetearControles([False,False,False,False,False,False,False,False,False,False,False,False,False,False]);
+ Modificacion := False;
+ FrmCertServ.Height := 290;
+ CodigoProfesor.SetFocus;
+ With DataModule.CustomerData Do
+  Begin
+    IBProfesores.Active:=True;
+    TRProfesores.Active:=True;
+    While Not IBProfesores.Eof Do
+      Begin
+       ComboProfesor.Items.Add(IBProfesores.FieldByName('CODPROFES').AsString + '-' +
+                               IBProfesores.FieldByName('DOCENTE').AsString);
+       IBProfesores.Next;
+      End;
+    IBProfesores.Active := False;
+ end;
+end;
+
+procedure TFrmCertServ.salirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TFrmCertServ.comboProfesorChange(Sender: TObject);
+Var
+  Texto : String;
+  x : Integer;
+begin
+  CodigoProfesor.Text := '';
+  Texto := ComboProfesor.Text;
+  For x := 1 To (Length(Texto)-1) Do
+   Begin
+     CodigoProfesor.Text := CodigoProfesor.Text + Texto[x];
+     If Texto[x+1] = '-' Then
+       Break;
+   End;
+  Case Length(codigoProfesor.Text) Of
+    1: CodigoProfesor.Text := '00'+CodigoProfesor.Text;
+    2: CodigoProfesor.Text := '0'+CodigoProfesor.Text;
+  End;
+end;
+
+procedure TFrmCertServ.VerHistClick(Sender: TObject);
+begin
+ Nuevo.Enabled := False;
+ Modificar.Enabled := False;
+ Eliminar.Enabled := False;
+ With DataModule.CustomerData do
+   Begin
+     If TRSertCerv.Active Then
+        TrSertCerv.Rollback;
+     IBSertCerv.Active:=False;
+     TRSertCerv.Active:=False;
+     IBSertCerv.ParamByName('CODPROF').AsString:=CodigoProfesor.Text;
+     IBSertCerv.Active:=True;
+     TRSertCerv.Active:=True;
+     Nuevo.Enabled := True;
+     Modificar.Enabled := IBSertCerv.RecordCount <> 0;
+     Eliminar.Enabled := IBSertCerv.RecordCount <> 0;
+     Grilla.Enabled := True;
+     Salir.Enabled := True;
+   End
+end;
+
+procedure TFrmCertServ.NuevoClick(Sender: TObject);
+begin
+ FrmCertServ.Height := 543;
+ ResetearControles([False,False,False,False,False,False,False,False,False,False,False,False,False,False]);
+ ComboCarreras.Enabled := True;
+ ComboCarreras.SetFocus;
+ Modificacion := False;
+ ComboCarreras.Text:='';
+ ComboCarreras.ItemIndex := -1;
+ Horas.Text  :=  '';
+ Comision.Text := '';
+ Cuatrimestre.Text := '';
+ Titular.Checked := False;
+ Suplente.Checked := False;
+end;
+
+procedure TFrmCertServ.ModificarClick(Sender: TObject);
+begin
+ FrmCertServ.Height := 543;
+ ResetearControles([False,False,False,False,False,True,True,True,True,True,True,True,True,True]);
+ ComboCarreras.SetFocus;
+ Modificacion := True;
+ With DataModule.CustomerData Do
+  Begin
+    ComboCarreras.ItemIndex :=  ComboCarreras.Items.IndexOf(IBSertCerv.FieldByName('COD_CARRE').AsString);
+    ComboMaterias.Text := trim(IBSertCerv.FieldByName('COD_MAT').AsString);
+    Horas.Text  :=  IntToStr(IBSertCerv.FieldByName('HORAS').AsInteger);
+    Comision.Text := IntToStr(IBSertCerv.FieldByName('COMISION').AsInteger);
+    Cuatrimestre.Text := IBSertCerv.FieldByName('CUA_ANIO').AsString;
+    If trim(IBSertCerv.FieldByName('TIT_SUP').AsString) = 'T' Then
+       Titular.Checked := True
+    Else
+       Suplente.Checked := True;
+  end;
+end;
+
+procedure TFrmCertServ.GrabarClick(Sender: TObject);
+begin
+ if MessageDlg(Pchar(VUsuario+', estas seguro de anexar este servicio al historial del profesor?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+    With Datamodule.CustomerData Do
+      Begin
+        If TrUpVarios.Active Then
+           TRupVarios.Rollback;
+        TRupVarios.Active:=False;
+        IBupVarios.SQL.Clear;
+        If Modificacion Then
+           IBupVarios.SQL.Text:='UPDATE CERTSERV C SET C.COD_CARRE=:CARRE, C.COD_MAT=:CODMAT, C.COMISION=:COMISION, C.CUA_ANIO=:CUAANIO, C.HORAS=:HORAS, C.TIT_SUP=:TITSUP WHERE C.INDICE=:INDICE;'
+        Else
+           IBupVarios.SQL.Text:='INSERT INTO CERTSERV(COD_PROFES,COD_CARRE,COD_MAT,HORAS,COMISION,CUA_ANIO,TIT_SUP) VALUES(:CODPROF,:CARRE,:CODMAT,:HORAS,:COMISION,:CUAANIO,:TITSUP);';
+       If PasoCampos Then
+         Begin
+           TRupVarios.Active:=True;
+           IBupVarios.ExecQuery;
+           TrupVarios.commit;
+           TRupVarios.Active:=False;
+           VerHistClick(Sender);
+         end
+      end;
+  End;
+  CancelarClick(Sender);
+end;
+
+procedure TFrmCertServ.CancelarClick(Sender: TObject);
+begin
+ ResetearControles([True,True,True,True,True,False,False,False,False,False,False,False,False,False]);
+ FrmCertServ.Height := 290;
+ Modificacion := False;
+end;
+
+
+procedure TFrmCertServ.CodigoProfesorKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+  Begin
+   comboProfesor.ItemIndex := BuscoMateriaEnCombo(CodigoProfesor.Text,ComboProfesor,3);
+   If ComboProfesor.ItemIndex = -1 Then
+     MessageDlg(Pchar(Vusuario+',  el código del profesor no existe.'),mtError,[mbok],0,mbok)
+   Else
+     VerHistClick(Sender);
+  End;
+end;
+
+procedure TFrmCertServ.HorasKeyPress(Sender: TObject; var Key: Char);
+begin
+ If key = #13 Then
+   Comision.SetFocus;
+end;
+
+procedure TFrmCertServ.ComisionKeyPress(Sender: TObject; var Key: Char);
+begin
+  If key = #13 Then
+   Cuatrimestre.SetFocus;
+end;
+
+procedure TFrmCertServ.EliminarClick(Sender: TObject);
+begin
+ if MessageDlg(Pchar(VUsuario+', estas seguro de borrar este servicio del historial del docente?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+   Begin
+    //TablaCertServ.Delete;
+    With Datamodule.CustomerData do
+     Begin
+      If TrDlVarios.Active Then
+        TrDlVarios.Rollback;
+      TRDlVarios.Active:=False;
+      IBDlVarios.Sql.Clear;
+      IBDlVarios.SQL.Text:='DELETE FROM CERTSERV WHERE INDICE=:INDICE';
+      IBDlVarios.ParamByName('INDICE').AsInteger:=IBSertCerv.FieldByname('INDICE').AsInteger;
+      TRDlVarios.Active:=True;
+      IBDlVarios.ExecQuery;
+      TRDlVarios.Commit;
+      TRDlVarios.Active:=False;
+      VerHistClick(Sender);
+     end
+   End;
+end;
+
+procedure TFrmCertServ.ComboMateriasButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  Funciones.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+ComboCarreras.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias.Text:=b[0];
+  NombreMat.Caption:=b[1];
+end;
+
+procedure TFrmCertServ.ComboMateriasExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboMaterias.Text<>'') Then Begin
+      ComBoMaterias.Text:=Lpad(ComboMaterias.Text,2,'0');
+      Funciones.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+combocarreras.Text+#39+' AND CODMATERI='+#39+ComboMaterias.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboMaterias.SetFocus;
+      end
+      else begin
+         ComboMaterias.Text:=b[0];
+         NombreMat.Caption:=b[1];
+      end
+  end
+end;
+
+end.

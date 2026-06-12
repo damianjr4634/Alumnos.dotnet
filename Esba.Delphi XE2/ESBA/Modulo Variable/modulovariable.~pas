@@ -1,0 +1,567 @@
+unit ModuloVariable;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, Grids, DBGrids, ExtCtrls,
+  StdCtrls, IniFiles, Parametros,StrUtils,CurrEdit, RXCtrls,ToolEdit,
+  Buttons, Funciones, Imprimir,GmTypes, FIBDatabase,
+  pFIBDatabase, FIBDataSet, pFIBDataSet, datamodule, mensajeerror;
+
+type
+  TFrmModVariable = class(TForm)
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Grilla: TDBGrid;
+    DataSource1: TDataSource;
+    BtnExcel: TSpeedButton;
+    BtnImprimir: TSpeedButton;
+    BtnSalir: TSpeedButton;
+    PrintDialog1: TPrintDialog;
+    Encabezado: TMemo;
+    DataSet: TpFIBDataSet;
+    TR: TpFIBTransaction;
+    BtnViewer: TSpeedButton;
+    Memo: TMemo;
+    DataSetPrn: TpFIBDataSet;
+    procedure FormCreate(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure BtnSalirClick(Sender: TObject);
+    procedure BtnExcelClick(Sender: TObject);
+    procedure BtnImprimirClick(Sender: TObject);
+    procedure TRBeforeStart(Sender: TObject);
+  private
+    { Private declarations }
+    Function BuscoEnMemo(Texto:String):String;
+    Function VerificaNumero(Valor:String; Lugar:String):Real;
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmModVariable: TFrmModVariable;
+  Buffer : array [0..255] of Char;
+  Unidad:String;
+  Archivo:String;
+  Ancho,Alto:Integer;
+  SQL:String;
+  Cerrar:boolean;
+  Modulo_form, Modulo_Clave, Carrera_activa:String;
+  Papel,Size_Deta,Size_enca,Orientacion,Fuente_Enca,Fuente_Deta,Lista,Anchos,Plantilla,Area,Pagina, DibLineas,Campos,
+  Grupos, Campo_grupo, Texto_Grupo, Grupo_ValAnterior, Grupo_corte:String;
+  x,y,hoja,EspesorLinea:Integer;
+  LargoPagina,Columna,Inicio,Margen,Espaciado,Corte,Margen_Enc, Margen_sup,AnchoTot:Real;
+  A,b,c:TStringList;
+  Imagen : TMetaFile;
+  procedure Split_2 (const Delimiter: Char; Input: string;  Const Strings: TStrings) ;
+
+implementation
+
+uses uMensajesError;
+{$R *.dfm}
+
+Function TFrmModVariable.VerificaNumero(Valor:String; Lugar:String):Real;
+var
+   numero:Real;
+begin
+  numero:=0;
+  try
+     numero:=StrToFloat(Valor);
+  except
+     numero:=0;
+     if (strpos(pchar(valor),'.') <> nil) then
+        valor:=AnsireplaceText(valor,'.',',')
+     else if (strpos(pchar(valor),',') <> nil) then
+        valor:=AnsireplaceText(valor,',','.');
+  end;
+  try
+     numero:=StrToFloat(Valor);
+  except
+     Application.MessageBox(pchar(lugar+'. Error al comvertir el numero '+valor+' a punto flotante. Se usara valor 0'),'Error');
+     numero:=0;
+  end;
+  result:=numero;
+end;
+
+procedure Split_2 (const Delimiter: Char; Input: string;  Const Strings: TStrings) ;
+begin
+   Assert(Assigned(Strings)) ;
+   Strings.Clear;
+   Strings.Delimiter := Delimiter;
+   Strings.DelimitedText := Input;
+end;
+
+Function TFrmModVariable.BuscoEnMemo(Texto:String):String;
+Var x:Integer;
+Begin
+  Result:='';
+  if (Memo.Lines.IndexOf(Texto)=-1) then
+    exit;
+  For x:=Memo.Lines.IndexOf(Texto)+1 To Memo.Lines.Count Do
+    Begin
+      if (Memo.Lines.Strings[x]='[]') then
+        break;
+      Result:=Result+Memo.Lines.Strings[x];
+      Result:=Result+#13;
+    End
+End;
+
+procedure TFrmModVariable.FormCreate(Sender: TObject);
+Var x,y:Integer;
+    Lista,fecha:String;
+    A,B: TStringList;
+    mensaje:TFrmmensaje;
+begin
+  Tr.DefaultDatabase:=Datamodule.CustomerData.FBase;
+  Lista:='';
+//  Memo:=TMemo.Create(Self);
+//  Memo.Parent := Self;
+//  Memo.Visible:=False;
+//  Memo.ScrollBars:= ssBoth;
+//  Memo.Lines.Clear;
+  Memo.Lines.LoadFromFile(Archivo);
+  FrmParametros := TFrmParametros.Create(Self);
+  if (BuscoEnMemo('[PARAMETROS]')<>'') then begin
+    Try
+      Parametros.Carrera_activa:=Carrera_activa;
+      FrmParametros.Memo:=TMemo.Create(Self);
+      FrmParametros.Memo.Visible:=False;
+      FrmParametros.Memo.ScrollBars:=ssBoth;
+      FrmParametros.Memo.Parent:=Self;
+      FrmParametros.Memo.Lines.Clear;
+      FrmParametros.Memo.Lines.Text:=BuscoEnMemo('[PARAMETROS]');
+      Parametros.FrmParametros.CargoRegistro;
+      FrmParametros.ShowModal;
+    except
+      Parametros.Pasa:=False;
+    end;
+  end else Parametros.Pasa:=True;
+
+  if Parametros.Pasa Then
+  Begin
+    Encabezado.Lines.Clear;
+    Encabezado.Lines.Text:=BuscoEnmemo('[NOMBRE]');
+    Sql:=BuscoEnMemo('[SQL]');
+    DataSet.SQLs.SelectSql.Clear;
+    DataSet.SQLs.SelectSql.Text:=Sql;
+    DataSetPrn.SQLs.SelectSql.Text:=Sql;
+    For x:=0 to High(FrmParametros.LstParam) do
+     Begin
+       If (FrmParametros.LstParam[x].Tipo='C') Then begin
+          sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+TEdit(FrmParametros.LstParam[x].control).Text+'''');
+          sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,TEdit(FrmParametros.LstParam[x].control).Text);
+       end
+       else If (FrmParametros.LstParam[x].Tipo='K') Then begin
+          if (TComboEdit(FrmParametros.LstParam[x].control).Text='') then
+             sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,'0')
+          else begin
+             if (FrmParametros.LstParam[x].CampoValDevol<>'') then begin
+                sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,FrmParametros.LstParam[x].CampoValDevol);
+                sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+FrmParametros.LstParam[x].CampoValDevol+'''');
+             end
+             else begin
+                sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+TComboEdit(FrmParametros.LstParam[x].control).Text+'''');
+                sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,TComboEdit(FrmParametros.LstParam[x].control).Text);
+             end
+          end
+       end
+       else If (FrmParametros.LstParam[x].Tipo='D') Then begin
+          fecha:=FormatDateTime('mm/dd/yyyy',TDateEdit(FrmParametros.LstParam[x].control).Date);
+          sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,''''+fecha+'''');
+          sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+fecha+'''');
+       end
+       else If (FrmParametros.LstParam[x].Tipo='N') Then
+        Begin
+          If (TCurrencyEdit(FrmParametros.LstParam[x].control).Text='') Then begin
+            sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,'0');
+            sql:=AnsireplaceText(sql,'&'+''''+FrmParametros.LstParam[x].Variable+'''','0');
+          end
+          Else begin
+            sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+TCurrencyEdit(FrmParametros.LstParam[x].control).Text+'''');
+            sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,TCurrencyEdit(FrmParametros.LstParam[x].control).Text);
+          end
+        End
+       else If (FrmParametros.LstParam[x].Tipo='X') Then
+         Begin
+          For y:=0 to TRxCheckListBox(FrmParametros.LstParam[x].control).Items.Count-1 do
+            Begin
+              If TRxCheckListBox(FrmParametros.LstParam[x].control).Checked[y] then
+                  Lista:=Lista+TRxCheckListBox(FrmParametros.LstParam[x].control).Items.Strings[y]+',';
+            End;
+            Lista:=Copy(Lista,1,Length(Lista)-1);
+            sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+Lista+'''');
+            sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,Lista);
+         End
+       else If (FrmParametros.LstParam[x].Tipo='L') Then begin
+         sql:=AnsireplaceText(sql,'&'+FrmParametros.LstParam[x].Variable,''''+FrmParametros.LstParam[X].Valores_lista[TComboBox(FrmParametros.LstParam[x].control).ItemIndex]+'''');
+         sql:=AnsireplaceText(sql,':'+FrmParametros.LstParam[x].Variable,FrmParametros.LstParam[X].Valores_lista[TComboBox(FrmParametros.LstParam[x].control).ItemIndex]);
+       end;
+       Encabezado.Lines.Text:=AnsireplaceText(Encabezado.Lines.Text,'&'+FrmParametros.LstParam[x].Variable,''''+TEdit(FrmParametros.LstParam[x].control).Text+'''');
+       Encabezado.Lines.Text:=AnsireplaceText(Encabezado.Lines.Text,':'+FrmParametros.LstParam[x].Variable,TEdit(FrmParametros.LstParam[x].control).Text);
+     End;
+     DataSet.SQLs.SelectSql.Text:=Sql;
+     DataSetPrn.SQLs.SelectSql.Text:=Sql;
+     Try
+       DataSet.Active:=True;
+       Tr.Active:=True;
+       Lista:=BuscoEnMemo('[TITULOS]');
+       A := TStringList.Create;
+       Split_2(';',Lista, A);
+       Lista:=BuscoEnMemo('[ANCHOS]');
+       B := TStringList.Create;
+       Split_2(';',Lista, B);
+       For x:=0 to A.Count-1 Do
+        Begin
+         Grilla.Columns.Add;
+         Grilla.Columns.Items[x].Field:=DataSet.Fields.Fields[x];
+         Grilla.Columns.Items[x].Field.DisplayLabel:=A[x];
+         Grilla.Columns.Items[x].Field.DisplayWidth:=StrToInt(B[x]);
+         if StrToInt(B[x])=0 Then
+            Grilla.Columns.Items[x].Visible:=False;
+         DataSet.Fields.Fields[x].DisplayLabel:=A[x];
+        End;
+       Lista:=BuscoEnMemo('[FORMULARIO]');
+       if (lista<>'') then begin
+          Split_2(';',Lista, B);
+          Ancho:=StrToInt(b[0]);
+          Alto:=StrToInt(b[1]);
+       end;
+       Lista:=BuscoEnMemo('[VISOR]');
+       if (lista<>'') then begin
+          Split_2(';',Lista, B);
+          Modulo_form:=b[0];
+          Modulo_clave:=b[1];
+       end Else
+         BtnViewer.Visible:=False;
+     Except
+       on E: Exception do
+       begin
+           DataSet.Active:=False;
+           Tr.RollBack;
+           mensaje:=TFrmmensaje.Create(self);
+           mensaje.Memo1.Lines.Text:='Error en query'+#13+#13+E.Message+#13+#13+SQL;
+//           ShowMessage(Format(errConnectBD, [E.Message]));
+           mensaje.ShowModal;
+           mensaje.Free;
+       end;
+  //     MessageBox(Application.Handle,PCHAR(DataSet.SQL.Text),'Error en query',MB_OK+MB_ICONERROR+MB_APPLMODAL);
+//       Parametros.Pasa:=False;
+     End;
+//     FrmParametros.Memo.Destroy;
+  End;
+  FrmParametros.DestroyComponents;
+  FrmParametros.Free;
+  Cerrar:=Parametros.Pasa;
+end;
+
+procedure TFrmModVariable.FormActivate(Sender: TObject);
+begin
+  FrmModVariable.Width:=Ancho;
+  FrmModVariable.Height:=Alto;
+  FrmModVariable.Top:=100;
+  FrmModVariable.Left:=100;
+  If (Ancho=0) and (Alto=0) Then
+    Begin
+      FrmModVariable.Width:=screen.Width;
+      FrmModVariable.Height:=screen.Height;
+    End;
+End;
+
+procedure TFrmModVariable.BtnSalirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmModVariable.BtnExcelClick(Sender: TObject);
+begin
+  DataSetprn.Active:=True;
+  Funciones.Exportar_Excel_DS(DataSetprn);
+  DataSetPrn.Active:=False;
+end;
+
+procedure TFrmModVariable.BtnImprimirClick(Sender: TObject);
+
+Procedure Imprime_encabezado();
+begin
+    Hoja:=Hoja+1;
+    FormPreview.VistaPrevia1.Newpage;
+    FormPreview.VistaPrevia1.BeginUpdate;
+    If Plantilla <> '' Then Begin
+          Imagen := TMetaFile.Create;
+          Imagen.LoadFromFile(Unidad+Plantilla);
+          c := TStringList.Create;
+          Split_2(';',area,c);
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(VerificaNumero(c[0],'[DIBIJA_AREA]'),VerificaNumero(c[1],'[DIBIJA_AREA]'),VerificaNumero(c[2],'[DIBIJA_AREA]'),VerificaNumero(c[3],'[DIBIJA_AREA]'),Imagen,GmCentimeters);
+    end;
+  //  FormPreview.VistaPrevia1.Canvas.StretchDraw(StrToFloat(c[0]),StrToFloat(c[1]),StrToFloat(c[2]),StrToFloat(c[3]),Imagen,GmCentimeters);
+    FormPreview.VistaPrevia1.Canvas.Font.Name := Fuente_Enca;
+    FormPreview.VistaPrevia1.Canvas.Font.Size := StrToInt(Size_Enca);
+    FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+    For x:=0 to Encabezado.Lines.Count-1 Do
+           FormPreview.VistaPrevia1.Canvas.TextOut(Margen_enc,Margen_sup+x,Encabezado.Lines.Strings[x],GmCentimeters);
+    IF Papel='LEGAL' then  begin
+          If (Orientacion='H') Then
+              FormPreview.VistaPrevia1.Canvas.TextOut(32,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters)
+          else
+              FormPreview.VistaPrevia1.Canvas.TextOut(18,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters);
+    end else  begin
+         If (Orientacion='H') Then
+               FormPreview.VistaPrevia1.Canvas.TextOut(27,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters)
+         else
+               FormPreview.VistaPrevia1.Canvas.TextOut(18,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters);
+    end;
+    Columna:=Margen;
+   //titulos
+    y:=0;
+    for x:=0 to DataSet.FieldCount-1 do begin
+          if funciones.campoenlista(DataSet.Fields.Fields[x].FullName,Campos) then begin
+               if y=0 then
+                   Columna:=Margen
+               else if b[y-1]<>'0' Then
+                     Columna:=columna+VerificaNumero(b[y-1],'Anchos de impresion');
+               if b[y]<>'0' Then
+                     FormPreview.VistaPrevia1.Canvas.TextOut(Columna,largopagina,a[x],GmCentimeters);
+               y:=y+1;
+          end;
+    end;
+    LargoPagina:=LargoPagina+espaciado+0.3;
+    FormPreview.VistaPrevia1.Canvas.Font.Name := Fuente_Deta;
+    FormPreview.VistaPrevia1.Canvas.Font.Size := StrToInt(Size_Deta);
+    FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+    FormPreview.VistaPrevia1.Canvas.Pen.Width:=EspesorLinea;
+end;
+
+
+Var Memo1:TMemo;
+
+begin
+If PrintDialog1.execute then
+Begin
+  DataSetPrn.Active:=True;
+  AnchoTot:=0;
+  Columna:=0;
+  hoja:=1;
+  Memo1:=TMemo.Create(FrmModVariable);
+  Memo1.Parent:=FrmModVariable;
+  Memo1.Visible:=False;
+  Memo1.ScrollBars:=ssBoth;
+  FormPreview:=TFormPreview.Create(FrmModVariable);
+  Memo1.Lines.Text:=BuscoenMemo('[IMPRESION]');
+  diblineas:='N';
+  Size_Deta:='8';
+  Fuente_Deta:='Arial';
+  Size_Enca:='8';
+  Fuente_Enca:='Arial';
+  Margen_Enc:=0;
+  Margen_sup:=0;
+  DibLineas:='N';
+  Papel:='A4';
+  Size_deta:='8';
+  Fuente_Deta:='Arial';
+  Size_Enca:='8';
+  Fuente_Enca:='Arial';
+  Orientacion:='V';
+  Area:='';
+  Inicio:=3.5;
+  Espaciado:=0.5;
+  Margen:=2;
+  Corte:=27;
+  Pagina:='N';
+  EspesorLinea:=8;
+  Campos:='';
+  Grupos:='';
+  For x:=0 to Memo1.Lines.Count-1 Do
+    Begin
+      if AnsiPos('MARGEN_ENCABEZADO',Memo1.Lines.Strings[x])<>0 Then
+          Margen_Enc:=VerificaNumero(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])),'MARGEN_ENCABEZADO');
+      if AnsiPos('MARGENSUP_ENCABEZADO',Memo1.Lines.Strings[x])<>0 Then
+          Margen_Sup:=VerificaNumero(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])),'MARGENSUP_ENCABEZADO');
+      if AnsiPos('DIBUJA_LINEAS',Memo1.Lines.Strings[x])<>0 Then
+          DibLineas:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('PAPEL',Memo1.Lines.Strings[x])<>0 Then
+          Papel:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('SIZE_DETALLE',Memo1.Lines.Strings[x])<>0 Then
+          Size_Deta:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('FUENTE_DETALLE',Memo1.Lines.Strings[x])<>0 Then
+          Fuente_Deta:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('SIZE_ENCABEZADO',Memo1.Lines.Strings[x])<>0 Then
+          Size_Enca:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('FUENTE_ENCABEZADO',Memo1.Lines.Strings[x])<>0 Then
+         Fuente_Enca:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('ORIENTACION',Memo1.Lines.Strings[x])<>0 Then
+          Orientacion:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('ANCHOS',Memo1.Lines.Strings[x])<>0 Then
+          Anchos:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('PLANTILLA',Memo1.Lines.Strings[x])<>0 Then
+          Plantilla:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('AREA',Memo1.Lines.Strings[x])<>0 Then
+          area:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('INICIO',Memo1.Lines.Strings[x])<>0 Then
+          Inicio:=VerificaNumero(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])),'INICIO');
+      if AnsiPos('MARGEN_IZQUIERDO',Memo1.Lines.Strings[x])<>0 Then
+          Margen:=VerificaNumero(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])),'MARGEN_IZQUIERDO');
+      if AnsiPos('ESPACIADO',Memo1.Lines.Strings[x])<>0 Then
+          Espaciado:=VerificaNumero(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])),'ESPACIADO');
+      if AnsiPos('CORTE_PAGINA',Memo1.Lines.Strings[x])<>0 Then
+          Corte:=VerificaNumero(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])),'CORTE_PAGINA');
+      if AnsiPos('NUMERO_PAGINA',Memo1.Lines.Strings[x])<>0 Then
+          Pagina:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('ESPESOR_LINEA',Memo1.Lines.Strings[x])<>0 Then
+          EspesorLinea:=StrToInt(Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x])));
+      if AnsiPos('CAMPOS',Memo1.Lines.Strings[x])<>0 Then
+          Campos:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+      if AnsiPos('GRUPOS',Memo1.Lines.Strings[x])<>0 Then
+          Grupos:=Copy(Memo1.Lines.Strings[x],AnsiPos('=',Memo1.Lines.Strings[x])+1,Length(Memo1.Lines.Strings[x]));
+    End;
+  if (Plantilla<>'') and (area='') then begin
+      Application.MessageBox('Si define plantilla defina el area de la misma con el tag AREA. La plantilla no se tomara en cuenta','Aviso');
+      Plantilla:='';
+  end;
+  With FormPreview do
+    Begin
+      FormPreview.VistaPrevia1.Canvas.Pen.Width:=EspesorLinea;
+       If Plantilla <> '' Then
+         Begin
+          Imagen := TMetaFile.Create;
+          Imagen.LoadFromFile(Unidad+Plantilla);
+          c := TStringList.Create;
+          Split_2(';',area,c);
+          VistaPrevia1.Canvas.StretchDraw(VerificaNumero(c[0],'[DIBIJA_AREA]'),VerificaNumero(c[1],'[DIBIJA_AREA]'),VerificaNumero(c[2],'[DIBIJA_AREA]'),VerificaNumero(c[3],'[DIBIJA_AREA]'),Imagen,GmCentimeters);
+         end;
+      FormPreview.VistaPrevia1.Canvas.Font.Name := Fuente_Enca;
+      FormPreview.VistaPrevia1.Canvas.Font.Size := StrToInt(Size_Enca);
+      FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+       For x:=0 to Encabezado.Lines.Count-1 Do
+          VistaPrevia1.Canvas.TextOut(Margen_enc,Margen_sup+x,Encabezado.Lines.Strings[x],GmCentimeters);
+       If (Orientacion='H') Then
+          VistaPrevia1.Orientation:=gmLandscape
+       Else
+          VistaPrevia1.Orientation:=gmPortrait;
+       VistaPrevia1.PaperSize:=A4;
+       If Papel='A4' Then
+         VistaPrevia1.PaperSize:=A4;
+       If Papel='LEGAL' Then
+         VistaPrevia1.PaperSize:=Legal;
+      FormPreview.VistaPrevia1.BeginUpdate;
+      IF Papel='LEGAL' then
+        begin
+          If (Orientacion='H') Then
+            VistaPrevia1.Canvas.TextOut(32,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters)
+          else
+            VistaPrevia1.Canvas.TextOut(18,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters);
+        end
+      else
+        begin
+          If (Orientacion='H') Then
+            VistaPrevia1.Canvas.TextOut(27,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters)
+          else
+            VistaPrevia1.Canvas.TextOut(18,0.5,'Pagina: '+IntToStr(Hoja),GmCentimeters);
+        end;
+      Lista:=BuscoEnMemo('[TITULOS]');
+      A := TStringList.Create;
+      B := TStringList.Create;
+      if Grupos<>'' then begin
+         Split_2(';',Grupos,A);
+         Campo_grupo:=a[0];
+         try
+            Texto_grupo:=a[1];
+            Grupo_Corte:=a[2];
+         except
+            Texto_grupo:='';
+            Grupo_Corte:='N';
+         end;
+      end;
+      Split_2(';',Lista,A);
+      Split_2(';',Anchos,b);
+      LargoPagina := inicio;
+       //titulos
+      y:=0;
+      for x:=0 to DataSetPrn.FieldCount-1 do begin
+           if funciones.campoenlista(DataSetPrn.Fields.Fields[x].FullName,Campos) then begin
+               if y=0 then
+                    Columna:=Margen
+               else if b[y-1]<>'0' Then
+                   Columna:=columna+VerificaNumero(b[y-1],'Anchos de impresion');
+               if b[y]<>'0' Then
+                  VistaPrevia1.Canvas.TextOut(Columna,largopagina,a[x],GmCentimeters);
+               y:=y+1;
+           end;
+      end;
+      LargoPagina:=LargoPagina+espaciado+0.3;
+      //Datos
+      DataSetPrn.First;
+      DataSetPrn.FetchAll;
+      FormPreview.VistaPrevia1.Canvas.Font.Name := Fuente_Deta;
+      FormPreview.VistaPrevia1.Canvas.Font.Size := StrToInt(Size_Deta);
+      FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+      Grupo_ValAnterior:='';
+      While Not DataSetPrn.Eof Do Begin
+          While (LargoPagina<=Corte) and (Not DataSetPrn.Eof) Do Begin
+                if grupos<>'' then begin
+                    if (DataSetPrn.FieldByName(Campo_grupo).AsString<>Grupo_ValAnterior) then begin
+                         if Grupo_Valanterior<>'' then begin
+                             Grupo_ValAnterior:=DataSetPrn.FieldByName(Campo_Grupo).AsString;
+                             if grupo_corte='S' then begin
+                                 LargoPagina:=Inicio;
+                                 VistaPrevia1.EndUpdate;
+                                 Imprime_encabezado;
+                             end;
+                         end else
+                             Grupo_ValAnterior:=DataSetPrn.FieldByName(Campo_Grupo).AsString;
+                         FormPreview.VistaPrevia1.Canvas.Font.Name := Fuente_Enca;
+                         FormPreview.VistaPrevia1.Canvas.Font.Size := StrToInt(Size_Enca);
+                         FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+                         Largopagina:=Largopagina+0.8;
+                         VistaPrevia1.Canvas.TextOut(Margen,largopagina,Texto_Grupo+' '+DataSetPrn.FieldByName(Campo_Grupo).AsString,GmCentimeters);
+                         Largopagina:=Largopagina+0.8;
+                         FormPreview.VistaPrevia1.Canvas.Font.Name := Fuente_Deta;
+                         FormPreview.VistaPrevia1.Canvas.Font.Size := StrToInt(Size_Deta);
+                         FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+                    end;
+                end;
+                y:=0;
+                for x:=0 to DataSetPrn.FieldCount-1 do begin
+                    if funciones.campoenlista(DataSetPrn.Fields.Fields[x].FullName,Campos) then begin
+                        if y=0 then
+                            Columna:=Margen
+                        else
+                            If VerificaNumero(b[y-1],'Anchos de impresion')<>0 Then
+                                Columna:=columna+VerificaNumero(b[y-1],'Anchos de impresion');
+                        If (VerificaNumero(b[y],'Anchos de impresion')<>0) and not varisnull(DataSetPrn.Fields.Fields[x].Value) and not varisfloat(DataSetPrn.Fields.Fields[x].Value) Then
+                             VistaPrevia1.Canvas.TextOut(Columna,largopagina,DataSetPrn.Fields.Fields[x].Value,GmCentimeters)
+                        else if (b[y]<>'0') and not varisnull(DataSetPrn.Fields.Fields[x].Value) and varisfloat(DataSetPrn.Fields.Fields[x].Value) Then
+                             VistaPrevia1.Canvas.TextOut(Columna,largopagina,formatfloat(',0.00',DataSetPrn.Fields.Fields[x].Value),GmCentimeters);
+                        y:=y+1;
+                    end;
+                end;
+                If DibLineas='S' Then Begin
+                    If Anchotot=0 Then
+                         For x:=0 to b.Count-1 do
+                            AnchoTot:=AnchoTot+VerificaNumero(b[x],'Anchos de impresion');
+                    VistaPrevia1.Canvas.Line(Margen,LargoPagina+Espaciado-0.1,Margen+Anchotot,LargoPagina+Espaciado-0.1,GmCentimeters);
+                End;
+                LargoPagina:=LargoPagina+espaciado;
+                DataSetPrn.Next;
+          end;
+          LargoPagina:=Inicio;
+          VistaPrevia1.EndUpdate;
+          if not DataSetPrn.eof then
+            Begin
+               Imprime_encabezado;
+            End;
+        End;
+      ShowModal;
+      Free;
+    End;
+END
+end;
+
+procedure TFrmModVariable.TRBeforeStart(Sender: TObject);
+begin
+  If Not (Datamodule.CustomerData.FBase.Connected) Then
+      Datamodule.CustomerData.FBase.Connected:=True;
+end;
+
+
+end.

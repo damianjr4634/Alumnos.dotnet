@@ -1,0 +1,41 @@
+unit TipodeExamen;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons;
+
+type
+  TFrmTipoExamen = class(TForm)
+    Label1: TLabel;
+    CbTipo: TComboBox;
+    BtnAceptar: TBitBtn;
+    BtnCancelar: TBitBtn;
+    procedure BtnCancelarClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmTipoExamen: TFrmTipoExamen;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmTipoExamen.BtnCancelarClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmTipoExamen.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+TFrmTipoExamen(Sender).CbTipo.Text:='';
+//CbTipo.text:='';
+end;
+
+end.

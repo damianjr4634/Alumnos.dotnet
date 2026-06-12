@@ -1,0 +1,555 @@
+unit parametros;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs,StdCtrls, StrUtils, Mask, ToolEdit, CurrEdit, RXCtrls, Busqueda, DataModule,DB, Funciones;
+
+Type Param=Record
+  Labels:TLabel;
+  control:Tcontrol;
+  Etiqueta:String;
+  Variable:String;
+  Tipo:String;
+  Obligatorio:String;
+  SQL:String;
+  Lista:Array of String;
+  Titulos:Array of String;
+  Valores_Lista:Array of String;
+  ValorDefecto:String;
+  CharFill:String[1];
+  CampoDevol:String;
+  CampoValDevol:String;
+end;
+
+type
+  TFrmParametros = class(TForm)
+    BtnAceptar: TButton;
+    BtnCancelar: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure BtnAceptarClick(Sender: TObject);
+    procedure BtnCancelarClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    Memo:Tmemo;
+    LstParam: Array Of Param;
+    Procedure CargoRegistro;
+    procedure ComboEditButtonClick(Sender: TObject);
+    procedure ComboEditExit(Sender: TObject);
+    Procedure TransformaArray(x:Integer;texto:string);
+  end;
+
+
+
+var
+  FrmParametros: TFrmParametros;
+  Pasa:Boolean;
+  Carrera_activa:String;
+  procedure Split (const Delimiter: Char; Input: string;  Const Strings: TStrings) ;
+implementation
+
+{$R *.dfm}
+
+procedure Split (const Delimiter: Char; Input: string;  Const Strings: TStrings) ;
+begin
+   Assert(Assigned(Strings)) ;
+   Strings.Clear;
+   Strings.Delimiter := Delimiter;
+   Strings.DelimitedText := Input;
+end;
+
+Procedure TFrmParametros.TransformaArray(x:Integer;texto:string);
+Var y:Integer;
+    A,B: TStringList;
+Begin
+  A := TStringList.Create;
+  Split(';',Texto, A);
+  LstParam[x].Etiqueta:=a[0];
+  LstParam[x].Variable:=a[1];
+  LstParam[x].Tipo:=a[2];
+  LstParam[x].Obligatorio:=a[3];
+  if (LstParam[x].Tipo='C') or (LstParam[x].Tipo='N') Then begin
+     try
+         if (a[4]='&CUA_ACT') then
+             LstParam[x].ValorDefecto:=Funciones.Cuatrimestre;
+         if (a[4]='&CAR_ACT') then
+             LstParam[x].ValorDefecto:=Carrera_activa;
+     except
+         LstParam[x].ValorDefecto:='';
+     end;
+  end;
+  if (LstParam[x].Tipo='K') Then
+   Begin
+      LstParam[x].SQL:=a[4];
+      B := TStringList.Create;
+      Split(',',a[5],B);
+      SetLength(LstParam[x].Titulos,B.Count);
+      For y:=0 to High(LstParam[x].Titulos) do
+          LstParam[x].Titulos[y]:=b[y];
+      LstParam[x].CharFill:=a[6];
+      LstParam[x].CampoDevol:=a[7];
+      try
+         if (a[8]='&CUA_ACT') then
+             LstParam[x].ValorDefecto:=Funciones.Cuatrimestre;
+         if (a[8]='&CAR_ACT') then
+             LstParam[x].ValorDefecto:=Carrera_activa;
+      except
+         LstParam[x].ValorDefecto:='';
+      end;
+      B.Free;
+  end
+  else if (LstParam[x].Tipo='X') Then
+   Begin
+      B := TStringList.Create;
+      Split(',',a[4],B);
+      SetLength(LstParam[x].Lista,B.Count);
+      For y:=0 to High(LstParam[x].Lista) do
+          LstParam[x].Lista[y]:=b[y];
+      B.Free;
+   End
+  else if (LstParam[x].Tipo='L') Then
+   Begin
+      B := TStringList.Create;
+      Split(',',a[4],B);
+      SetLength(LstParam[x].Lista,B.Count);
+      For y:=0 to High(LstParam[x].Lista) do
+          LstParam[x].Lista[y]:=b[y];
+      Split(',',a[5],B);
+      SetLength(LstParam[x].Valores_lista,B.Count);
+      For y:=0 to High(LstParam[x].Valores_Lista) do
+          LstParam[x].Valores_Lista[y]:=b[y];
+      LstParam[x].ValorDefecto:=a[6];
+      B.Free;
+   End;
+  A.Free;
+End;
+
+Procedure TFrmParametros.CargoRegistro;
+Var x,y:integer;
+    Linea:string;
+    Top:integer;
+Begin
+  FrmParametros.Width:=235;
+  FrmParametros.Position:=poScreenCenter;
+  SetLength(LstParam,(Memo.Lines.Count));
+  Top:=10;
+  For x:=0 to Memo.Lines.Count-1 do
+    begin
+     Linea:=Memo.Lines.Strings[x];
+     transformaarray(x,Linea);
+     LstParam[x].Labels:=TLabel.Create(FrmParametros);
+     LstParam[x].Labels.Parent:=FrmParametros;
+     TLabel(LstParam[x].Labels).Caption:=LstParam[x].Etiqueta;
+     TLabel(LstParam[x].Labels).Left:=8;
+     TLabel(LstParam[x].Labels).Top:=Top;
+     TLabel(LstParam[x].Labels).Visible:=True;
+     If (LstParam[x].Tipo='C') Then
+      Begin
+        LstParam[x].Control:=TEdit.Create(FrmParametros);
+        LstParam[x].Control.Parent:=FrmParametros;
+        TEdit(LstParam[x].Control).Text:='';
+        TEdit(LstParam[x].Control).Top:=Top-6;
+        TEdit(LstParam[x].Control).Width:=121;
+        TEdit(LstParam[x].Control).Left:=100;
+        TEdit(LstParam[x].Control).Width:=100;
+        TEdit(LstParam[x].Control).Visible:=True;
+        TEdit(LstParam[x].Control).Tag:=x;
+        TEdit(LstParam[x].Control).text:=LstParam[x].ValorDefecto;
+      End
+     else If (LstParam[x].Tipo='N') Then
+      Begin
+        LstParam[x].Control:=TCurrencyEdit.Create(FrmParametros);
+        LstParam[x].Control.Parent:=FrmParametros;
+        TCurrencyEdit(LstParam[x].Control).Text:='';
+        TCurrencyEdit(LstParam[x].Control).Top:=Top-6;
+        TCurrencyEdit(LstParam[x].Control).Left:=100;
+        TCurrencyEdit(LstParam[x].Control).Width:=100;
+        TCurrencyEdit(LstParam[x].Control).Width:=121;
+        TCurrencyEdit(LstParam[x].Control).Visible:=True;
+        TCurrencyEdit(LstParam[x].Control).DecimalPlaces:=0;
+        TCurrencyEdit(LstParam[x].Control).DisplayFormat:='';
+        TCurrencyEdit(LstParam[x].Control).Value:=0;
+        TCurrencyEdit(LstParam[x].Control).Alignment:=taRightJustify;
+        TCurrencyEdit(LstParam[x].Control).Tag:=x;
+        TCurrencyEdit(LstParam[x].Control).text:=LstParam[x].ValorDefecto;
+      End
+     else If (LstParam[x].Tipo='K') Then
+      Begin
+        LstParam[x].Control:=TComboEdit.Create(FrmParametros);
+        LstParam[x].Control.Parent:=FrmParametros;
+        TComboEdit(LstParam[x].Control).Top:=Top-6;
+        TComboEdit(LstParam[x].Control).Left:=100;
+        TComboEdit(LstParam[x].Control).Width:=121;
+        TComboEdit(LstParam[x].Control).Visible:=True;
+        TComboEdit(LstParam[x].Control).GlyphKind:=gkEllipsis;
+        TComboEdit(LstParam[x].Control).OnButtonClick:=ComboEditButtonClick;
+        TComboEdit(LstParam[x].Control).OnExit:=ComboEditExit;
+        TComboEdit(LstParam[x].Control).Tag:=x;
+        TComboEdit(LstParam[x].Control).ClickKey:=VK_F1;
+        TComboEdit(LstParam[x].Control).text:=LstParam[x].ValorDefecto;
+      End
+     else If (LstParam[x].Tipo='X') Then
+      Begin
+        LstParam[x].Control:=TRxCheckListBox.Create(FrmParametros);
+        LstParam[x].Control.Parent:=FrmParametros;
+        TRxCheckListBox(LstParam[x].Control).Top:=Top-6;
+        TRxCheckListBox(LstParam[x].Control).Left:=100;
+        TRxCheckListBox(LstParam[x].Control).Width:=121;
+        TRxCheckListBox(LstParam[x].Control).Height:=100;
+        TRxCheckListBox(LstParam[x].Control).Visible:=True;
+        top:=top+80;
+        for y:=0 to High(LstParam[x].Lista) do
+           TRxCheckListBox(LstParam[x].Control).Items.Add(LstParam[x].Lista[y]);
+        TRxCheckListBox(LstParam[x].Control).Tag:=x;
+      End
+    else If (LstParam[x].Tipo='D') Then
+      Begin
+        LstParam[x].Control:= TDateEdit.Create(FrmParametros);
+        LstParam[x].Control.Parent:=FrmParametros;
+        TDateEdit(LstParam[x].Control).Top:=Top-6;
+        TDateEdit(LstParam[x].Control).Left:=100;
+        TDateEdit(LstParam[x].Control).Width:=121;
+        TDateEdit(LstParam[x].Control).Visible:=True;
+        TDateEdit(LstParam[x].Control).Tag:=x;
+        TDateEdit(LstParam[x].Control).Date:=Date;
+      End
+     else If (LstParam[x].Tipo='L') Then
+      Begin
+        LstParam[x].Control:= TComboBox.Create(FrmParametros);
+        LstParam[x].Control.Parent:=FrmParametros;
+        For y:=0 to high(LstParam[x].Lista) do
+          TComboBox(LstParam[x].control).Items.Add(LstParam[x].lista[y]);
+        TComboBox(LstParam[x].Control).Top:=Top-6;
+        TComboBox(LstParam[x].Control).Left:=100;
+        TComboBox(LstParam[x].Control).Width:=121;
+        TComboBox(LstParam[x].Control).Visible:=True;
+        TComboBox(LstParam[x].Control).Tag:=x;
+        TComboBox(LstParam[x].Control).Style:=csDropDownList;
+        TcomboBox(LstParam[x].control).ItemIndex:=StrToInt(LstParam[x].ValorDefecto);
+      End;
+     Top:=Top+30;
+    End;
+  FrmParametros.ClientHeight:=Top+35;
+  BtnAceptar.Top:=Top;
+  BtnCancelar.Top:=Top;
+End;
+
+
+procedure TFrmParametros.FormCreate(Sender: TObject);
+begin
+{  Memo:=TMemo.Create(FrmParametros);
+  Memo.Parent := FrmParametros;
+  Memo.Visible:=False;
+  Memo.ScrollBars:=ssBoth;}
+end;
+
+procedure TFrmParametros.ComboEditButtonClick(Sender: TObject);
+Var
+   x,y:Integer;
+   sql,Lista:string;
+begin
+  //setLength(Field,2);
+  FrmBusqueda := TFrmBusqueda.Create(FrmParametros);
+  sql:=LstParam[TComponent(Sender).Tag].SQL;
+  lista:='';
+  With FrmBusqueda Do
+    Begin
+       Query.SQLs.SelectSql.Clear;
+       For x:=0 to High(LstParam) Do
+         Begin
+            If (LstParam[x].Tipo='C') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+TEdit(LstParam[x].control).Text+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,TEdit(LstParam[x].control).Text)
+            end
+            else If (LstParam[x].Tipo='K') Then begin
+              if (LstParam[x].CampoValDevol='') Then begin
+                 sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+TComboEdit(LstParam[x].control).Text+'''');
+                 sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,TComboEdit(LstParam[x].control).Text);
+              end
+              else begin
+                 sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+LstParam[x].CampoValDevol+'''');
+                 sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,LstParam[x].CampoValDevol);
+              end
+            end
+            else If (LstParam[x].Tipo='D') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+FormatDateTime('mm/dd/yyyy',TDateEdit(LstParam[x].control).Date)+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,''''+FormatDateTime('mm/dd/yyyy',TDateEdit(LstParam[x].control).Date)+'''');
+            end
+            else If (LstParam[x].Tipo='N') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+TCurrencyEdit(LstParam[x].control).Text+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,TCurrencyEdit(LstParam[x].control).Text);
+            end
+            else If (LstParam[x].Tipo='X') Then
+              Begin
+                For y:=0 to TRxCheckListBox(LstParam[x].control).Items.Count-1 do
+                  Begin
+                    If TRxCheckListBox(LstParam[x].control).Checked[y] then
+                       Lista:=Lista+TRxCheckListBox(LstParam[x].control).Items.Strings[y]+',';
+                  End;
+                Lista:=Copy(Lista,1,Length(Lista)-1);
+                sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,''''+Lista+'''');
+              end
+            else If (LstParam[x].Tipo='L') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+LstParam[x].Valores_lista[TComboBox(LstParam[x].control).ItemIndex]+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,LstParam[x].Valores_lista[TComboBox(LstParam[x].control).ItemIndex]);
+            end
+         End;
+       Query.SQLs.SelectSql.Text:=sql;//LstParam[TComponent(Sender).Tag].SQL;
+       pFIBTransaction1.Active:=True;
+       Query.Active:=True;
+       SetLength(Busqueda.Titulos,High(LstParam[TComponent(Sender).Tag].Titulos)+1);
+       For x:=0 to Query.FieldCount-1 do
+        Begin
+              Dbgrid1.Columns.Add;
+   {          Dbgrid1.Columns.Items[x].FieldName:=Query.Fields.Fields[x].FieldName;
+              DbGrid1.Columns.Items[x].Title.Caption:=LstParam[TComponent(Sender).Tag].Titulos[x];
+              DbGrid1.Columns.Items[x].Width:=Query.Fields.Fields[x].DisplayWidth;
+   }          DbGrid1.Columns.Items[x].Field:=Query.Fields.Fields[x];
+              DbGrid1.Columns.Items[x].Field.DisplayLabel:=LstParam[TComponent(Sender).Tag].Titulos[x];
+              DbGrid1.Columns.Items[x].Field.DisplayWidth:=Query.Fields.Fields[x].DisplayWidth;
+              Busqueda.Titulos[x]:=LstParam[TComponent(Sender).Tag].Titulos[x];
+              IF (LstParam[TComponent(Sender).Tag].Titulos[x]='') Then
+                  DbGrid1.Columns.Items[x].Visible:=False;
+        End;
+       Width:=50;
+       For x:=0 to High(LstParam[TComponent(Sender).Tag].Titulos) Do
+         Width:=Width+dbgrid1.Columns.Items[x].Width;
+       TxtBsq.Width:=Width-30;
+       Button1.Left:=Width-Button1.Width-10;
+       Button2.Left:=Width-Button2.Width-Button1.Width-20;
+       ShowModal;
+       If Query.Active Then
+         Begin
+           TComboEdit(Sender).Text:=Query.Fields.Fields[0].Value;
+           LstParam[TComponent(Sender).Tag].CampoValDevol:=Query.FieldByName(LstParam[TComponent(Sender).Tag].CampoDevol).Value;
+           Query.Active:=False;
+           pFIBTransaction1.Rollback;
+           pFIBTransaction1.Active:=False;
+         End;
+       Free;
+    End;
+end;
+
+procedure TFrmParametros.ComboEditExit(Sender: TObject);
+Var
+   x,y:Integer;
+   sql,Lista:string;
+begin
+  if TComboEdit(Sender).Text='' then
+     Exit;
+  TComboEdit(Sender).Text:=UpperCase(TComboEdit(Sender).Text);
+  FrmBusqueda := TFrmBusqueda.Create(FrmParametros);
+  sql:=LstParam[TComponent(Sender).Tag].SQL;
+  lista:='';
+  With FrmBusqueda Do
+    Begin
+       Query.SQLs.SelectSql.Clear;
+       For x:=0 to High(LstParam) Do
+         Begin
+            If (LstParam[x].Tipo='C') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+TEdit(LstParam[x].control).Text+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,TEdit(LstParam[x].control).Text)
+            end
+            else If (LstParam[x].Tipo='K') Then begin
+              if (LstParam[x].CampoValDevol='') Then begin
+                 sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+TComboEdit(LstParam[x].control).Text+'''');
+                 sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,TComboEdit(LstParam[x].control).Text);
+              end
+              else begin
+                 sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+LstParam[x].CampoValDevol+'''');
+                 sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,LstParam[x].CampoValDevol);
+              end
+            end
+            else If (LstParam[x].Tipo='D') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+FormatDateTime('mm/dd/yyyy',TDateEdit(LstParam[x].control).Date)+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,''''+FormatDateTime('mm/dd/yyyy',TDateEdit(LstParam[x].control).Date)+'''');
+            end
+            else If (LstParam[x].Tipo='N') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+TCurrencyEdit(LstParam[x].control).Text+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,TCurrencyEdit(LstParam[x].control).Text);
+            end
+            else If (LstParam[x].Tipo='X') Then
+              Begin
+                For y:=0 to TRxCheckListBox(LstParam[x].control).Items.Count-1 do
+                  Begin
+                    If TRxCheckListBox(LstParam[x].control).Checked[y] then
+                       Lista:=Lista+TRxCheckListBox(LstParam[x].control).Items.Strings[y]+',';
+                  End;
+                Lista:=Copy(Lista,1,Length(Lista)-1);
+                sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,''''+Lista+'''');
+              end
+            else If (LstParam[x].Tipo='L') Then begin
+              sql:=AnsireplaceText(sql,'&'+LstParam[x].Variable,''''+LstParam[x].Valores_lista[TComboBox(LstParam[x].control).ItemIndex]+'''');
+              sql:=AnsireplaceText(sql,':'+LstParam[x].Variable,LstParam[x].Valores_lista[TComboBox(LstParam[x].control).ItemIndex]);
+            end
+         End;
+       Query.SQLs.SelectSql.Text:=sql;
+       pFIBTransaction1.Active:=True;
+       Query.Active:=True;
+       if (strpos(pchar(UpperCase(sql)),'WHERE') <> nil) then
+           sql:=sql+' AND '+Query.Fields.Fields[0].FullName+'='+#39+TComboEdit(LstParam[TComponent(Sender).Tag].control).Text+#39
+       else
+           sql:=sql+' WHERE '+Query.Fields.Fields[0].FullName+'='+#39+TComboEdit(LstParam[TComponent(Sender).Tag].control).Text+#39;
+       Query.Active:=false;
+       Query.SQLs.SelectSql.Text:=sql;
+       Query.Active:=true;
+       SetLength(Busqueda.Titulos,High(LstParam[TComponent(Sender).Tag].Titulos)+1);
+       For x:=0 to Query.FieldCount-1 do
+        Begin
+              Dbgrid1.Columns.Add;
+   {          Dbgrid1.Columns.Items[x].FieldName:=Query.Fields.Fields[x].FieldName;
+              DbGrid1.Columns.Items[x].Title.Caption:=LstParam[TComponent(Sender).Tag].Titulos[x];
+              DbGrid1.Columns.Items[x].Width:=Query.Fields.Fields[x].DisplayWidth;
+   }          DbGrid1.Columns.Items[x].Field:=Query.Fields.Fields[x];
+              DbGrid1.Columns.Items[x].Field.DisplayLabel:=LstParam[TComponent(Sender).Tag].Titulos[x];
+              DbGrid1.Columns.Items[x].Field.DisplayWidth:=Query.Fields.Fields[x].DisplayWidth;
+              Busqueda.Titulos[x]:=LstParam[TComponent(Sender).Tag].Titulos[x];
+              IF (LstParam[TComponent(Sender).Tag].Titulos[x]='') Then
+                  DbGrid1.Columns.Items[x].Visible:=False;
+        End;
+       Width:=50;
+       For x:=0 to High(LstParam[TComponent(Sender).Tag].Titulos) Do
+         Width:=Width+dbgrid1.Columns.Items[x].Width;
+       TxtBsq.Width:=Width-30;
+       Button1.Left:=Width-Button1.Width-10;
+       Button2.Left:=Width-Button2.Width-Button1.Width-20;
+       If (Query.Active) and Not (Query.Fields.Fields[0].IsNull) Then
+         Begin
+           TComboEdit(Sender).Text:=Query.Fields.Fields[0].Value;
+           LstParam[TComponent(Sender).Tag].CampoValDevol:=Query.FieldByName(LstParam[TComponent(Sender).Tag].CampoDevol).Value;
+         End
+       else begin
+           Application.MessageBox('Parametro incorrecto','Error',MB_APPLMODAL+MB_ICONERROR+MB_OK);
+           TComboEdit(Sender).SetFocus;
+       end;
+       If (Query.Active) then begin
+           Query.Active:=False;
+           pFIBTransaction1.Rollback;
+           pFIBTransaction1.Active:=False;
+       end;    
+       Free;
+    End;
+end;
+
+
+procedure TFrmParametros.FormActivate(Sender: TObject);
+begin
+  If (LstParam[0].Tipo='C') Then
+       TEdit(LstParam[0].Control).SetFocus
+  else If (LstParam[0].Tipo='N') Then
+       TCurrencyEdit(LstParam[0].Control).SetFocus
+  else If (LstParam[0].Tipo='K') Then
+       TComboEdit(LstParam[0].Control).SetFocus
+  else If (LstParam[0].Tipo='X') Then
+       TRxCheckListBox(LstParam[0].Control).SetFocus
+  else If (LstParam[0].Tipo='D') Then
+      TDateEdit(LstParam[0].Control).SetFocus
+  else If (LstParam[0].Tipo='L') Then
+      TcomboBox(LstParam[0].Control).SetFocus
+end;
+
+procedure TFrmParametros.BtnAceptarClick(Sender: TObject);
+Var x,y:Integer;
+    Sw1,Sw:Boolean;
+begin
+  Sw:=True;
+  For x:=0 to High(LstParam) Do
+    Begin
+      If (LstParam[X].Obligatorio='S') Then
+        Begin
+          If (LstParam[X].Tipo='D') Then
+             Begin
+               If (TDateEdit(LstParam[X].Control).Text='  /  /    ') Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TDateEdit(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+             End
+           else If (LstParam[X].Tipo='C') Then
+             Begin
+               If (TEdit(LstParam[X].Control).Text='') Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TEdit(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+             End
+           else If (LstParam[X].Tipo='N') Then
+              Begin
+               If (TCurrencyEdit(LstParam[X].Control).Value=0) Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TCurrencyEdit(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+              End
+           else If (LstParam[X].Tipo='K') Then
+             Begin
+               If (TComboEdit(LstParam[X].Control).Text='') Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TComboEdit(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+              End
+           else If (LstParam[X].Tipo='X') Then
+             Begin
+               Sw1:=False;
+               For y:=0 to TRxCheckListBox(LstParam[X].Control).Items.Count-1 Do
+                Begin
+                  If (TRxCheckListBox(LstParam[X].Control).Checked[y]) Then
+                     Sw1:=True;
+                End;
+               If (Not Sw1) Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TRxCheckListBox(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+             End
+           else If (LstParam[X].Tipo='D') Then
+            Begin
+               If (TDateEdit(LstParam[X].Control).Text='') Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TDateEdit(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+            End
+           else If (LstParam[X].Tipo='L') Then
+            Begin
+               If (TComboBox(LstParam[X].Control).ItemIndex=-1) Then
+                 Begin
+                   Application.MessageBox('Parametro Obligatorio','Error');
+                   TComboBox(LstParam[X].Control).SetFocus;
+                   Sw:=False;
+                   break;
+                 End
+            End
+        End
+    End;
+  If (Sw) Then
+   Begin
+    Pasa:=True;
+    Close;
+   End;
+end;
+
+procedure TFrmParametros.BtnCancelarClick(Sender: TObject);
+begin
+  pasa:=False; 
+  Close;
+end;
+
+end.

@@ -1,0 +1,592 @@
+﻿unit constanciaalumnos;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, StdCtrls, ExtCtrls, Imprimir, Buttons, funcionesConfiguracion, FuncionesText, FuncionesPrint, GmTypes,
+  GmPreview, DataModule, variants, Mask, RXToolEdit, RXCurrEdit;
+
+type
+  TConstanciadelAlumno = class(TForm)
+    GroupBox1: TGroupBox;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    CodigodelAlumno: TEdit;
+    CarreraCursa: TEdit;
+    ApellidoyNombre: TEdit;
+    LibroyFolio: TEdit;
+    GroupBox2: TGroupBox;
+    Constanciaalumno: TStringGrid;
+    dialogo: TPrintDialog;
+    BitBtn2: TBitBtn;
+    Label9: TLabel;
+    Antequien: TEdit;
+    CBmembrete: TCheckBox;
+    GroupBox3: TGroupBox;
+    BtnAnalitico: TBitBtn;
+    BtnPase: TBitBtn;
+    GroupBox4: TGroupBox;
+    BitBtn3: TBitBtn;
+    BitBtn1: TBitBtn;
+    Label10: TLabel;
+    PromGral: TCurrencyEdit;
+    procedure BitBtn1Click(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure BitBtn3Click(Sender: TObject);
+    procedure BtnPaseClick(Sender: TObject);
+    procedure BtnAnaliticoClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    Procedure Constancia(ConsAlu:TConstanciadelAlumno);
+    Procedure Impresion_Analitico_Pase(const Titu, Query, tipo:String);
+    function MaxCuatrimestre:Integer;
+  end;
+
+var
+  ConstanciadelAlumno: TConstanciadelAlumno;
+  CarreraActiva : String;
+  NombreCarrera : String;
+  CodigoAlumno  : String;
+  UnidadPrograma : String;
+  ApellidoNombre : String;
+  LibroMatriz : String;
+
+implementation
+
+{$R *.DFM}
+
+function TConstanciadelAlumno.MaxCuatrimestre:Integer;
+var x, max:Integer;
+begin
+max:=0;
+For x:=1 to ConstanciaAlumno.rowcount-1 do Begin
+   If (ConstanciaAlumno.Cells[4,x]<>'* ADEUDA *') then begin
+        if (StrToInt(ConstanciaAlumno.cells[1,x])>max) then
+            max:=StrToInt(ConstanciaAlumno.cells[1,x]);
+   end
+end;
+result:=max;
+end;
+
+Procedure TConstanciadelAlumno.Impresion_Analitico_Pase(const Titu, Query, Tipo:String);
+Const
+ margen=1.80;
+ sangria=1.80;
+Var
+ Cuat,Cont,x, largo, DondeCorto, VuelvoACortar, MaxCuat: Integer;
+ fila : Real;
+ Anio,Mes,Dia:Word;
+ Acusigla, Todas:String;
+ textosalida:WideString;
+ sw:Boolean;
+ Picture, Sello: TPicture;
+begin
+With Datamodule.CustomerData do begin
+     TrQrVarios.Active:=False;
+     IbQrVarios.SQL.Text:=query;
+     TrQrVarios.Active:=True;
+     Ibqrvarios.ExecQuery;
+     sw:=False;
+     if (ibQrVarios.FieldByName('FERRCOD').AsInteger=1) then
+        sw:=MessageDlg(pchar(ibQrVarios.FieldByName('FERRMSG').AsString),MtConfirmation,[mbok],0,mbok)=MrYES
+     else if (ibQrVarios.FieldByName('FERRCOD').AsInteger=2) then
+             MessageDlg(pchar(ibQrVarios.FieldByName('FERRMSG').AsString),MtError,[mbok],0,mbok)
+     else if (ibQrVarios.FieldByName('FERRCOD').AsInteger=0) then
+             sw:=True;
+     maxcuat:=ibQrVarios.FieldByName('FCUATRI').AsInteger;
+     TrqrVarios.Rollback;
+     TrQrVarios.Active:=False;
+ end;
+if not sw then
+   exit;
+If Dialogo.Execute then
+  Begin
+   FormPreview := TFormPreview.Create(Self);
+   if (CBmembrete.Checked) then begin
+     Picture := TPicture.Create;
+     Picture.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Picture.Graphic,GmCentimeters);
+   end;
+   With Imprimir.FormPreview.VistaPrevia1 Do Begin
+     BeginUpdate;
+      With Canvas Do Begin
+        Pen.Width:=1;
+        Pen.Color:=ClWhite;
+        Font.Name := 'Arial';
+        Font.Size := 12;
+        Font.Style := [FsBold];
+        fila:=5.00;
+        DecodeDate(Date,Anio,Mes,Dia);
+        TextOutCenter(11,Fila,titu,GmCentimeters);
+        fila:=fila+2.00;
+        Font.Size:= 11;
+        Font.Style:=[];
+        //TextOut(margen,fila,'La Rectora:',GmCentimeters);
+        fila:=fila+1.00;
+        With Datamodule.CustomerData do begin
+           TrQrVarios.Active:=False;
+           IbQrVarios.SQL.Text:='SELECT FPARRAFO FROM XXX_PARRAFO_CONSTANCIA('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+','+#39+tipo+#39+')';
+           TrQrVarios.Active:=True;
+           Ibqrvarios.ExecQuery;
+           textosalida:=ibQrVarios.FieldByName('FPARRAFO').AsString;
+           TrqrVarios.Rollback;
+           TrQrVarios.Active:=False;
+        end;
+        TextBox(margen,fila,19,fila+3,textosalida,taLeftJustify,GmCentimeters);
+        fila:=fila+TextBoxHeight(19-margen,textosalida,GmCentimeters).AsCentimeters+1;
+        Font.Style:=[FsUnderline,FsBold];
+        TextOut(margen,fila,'DATOS CORRESPONDIENTES:',GmCentimeters);
+        fila:=fila+1;
+        Cuat:=1;
+        Cont:=0;
+        Acusigla:='';
+        Todas:='';
+        For x:=1 to ConstanciaAlumno.rowcount-1 do Begin
+            If (StrToInt(ConstanciaAlumno.cells[1,x])>MaxCuat) and (MaxCuat<>0) then
+               Break;
+            If (StrToInt(ConstanciaAlumno.cells[1,x])<>Cuat) then Begin
+              If Acusigla <> '' Then Begin
+                 Acusigla := Copy(Acusigla,1,Length(Acusigla)-2);
+                 If (Cont=5) AND (Cuat=1) then
+                    Acusigla:='TODAS LAS ';
+                 If (Cont=6) AND (Cuat<>1) then
+                    Acusigla:='TODAS LAS ';
+                 Todas:=Todas + Acusigla + ' DEL ' + UpperCase(LetrasCuat(Cuat)) + ' CUAT.; '
+              End;
+              Cont:=0;
+              Cuat:=StrToInt(ConstanciaAlumno.cells[1,x]);
+              Acusigla:='';
+            End;
+            If (ConstanciaAlumno.Cells[4,x]<>'EQUIVALENCIA') and ((ConstanciaAlumno.Cells[4,x]='* ADEUDA *') or (ConstanciaAlumno.Cells[4,x]='CURSANDO') OR (ConstanciaAlumno.Cells[4,x]='RECURSANDO') or (ConstanciaAlumno.Cells[7,x]='') or (ConstanciaAlumno.Cells[7,x]='0,00') {(ConstanciaAlumno.Cells[4,x]='PREVIO') or (ConstanciaAlumno.Cells[4,x]='LIBRE')}) then Begin
+               Cont:=Cont + 1;
+               AcuSigla:=AcuSigla + ConstanciaAlumno.Cells[3,x] + ', ';
+            End;
+        End;
+        If Acusigla <> '' Then Begin
+             Acusigla := Copy(Acusigla,1,Length(Acusigla)-2);
+             If (Cont=5) AND (Cuat=1) then //
+               Acusigla:='TODAS LAS ';
+             If (Cont=6) AND (Cuat<>1) then
+               Acusigla:='TODAS LAS ';
+             Todas:=Todas + Acusigla + ' DEL ' + UpperCase(LetrasCuat(Cuat)) + ' CUAT.; '
+        End;
+        Todas := Copy(Todas,1,Length(Todas)-2);
+        Font.Size:=9;
+        font.Style:=[];
+        If Todas='' then
+              textosalida:= '* Materias que adeuda: NINGUNA'
+        Else
+              textosalida:= '* Materias que adeuda: '+todas;
+        TextBox(margen+1.00,fila,19,fila+4,textosalida,taLeftJustify,GmCentimeters);
+        fila:=fila+TextBoxHeight(19-(margen+1),textosalida,GmCentimeters).AsCentimeters;
+        Font.Size:=10;
+        TextBox(margen+1.00,fila,19,fila+4,'* Idioma extranjero cursado: INGLES',taLeftJustify,GmCentimeters);
+        fila:=fila+2.00;
+        textosalida:='      A pedido del interesado se extiende la presente constancia, sin raspadura ni enmiendas, en Buenos Aires, '+
+                     'a los ' + IntToStr(Dia) + ' días del mes de ' + MesALetras(Mes) + ' de ' + IntToStr(Anio)+', para ser presentado ante: '+Antequien.Text;
+        TextBox(margen,fila,19,fila+2,textosalida,taLeftJustify,GmCentimeters);
+        fila:=fila+TextBoxHeight(19-margen,textosalida,GmCentimeters).AsCentimeters+1;
+        Font.Style := [];
+        Font.Size:=8;
+        TextOut(margen,fila,'La presente Resolución Ministerial permite el ingreso a Universidades a Nivel Nacional.-',GmCentimeters);
+        fila:=fila+0.40;
+        TextOut(margen,fila,'La presente constancia tiene validez por 90 días.-',GmCentimeters);
+        fila:=fila+0.40;
+        TextOut(margen,fila,'La presente certificación carecerá de valor si no estuviera firmada por las autoridades competentes.',GmCentimeters);
+        fila:=fila+3.00;
+        Font.Style := [FsBold];
+        TextOut(margen+sangria-1.00,fila,FuncionesConfiguracion.Secretaria,GmCentimeters);
+        TextOut(15.50,fila,FuncionesConfiguracion.Rector,GmCentimeters);
+        fila:=fila+0.40;
+        TextOut(margen+sangria,fila,'Secretaria',GmCentimeters);
+        TextOut(16.90,fila,'Rectora',GmCentimeters);
+        fila:=fila+0.20;
+        TextOut(margen+8.00,fila,'SELLO',GmCentimeters);
+        fila:=fila+1;
+      End;
+     EndUpdate;
+    End;
+    formpreview.VistaPrevia1.Repaint;
+    FormPreview.ShowModal;
+    FormPreview.Free;
+   End;
+end;
+
+
+Procedure TConstanciadelAlumno.Constancia(ConsAlu:TConstanciadelAlumno);
+var
+  i, recno:integer;
+begin
+  recno:=0;
+  With ConsAlu Do
+   Begin
+    DataModule.CustomerData.TRConstancia.Active:=True;
+    DataModule.CustomerData.IBConstancia.Active:=True;
+    DataModule.CustomerData.IBConstancia.FetchAll;
+    Constanciaalumno.RowCount :=DataModule.CustomerData.IBConstancia.RecordCount+1;
+    While Not DataModule.CustomerData.IBConstancia.Eof Do
+     Begin
+        recno:=recno+1;
+        With Datamodule.CustomerData.IBConstancia do
+         Begin
+           ConstanciaAlumno.Cells[0,RecNo] := FieldbyName('ANUAL').AsString;
+           ConstanciaAlumno.Cells[1,RecNo]:=IntToStr(FieldbyName('CUATRIM').AsInteger);
+           ConstanciaAlumno.Cells[2,RecNo]:=FieldbyName('CODMAT').AsString;
+           ConstanciaAlumno.Cells[3,RecNo]:=FieldbyName('SIGLA').AsString;
+           ConstanciaAlumno.Cells[4,Recno]:= FieldbyName('CONDICION').AsString;
+           if not varisnull(FieldbyName('CUAANIO').Value) then
+              ConstanciaAlumno.Cells[5,Recno]:= IntToStr(FieldbyName('CUAANIO').Value);
+           if not varisnull(FieldbyName('CUTUCO').Value) then
+              ConstanciaAlumno.Cells[6,Recno]:= IntToStr(FieldbyName('CUTUCO').Value);
+           ConstanciaAlumno.Cells[7,Recno]:= EditoNumero(Floattostr(FieldByName('NOTA').AsFloat));
+           If (Datetostr(FieldByName('FECHA').AsDateTime)<>'30/12/1899') Then
+              ConstanciaAlumno.Cells[8,Recno]:= Datetostr(FieldByName('FECHA').AsDateTime);
+           ConstanciaAlumno.Cells[9,Recno]:= FieldbyName('INSTITUTO').AsString;
+           ConstanciaAlumno.Cells[10,Recno]:= FieldbyName('CARACT').AsString;
+           ConstanciaAlumno.Cells[11,Recno]:= FieldbyName('ACTINT').AsString;
+           ConstanciaAlumno.Cells[12,Recno]:= FieldbyName('ACTDEGP').AsString;
+           ConstanciaAlumno.Cells[13,Recno]:= FieldbyName('ACTSNE').AsString;
+           ConstanciaAlumno.Cells[14,Recno]:= FieldbyName('DESCRIPCI').AsString;
+           Next;
+         End
+     End
+  End;
+  DataModule.CustomerData.TRConstancia.Rollback;
+  DataModule.CustomerData.TRConstancia.Active:=False;
+  DataModule.CustomerData.IBConstancia.Active:=False;
+End;
+
+procedure TConstanciadelAlumno.BitBtn1Click(Sender: TObject);
+
+Procedure impresionADM(ConstanciaAlumno : TstringGrid; Fila,filaanterior : Real;cuatact:Integer);
+ Procedure ImprimeMateria(Pos:Integer);
+  Var
+     Nota :String;
+  Begin
+   With Imprimir.FormPreview.VistaPrevia1.Canvas Do
+   Begin
+    If ConstanciaAlumno.Cells[4,pos] <> 'EQUIVALENCIA' Then
+      Begin //
+        If ConstanciaAlumno.Cells[4,pos] = '* ADEUDA *' Then //Condicion Alumno
+            TextOut(9.00,fila,'ADEUDA',GmCentimeters)
+        Else
+            If (ConstanciaAlumno.Cells[4,pos] = 'FINAL') Or (ConstanciaAlumno.Cells[4,pos] = 'PASE/FINAL') Then
+               TextOut(9.00,fila,ConstanciaAlumno.Cells[4,pos],GmCentimeters)
+            Else
+              TextOut(9.00,fila,'ADEUDA',GmCentimeters);
+        If ConstanciaAlumno.Cells[7,pos] <> '' Then  //Nota
+          Begin //
+           Nota := EditoNumero(ConstanciaAlumno.Cells[7,pos]);
+           If Length(Nota) = 5 Then //centro cuando la nota es 10,00
+              TextOut(11.30,fila,Nota,GmCentimeters)
+           Else
+              TextOut(11.50,fila,Nota,GmCentimeters);
+          End//
+        Else
+            TextOut(11.20,fila,'------',GmCentimeters);
+
+        If ConstanciaAlumno.Cells[8,pos] <> '' Then
+          TextOut(12.50,fila,ConstanciaAlumno.Cells[8,pos],GmCentimeters)  //Fecha
+        Else
+          TextOut(12.50,fila,'--------------',GmCentimeters);
+
+        If ConstanciaAlumno.Cells[9,pos]<> '' Then
+           TextOut(14.70,fila,ConstanciaAlumno.Cells[9,pos]+' '+ConstanciaAlumno.Cells[9,pos],GmCentimeters)  //Instituto
+        Else
+           TextOut(14.70,fila,'-----------------------------------------------------',GmCentimeters);
+      End //
+     else
+       TextOut(9.00,fila,'APROBADA POR EQUIVALENCIA - Act. Interna Nro '+ ConstanciaAlumno.Cells[10,pos],GmCentimeters);
+   End;
+  End;
+
+Var
+  x,y : Integer;
+  haymateriaanual: array of integer;
+
+Begin
+ haymateriaanual := 0;
+With Imprimir.FormPreview.VistaPrevia1.Canvas Do
+Begin
+ For x:=1 to ConstanciaAlumno.RowCount - 1 Do
+  Begin
+     If StrToInt(ConstanciaAlumno.Cells[1,x]) <> CuatAct Then
+       Begin //
+        Fila := Fila + 0.20;
+        CuatAct := StrToInt(ConstanciaAlumno.Cells[1,x]);
+        MoveTo(1.80,fila,gmcentimeters);
+        LineTo(2.30,fila,gmcentimeters);
+        TextOut(2.50,Fila-0.2,LetrasCuat(CuatAct)+' Cuatrimestre',gmcentimeters);
+        MoveTo(5.40,fila,gmcentimeters);
+        LineTo(20.00,fila,gmcentimeters);
+        Fila := Fila + 0.20;
+        If haymateriaanual <> nil Then
+          Begin
+           for y:=0 to length(haymateriaanual)-1 do begin
+               TextOut(2.00,fila,ConstanciaAlumno.Cells[14,haymateriaanual[y]],GmCentimeters); //Nombre Materia
+               ImprimeMateria(haymateriaanual[y]);
+               Fila := fila+0.50;
+            end;
+          End;
+        haymateriaanual := nil;
+       End; //
+   TextOut(2.00,fila,ConstanciaAlumno.Cells[14,x],GmCentimeters); //Nombre Materia
+   If ConstanciaAlumno.Cells[0,x] = '*' Then
+       Begin //
+        TextOut(9.00,fila,'---------- M A T E R I A  A N U A L ----------',GmCentimeters);
+        If (ConstanciaAlumno.Cells[4,x] = 'FINAL') Or (ConstanciaAlumno.Cells[4,x] = 'PASE/FINAL') Then begin
+            setlength(haymateriaanual,length(haymateriaanual)+1);
+            haymateriaanual[length(haymateriaanual)-1] := x;
+        end;
+//        haymateriaanual[length(haymateriaanual)-1] := x;
+       End //
+    Else
+     ImprimeMateria(x);
+    Fila := Fila + 0.50
+  End; // end del for
+  FuncionesPrint.Caja(1.80,FilaAnterior,20.00,Fila+0.20,formpreview.VistaPrevia1);
+  TextOut(3.00,Fila+0.70,'Para ser presentada ante '+Antequien.text,GmCentimeters);
+ End; //end del with canvas
+End;
+
+var
+   x,cuatAct : Integer;
+   Fila, FilaAnterior, largopagina : Real;
+   Anio, Mes, Dia : Word;
+   Nota: String;
+   TextoSalida:WideString;
+   Picture, Sello: TPicture;
+begin
+ largopagina:=28;
+ If Dialogo.Execute Then
+ Begin
+  FormPreview := TFormPreview.Create(Self);
+  if (CBmembrete.Checked) then begin
+     picture := Tpicture.Create;
+     picture.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+     FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,picture.graphic,GmCentimeters);
+  end;
+
+  With FormPreview.VistaPrevia1 Do
+  Begin
+//    Title := 'Constancia de Materias Aprobadas';
+    BeginUpdate;
+    Canvas.Pen.Width:=1;
+    Canvas.Pen.Color:=ClWhite;
+    With Canvas Do
+     Begin
+      Fila := 4.6;
+      Font.Name := 'Arial';
+      Font.Size := 12;
+      Font.Style := [FsBold];
+      TextOutCenter(11,fila,'CONSTANCIA DE MATERIAS APROBADAS',GmCentimeters);
+      Fila  := Fila + 2.5;
+      Font.Size := 1;
+      Font.Style := [];
+      DecodeDate(Date,Anio,Mes,Dia);
+      {TextOut(2.5,Fila,'En Buenos Aires a los '+ IntToStr(Dia) +' días del mes de '+ MesALetras(Mes) +' de '+IntToStr(Anio) +' se extiende la presente perteneciente al alumno/a //',gmcentimeters);
+      Fila := Fila + 0.50;
+      TextoSalida:= PasoAMayusculas(ApellidoNombre) +' - '+ PonePuntos(CodigoAlumno)+' correspondiente a la carrera //';
+      TextOut(2,Fila,TextoSalida,gmcentimeters);
+      Fila := Fila + 0.50;
+      TextoSalida:= PasoAMayusculas(NombreCarrera)+'.';
+      TextOut(2,Fila,TextoSalida,gmcentimeters);
+      }
+      TextOut(1,1,'.',gmcentimeters);
+      Font.Size := 9;
+      Font.Style := [];
+      textosalida:= '    En Buenos Aires a los '+ IntToStr(Dia) +' días del mes de '+ Trim(MesALetras(Mes)) +' de '+IntToStr(Anio) +' se extiende la presente perteneciente al alumno/a '+
+                    PasoAMayusculas(ApellidoNombre) +' - '+ PonePuntos(CodigoAlumno)+' correspondiente a la carrera '+ PasoAMayusculas(NombreCarrera)+'.';
+
+
+      TextBox(2,fila,19,fila+2,textosalida,taLeftJustify,GmCentimeters);
+      Canvas.Pen.Width:=8;
+      Canvas.Pen.Color:=Clblack;
+      Font.Size := 8;
+      Fila := Fila + 2;
+      FilaAnterior := Fila - 0.0;
+      Rectangle(1.80,FilaAnterior ,20.00,Fila + 0.50, GmCentimeters);
+      TextOut(2,fila,'Materia',gmcentimeters);
+      TextOut(9,fila,'Condición',gmcentimeters);
+      TextOut(11.30,fila,'Nota',gmcentimeters);
+      TextOut(12.50,fila,'Fecha',gmcentimeters);
+      TextOut(14.70,fila,'Instituto / Característica',gmcentimeters);
+      Fila := Fila + 0.9;
+      CuatAct := StrToInt(ConstanciaAlumno.Cells[1,1]);
+      MoveTo(1.80,fila,gmcentimeters);
+      LineTo(2.30,fila,gmcentimeters);
+      TextOut(2.50,Fila-0.2,LetrasCuat(CuatAct)+' Cuatrimestre/Año',gmcentimeters);
+      MoveTo(6.40,fila,gmcentimeters);
+      LineTo(20.00,fila,gmcentimeters);
+      Fila := Fila + 0.20;
+      If CarreraActiva = 'ADM' Then
+        ImpresionADM(ConstanciaAlumno,fila,filaanterior,cuatact)
+      Else
+       Begin
+         For x:=1 to ConstanciaAlumno.RowCount - 1 Do Begin
+             If StrToInt(ConstanciaAlumno.Cells[1,x]) <> CuatAct Then  Begin
+                  Fila := Fila + 0.20;
+                  CuatAct := StrToInt(ConstanciaAlumno.Cells[1,x]);
+                  MoveTo(1.80,fila,gmcentimeters);
+                  LineTo(2.30,fila,gmcentimeters);
+                  TextOut(2.50,Fila-0.2,LetrasCuat(CuatAct)+' Cuatrimestre/Año',gmcentimeters);
+                  MoveTo(6.40,fila,gmcentimeters);
+                  LineTo(20.00,fila,gmcentimeters);
+                  Fila := Fila + 0.20;
+             End;
+             TextOut(2,fila,ConstanciaAlumno.Cells[14,x],gmcentimeters); //Nombre Materia
+             If ConstanciaAlumno.Cells[4,x] <> 'EQUIVALENCIA' Then  Begin
+                  If ConstanciaAlumno.Cells[4,x] = '* ADEUDA *' Then //Condicion Alumno
+                       TextOut(9.00,fila,'ADEUDA',gmcentimeters)
+                  Else
+                       TextOut(9.00,fila,ConstanciaAlumno.Cells[4,x],gmcentimeters);
+                  If ConstanciaAlumno.Cells[7,x] <> '' Then  Begin// nota
+                       Nota := EditoNumero(ConstanciaAlumno.Cells[7,x]);
+                       If Length(Nota) = 5 Then
+                           TextOut(11.30,fila,Nota,gmcentimeters)
+                       Else
+                           TextOut(11.50,fila,Nota,gmcentimeters);
+                  End Else
+                       TextOut(11.20,fila,'------',gmcentimeters);
+                  If ConstanciaAlumno.Cells[8,x] <> '' Then
+                       TextOut(12.50,fila,ConstanciaAlumno.Cells[8,x],gmcentimeters)  //Fecha
+                  Else
+                       TextOut(12.50,fila,'--------------',gmcentimeters);
+                  If ConstanciaAlumno.Cells[9,x]<> '' Then
+                       TextOut(14.70,fila,ConstanciaAlumno.Cells[9,x]+' '+ConstanciaAlumno.Cells[10,x],gmcentimeters)  //Instituto
+                  Else
+                       TextOut(14.70,fila,'-----------------------------------------------------',gmcentimeters);
+             End Else begin// else de aprobada por equivalencia
+                  if (ConstanciaAlumno.Cells[11,x]<>'') then
+                      TextOut(9.00,fila,'APROBADA POR EQUIVALENCIA - Act. Interna Nro '+Copy(ConstanciaAlumno.Cells[11,x],1,Length(ConstanciaAlumno.Cells[11,x])-2) +'/'+Copy(ConstanciaAlumno.Cells[11,x],Length(ConstanciaAlumno.Cells[11,x])-1,2),gmcentimeters)
+                  else if (ConstanciaAlumno.Cells[12,x]<>'') then
+                      TextOut(9.00,fila,'APROBADA POR EQUIVALENCIA - Act. D.G.E.G.P. Nro '+ Copy(ConstanciaAlumno.Cells[12,x],1,Length(ConstanciaAlumno.Cells[12,x])-2) +'/'+ Copy(ConstanciaAlumno.Cells[12,x],Length(ConstanciaAlumno.Cells[12,x])-1,2),gmcentimeters);
+             end;
+            Fila := Fila + 0.50;
+            if (fila>=largopagina) then begin // por corte de hoja
+               Caja(1.80,FilaAnterior,20.00,Fila+0.20,formpreview.VistaPrevia1);
+               NewPage;
+               fila:=4.6;
+               filaanterior:=fila;
+               Font.Size := 1;
+               Font.Style := [];
+               TextOut(1,1,'.',gmcentimeters);
+               Font.Size := 8;
+               Font.Style := [];
+               if (CBmembrete.Checked) then begin
+                   picture := TMetaFile.Create;
+                   piture.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\membrete.wmf');
+                   FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,picture.Graphic,GmCentimeters);
+               end;
+            end
+         End; //end del for
+      Canvas.Pen.Width:=8;
+      Canvas.Pen.Color:=Clblack;
+      Caja(1.80,FilaAnterior,20.00,Fila+0.20,formpreview.VistaPrevia1);
+      TextOut(3.00,Fila+0.70,'Para ser presentada ante '+Antequien.text,gmcentimeters);
+     End; // end del if que pregunta si es ADM
+   EndUpdate;
+  End;
+ End;
+formpreview.VistaPrevia1.Repaint;
+FormPreview.ShowModal;
+FormPreview.Free;
+End;
+
+end;
+
+procedure TConstanciadelAlumno.BitBtn2Click(Sender: TObject);
+begin
+  ConstanciadelAlumno.Close;
+end;
+
+procedure TConstanciadelAlumno.FormActivate(Sender: TObject);
+begin
+  CodigodelAlumno.Text :=CodigoAlumno;
+  ApellidoyNombre.Text :=ApellidoNombre;
+  CarreraCursa.Text := CarreraActiva;
+  LibroyFolio.Text := Copy(LibroMatriz,1,2)+'/'+Copy(LibroMatriz,3,3);
+  ConstanciaAlumno.ColWidths[0]:=20;
+  ConstanciaAlumno.ColWidths[1]:=45;
+  ConstanciaAlumno.ColWidths[2]:=45;
+  ConstanciaAlumno.ColWidths[3]:=230;
+  ConstanciaAlumno.ColWidths[4]:=130;
+  ConstanciaAlumno.ColWidths[5]:=70;
+  ConstanciaAlumno.ColWidths[6]:=50;
+  ConstanciaAlumno.ColWidths[7]:=80;
+  ConstanciaAlumno.ColWidths[8]:=85;
+  ConstanciaAlumno.ColWidths[9]:=160;
+  ConstanciaAlumno.ColWidths[10]:=90;
+  ConstanciaAlumno.ColWidths[11]:=90;
+  ConstanciaAlumno.ColWidths[12]:=90;
+  ConstanciaAlumno.ColWidths[13]:=0;
+
+  ConstanciaAlumno.Cells[1,0]:='Cuat.';
+  ConstanciaAlumno.Cells[2,0]:='Cod.';
+  ConstanciaAlumno.Cells[3,0]:='Materia';
+  ConstanciaAlumno.Cells[4,0]:='Condición';
+  ConstanciaAlumno.Cells[5,0]:='Cuat./Año';
+  ConstanciaAlumno.Cells[6,0]:='Comi.';
+  ConstanciaAlumno.Cells[7,0]:='Nota Final';
+  ConstanciaAlumno.Cells[8,0]:='Fecha Final';
+  ConstanciaAlumno.Cells[9,0]:='Instituto';
+  ConstanciaAlumno.Cells[10,0]:='Caract.';
+  ConstanciaAlumno.Cells[11,0]:='Act. Int.';
+  ConstanciaAlumno.Cells[12,0]:='Act. DGEGP';
+  ConstanciaAlumno.Cells[13,0]:='Act. SNEP';
+  ConstanciaAlumno.Cells[14,0]:='Nombre Largo';
+
+
+  DataModule.CustomerData.IBConstancia.ParamByName('CODALU').AsString:=CodigoAlumno;
+  DataModule.CustomerData.IBConstancia.ParamByName('CARRE').AsString:=CarreraActiva;
+  Constancia(ConstanciadelAlumno);
+  if Datamodule.CustomerData.TrDsVarios.Active then
+     Datamodule.CustomerData.TrDsVarios.Rollback;
+  DataModule.CustomerData.IbDsVarios.Active:=False;
+  DataModule.CustomerData.IbDsVarios.SQLs.SelectSQL.Text:='SELECT PROMGRAL FROM XXX_PROMEDIO_GRAL('+#39+CodigoAlumno+#39+','+#39+carreraActiva+#39+')';
+  DataModule.CustomerData.TrQrVarios.Active:=true;
+  DataModule.CustomerData.IbDsVarios.Active:=True;
+  PromGral.Value:=DataModule.CustomerData.IbDsVarios.FieldByname('PROMGRAL').Value;
+  Datamodule.CustomerData.TrDsVarios.Commit;
+  DataModule.CustomerData.IbDsVarios.Active:=False;
+  try
+     ConstanciaAlumno.FixedRows := 1;
+  except
+     MessageDlg('Error al mostrar materias, puede que no haya materias cargadas o el alumno tenga problemas',mtError,[mbok],0,mbok);
+  end;
+
+  ConstanciaAlumno.SetFocus;
+end;
+
+procedure TConstanciadelAlumno.FormKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #27 Then
+  ConstanciadelAlumno.Close;
+end;
+
+procedure TConstanciadelAlumno.BitBtn3Click(Sender: TObject);
+Var Parrafo1:AnsiString;
+begin
+  Impresion_Analitico_Pase('CONSTANCIA DE CERTIFICADO DE ESTUDIOS EN TRÁMITE', 'SELECT FERRCOD, FERRMSG, FCUATRI FROM XXX_IMPRIME_CTT('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+')','CTT');
+End;
+
+procedure TConstanciadelAlumno.BtnPaseClick(Sender: TObject);
+Var Parrafo1:AnsiString;
+begin
+  Impresion_Analitico_Pase('CONSTANCIA DE PASE EN TRÁMITE', 'SELECT FERRCOD, FERRMSG, 0 AS FCUATRI FROM XXX_IMPRIME_PASE('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+')','PASE');
+end;
+
+procedure TConstanciadelAlumno.BtnAnaliticoClick(Sender: TObject);
+Var Parrafo1:AnsiString;
+begin
+    Impresion_Analitico_Pase('CONSTANCIA DE CERTIFICADO ANALITICO EN TRÁMITE','SELECT FERRCOD, FERRMSG, FCUATRI FROM XXX_IMPRIME_CTT('+#39+CODIGOALUMNO+#39+','+#39+CARRERAACTIVA+#39+')','ANALITICO');
+end;
+
+end.

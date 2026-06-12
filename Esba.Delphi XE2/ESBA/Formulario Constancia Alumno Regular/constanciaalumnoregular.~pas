@@ -1,0 +1,215 @@
+unit constanciaalumnoregular;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls,Printers, funciones, Buttons, Imprimir, GmTypes, GmPreview,
+  DataModule;
+
+type
+  TConstAlumnoRegular = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    GroupBox2: TGroupBox;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Apenom: TEdit;
+    Label7: TLabel;
+    docum: TEdit;
+    Carre: TEdit;
+    Comi: TEdit;
+    antequien: TEdit;
+    dias: TEdit;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label10: TLabel;
+    meses: TEdit;
+    Label11: TLabel;
+    anios: TEdit;
+    Imprimir: TBitBtn;
+    Cancelar: TBitBtn;
+    dialogoimpre: TPrintDialog;
+    Memo: TMemo;
+    procedure FormActivate(Sender: TObject);
+    procedure CancelarClick(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  ConstAlumnoRegular: TConstAlumnoRegular;
+  CarreraActiva  : String[6];
+  CodigoAlumno   : String[11];
+  Apellidonombre : String[50];
+  Carreralarga   : String;
+  Usuario        : String;
+
+implementation
+
+{$R *.DFM}
+
+procedure TConstAlumnoRegular.FormActivate(Sender: TObject);
+var
+ Anio,Mes,Dia : Word;
+
+begin
+ {CarreraActiva := 'ASC';               // desde aca se borra despues
+ CodigoAlumno  := 'DNI11663571';
+ UnidadPrograma:= 'G:\';
+ Apellidonombre:= 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+ Carreralarga  := 'FORMACION DE ANALISTAS DE SISTEMAS DE COMPUTACION - R.M. 445/81';
+// hasta aca}
+ Apenom.Text := Apellidonombre;
+ Docum.Text  := PonePuntos(CodigoAlumno);
+ Carre.Text  := Carreralarga;
+
+ DataModule.CustomerData.IBQrVarios.Sql.Clear;
+ DataModule.CustomerData.IBQrVarios.Sql.Text:='SELECT COD_ALU, CUTUCO, CUA_ANIO, CONDICION FROM CURSADA WHERE COD_ALU=:CODALU AND TRIM(CONDICION) IN (''CURSANDO'',''RECURSANDO'') AND CUA_ANIO=:CUAANIO ORDER BY CUTUCO DESC, CONDICION;';
+ DataModule.CustomerData.IBQrVarios.ParambyName('CODALU').AsString := CodigoAlumno;
+ DataModule.CustomerData.IBQrVarios.ParambyName('CUAANIO').AsString := Cuatrimestre();
+ DataModule.CustomerData.TrQrVarios.Active:=True;
+ DataModule.CustomerData.IBQrVarios.ExecQuery;
+
+ If DataModule.CustomerData.IBQrVarios.RecordCount = 0 then
+  Begin
+   DataModule.CustomerData.TrQrVarios.Rollback;
+   DataModule.CustomerData.TrQrVarios.Active:=False;
+   MessageBox(ConstAlumnoRegular.Handle,Pchar(Usuario+', EL ALUMNO NO SE ENCUENTRA CURSANDO ACTUALMENTE'),'E R R O R !!!',MB_OK + MB_ICONEXCLAMATION + MB_APPLMODAL);
+   Imprimir.Enabled := False;
+   Cancelar.SetFocus;
+   ConstAlumnoRegular.Close;
+  end
+ Else
+  Begin
+    Try
+     Comi.Text := InttoStr(DataModule.CustomerData.IBQrVarios.FieldByName('CUTUCO').AsInteger);
+    Except
+     Comi.text := '';
+    End;
+    DecodeDate(date,anio,mes,dia);
+    dias.text := InttoStr(dia);
+    meses.text  := MesALetras(mes);
+    anios.text := InttoStr(anio);
+    if (CarreraActiva='BAC') or (CarreraActiva='333') then begin
+          case StrToInt(Copy(Comi.Text,2,1)) of
+           1: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 8:30 a 11:30 hs.';
+           2: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 13:30 a 16:30 hs.';
+           3: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 17:30 a 20:00 hs.';
+           4: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 20:00 a 23:00 hs.';
+           end
+    end
+    else begin
+          case StrToInt(Copy(Comi.Text,2,1)) of
+          1: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 8:30 a 11:45 hs.';
+          2: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 13:30 a 16:45 hs.';
+          3: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 17:15 a 20:00 hs.';
+          4: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 20:00 a 23:15 hs.';
+          end
+    end;
+    antequien.SetFocus;
+  End;
+end;
+
+procedure TConstAlumnoRegular.CancelarClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TConstAlumnoRegular.ImprimirClick(Sender: TObject);
+Const
+ margen=1.80;
+ sangria=1.80;
+var
+ fila: Real;
+ Imagen : TMetaFile;
+begin
+ If DialogoImpre.Execute then
+  begin
+   //SeteoImpresora('A4','BAJA');
+   FormPreview := TFormPreview.Create(Self);
+   Imagen := TMetaFile.Create;
+   Imagen.LoadFromFile(UnidadPrograma+'\membrete_con_direccion.wmf');
+   FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen,GmCentimeters);
+   With FormPreview.VistaPrevia1 Do
+    Begin
+//     Title:='Constancia Alumno Regular';
+     BeginUpdate;
+      With Canvas Do
+       Begin
+        Pen.Width:=1;
+        Pen.Color:=ClWhite;
+        Font.Name := 'ARIAL';
+        Font.Size:= 12;
+        Font.Style:=[fsBold];
+        FILA:=5.00;
+        TextOut(7,Fila,'CONSTANCIA DE ALUMNO REGULAR',GmCentimeters);
+        Font.Size := 9;
+        Font.Style := [];
+        fila:=fila+2.00;
+        TextOut(margen + sangria,fila,Label2.Caption + ' ' + Apenom.Text + ' //',GmCentimeters);
+        fila:=fila+1.30;
+        If CarreraActiva='ASC' then
+         Begin
+          TextOut(margen,fila,Docum.Text + ', ' + Label3.Caption + ' ' + PasoAMayusculas(Copy(Carre.Text,1,51)) + ' //',GmCentimeters);
+          fila:=fila+1.30;
+          TextOut(margen,fila,PasoAMayusculas((Copy(Carre.Text,53,12)))+ ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1))) + ' cuatrimestre, ' + Label5.caption ,GmCentimeters);
+         End;
+        If (CarreraActiva='BAC') or (CarreraActiva='333') then
+         Begin
+          TextOut(margen,fila,Docum.Text + ', ' + Label3.Caption + ' ' + PasoAMayusculas(Copy(Carre.Text,1,56)) + ' //',GmCentimeters);
+          fila:=fila+1.30;
+          TextOut(margen,fila,PasoAMayusculas((Copy(Carre.Text,57,34)))+ ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1))) + ' cuatrimestre, ' + Label5.caption ,GmCentimeters);
+         End;
+        If (CarreraActiva='ADM') or (CarreraActiva='TAE') then
+         Begin
+          TextOut(margen,fila,Docum.Text + ', ' + Label3.Caption + ' ' + PasoAMayusculas(Copy(Carre.Text,1,50)) + ' //',GmCentimeters);
+          fila:=fila+1.30;
+          TextOut(margen,fila,PasoAMayusculas((Copy(Carre.Text,51,25)))+ ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1))) + ' cuatrimestre, ' + Label5.caption ,GmCentimeters);
+         End;
+        If CarreraActiva='RRP' then
+         Begin
+          TextOut(margen,fila,Docum.Text + ', ' + Label3.Caption + ' ' + PasoAMayusculas(Copy(Carre.Text,1,49)) + ' //',GmCentimeters);
+          fila:=fila+1.30;
+          TextOut(margen,fila,PasoAMayusculas((Copy(Carre.Text,50,33)))+ ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1))) + ' cuatrimestre, ' + Label5.caption ,GmCentimeters);
+          End;
+        If (CarreraActiva='RRH') or (CarreraActiva='TRH') then
+         Begin
+          TextOut(margen,fila,Docum.Text + ', ' + Label3.Caption + ' ' + PasoAMayusculas(Copy(Carre.Text,1,42)) + ' - ',GmCentimeters);
+          fila:=fila+1.30;
+          TextOut(margen,fila,LetrasCuat(StrtoInt(Copy(Comi.Text,1,1))) + ' cuatrimestre, ' + Label5.caption,GmCentimeters);
+          End;
+        fila:=fila+1.30;
+        TextBox(margen,fila,19,fila+3,memo.Lines.Text,taLeftJustify,GmCentimeters);
+        fila:=fila+3;
+        TextOut(margen+sangria,fila,Label6.Caption + ' ' + PasoAMayusculas(Antequien.Text) + '.',GmCentimeters);
+        fila:=fila+1.30;
+        TextOut(margen + sangria,fila,Label9.Caption + ' ' + dias.Text + ' ' + Label10.caption + meses.text + ' ' + Label11.Caption + anios.Text + '.',GmCentimeters);
+        fila:=fila+2.00;
+        TextOut(margen+5.00,fila,'SELLO',GmCentimeters);
+        TextOut(margen+13.50,fila,Funciones.Secretaria,GmCentimeters);
+        fila:=fila+0.50;
+        TextOut(margen+14.70,fila,'Secretaria',GmCentimeters);
+        fila:=fila+2.50;
+        TextOut(margen,fila,'NOTA: La presente certificación carecerá de valor si no estuviera firmada por la autoridad competente.-',GmCentimeters);
+        If (CarreraActiva ='ASC') or (CarreraActiva = 'ADM') or (CarreraActiva='RRP') or (CarreraActiva='RRH') or (CarreraActiva='TAE') or (CarreraActiva='TRH') then
+         Begin
+          fila:=fila+1.00;
+          TextOut(margen,fila,'La mencionada carrera cuenta con el 80% de la subvención del Estado',GmCentimeters);
+         end;
+      End;
+     EndUpdate;
+   End;
+  FormPreview.ShowModal;
+  Cancelar.Caption := '&Salir';
+  FormPreview.Free;
+ End;
+end;
+
+end.

@@ -1,0 +1,14 @@
+program Project1;
+
+uses
+  Forms,
+  NotasExamenFinal in 'NotasExamenFinal.pas' {NotasExamenes},
+  Funciones in '\\Esba-2\NEW PAILOT\New Pailot\PRG\ESBA\Funciones.pas';
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TNotasExamenes, NotasExamenes);
+  Application.Run;
+end.

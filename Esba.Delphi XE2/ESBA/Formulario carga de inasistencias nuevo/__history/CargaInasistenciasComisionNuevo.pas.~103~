@@ -1,0 +1,613 @@
+unit CargaInasistenciasComisionNuevo;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DB, StdCtrls, Buttons, kbmMemTable, Grids, DBGrids,
+  datamodule, FIBDataSet, pFIBDataSet, FIBDatabase, pFIBDatabase, FIBQuery,
+  pFIBQuery, Funciones, Vcl.ExtCtrls, System.DateUtils, Vcl.AppEvnts;
+
+type
+  TFrmCargaInaComiNuevo = class(TForm)
+    DataSource1: TDataSource;
+    Grilla: TDBGrid;
+    MtAlumnos: TkbmMemTable;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    MtAlumnosCODALU: TStringField;
+    MtAlumnosNOMBRE: TStringField;
+    IbupIns: TpFIBQuery;
+    TrFaltas: TpFIBTransaction;
+    DsFaltas: TpFIBDataSet;
+    Titulos: TMemo;
+    MtAlumnosCANTOT: TCurrencyField;
+    X2: TPanel;
+    X10: TPanel;
+    X3: TPanel;
+    XPanelMes: TPanel;
+    BitBtn1: TBitBtn;
+    BitBtn2: TBitBtn;
+    X9: TPanel;
+    X19: TPanel;
+    X18: TPanel;
+    X17: TPanel;
+    X16: TPanel;
+    X15: TPanel;
+    X12: TPanel;
+    MtFaltas: TkbmMemTable;
+    MtFaltasCODALU: TStringField;
+    MtFaltasFECHA: TDateField;
+    MtFaltasCODFAL: TStringField;
+    MtFaltasCANTID: TFloatField;
+    MtFaltasDESCRI: TStringField;
+    DataSource2: TDataSource;
+    DBGrid1: TDBGrid;
+    DataSource3: TDataSource;
+    ApplicationEvents1: TApplicationEvents;
+    M54: TMemo;
+    M53: TMemo;
+    M52: TMemo;
+    M51: TMemo;
+    M50: TMemo;
+    Panel1: TPanel;
+    ST54: TStaticText;
+    ST53: TStaticText;
+    ST52: TStaticText;
+    ST51: TStaticText;
+    ST50: TStaticText;
+    Panel2: TPanel;
+    Panel3: TPanel;
+    M40: TMemo;
+    M41: TMemo;
+    M42: TMemo;
+    M43: TMemo;
+    M44: TMemo;
+    ST44: TStaticText;
+    ST43: TStaticText;
+    ST42: TStaticText;
+    ST41: TStaticText;
+    ST40: TStaticText;
+    Panel4: TPanel;
+    Panel5: TPanel;
+    M30: TMemo;
+    M31: TMemo;
+    M32: TMemo;
+    M33: TMemo;
+    M34: TMemo;
+    ST34: TStaticText;
+    ST33: TStaticText;
+    ST32: TStaticText;
+    ST31: TStaticText;
+    ST30: TStaticText;
+    Panel6: TPanel;
+    PANEL22: TPanel;
+    M20: TMemo;
+    M21: TMemo;
+    M22: TMemo;
+    M23: TMemo;
+    M24: TMemo;
+    ST24: TStaticText;
+    ST23: TStaticText;
+    ST22: TStaticText;
+    ST21: TStaticText;
+    ST20: TStaticText;
+    Panel8: TPanel;
+    Panel9: TPanel;
+    M10: TMemo;
+    M11: TMemo;
+    M12: TMemo;
+    M13: TMemo;
+    M14: TMemo;
+    ST14: TStaticText;
+    ST13: TStaticText;
+    ST12: TStaticText;
+    ST11: TStaticText;
+    ST10: TStaticText;
+    Panel10: TPanel;
+    Panel11: TPanel;
+    M00: TMemo;
+    M01: TMemo;
+    M02: TMemo;
+    M03: TMemo;
+    M04: TMemo;
+    ST04: TStaticText;
+    ST03: TStaticText;
+    ST02: TStaticText;
+    ST01: TStaticText;
+    ST00: TStaticText;
+    BitBtn3: TBitBtn;
+    procedure GrillaDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure GrabamesaClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure MtAlumnosAfterScroll(DataSet: TDataSet);
+    procedure GrillaKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure BitBtn3Click(Sender: TObject);
+  private
+    FMaxMes: Word;
+    FMinMes: Word;
+    FMes: Word;
+    FAnio: Word;
+    FColHabilita: Array [0..4] of integer;
+    FDayHabilita: Array [0..5,0..4] of integer;
+    procedure MemoClick(Sender: TObject);
+    procedure MemoMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure MKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    { Private declarations }
+  public
+    function ValidateDatosParametros:string;
+    procedure DrawDayInPanels(const mes, anio: integer);
+    procedure DrawPanel(const fil, col, dia: integer; const text:string);
+    procedure ResetDefaultPanels;
+    procedure CargaFaltas(const codalu:string);
+  end;
+
+var
+  FrmCargaInaComiNuevo: TFrmCargaInaComiNuevo;
+  Comi,cuaanio, materia:String;
+  fecha: TdateTime;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmCargaInaComiNuevo.CargaFaltas(const codalu: string);
+begin
+
+end;
+
+procedure TFrmCargaInaComiNuevo.DrawPanel(const fil, col, dia: integer; const text:string);
+var
+  i: integer;
+begin
+  for I := 0 to FrmCargaInaComiNuevo.ComponentCount-1 do begin
+    if (FrmCargaInaComiNuevo.Components[i] is TMemo) and (FrmCargaInaComiNuevo.Components[i].Name='M'+IntToStr(fil)+IntToStr(col)) then begin
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Lines.clear;
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Lines.Add(text);
+      TMemo(FrmCargaInaComiNuevo.Components[i]).SelStart:=0;
+      TMemo(FrmCargaInaComiNuevo.Components[i]).SelLength:=0;
+      if (FColHabilita[col]=1) then
+        TMemo(FrmCargaInaComiNuevo.Components[i]).Color:=clGreen
+      else
+        TMemo(FrmCargaInaComiNuevo.Components[i]).Color:=clGray;
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Tag:=dia;
+    end
+    else if (FrmCargaInaComiNuevo.Components[i] is TStaticText) and (FrmCargaInaComiNuevo.Components[i].Name='ST'+IntToStr(fil)+IntToStr(col)) then begin
+      TStaticText(FrmCargaInaComiNuevo.Components[i]).Caption:=IntToStr(dia);
+    end;
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.ResetDefaultPanels;
+var
+  i: integer;
+begin
+  for I := 0 to FrmCargaInaComiNuevo.ComponentCount-1 do begin
+    if (FrmCargaInaComiNuevo.Components[i] is TMemo) and (Copy(FrmCargaInaComiNuevo.Components[i].Name,1,1)='M') then begin
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Lines.Clear;
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Color:=clBtnFace;
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Font.Size:=11;
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Font.Style:=[fsBold];
+      TMemo(FrmCargaInaComiNuevo.Components[i]).Cursor:= crArrow;
+    end
+    else if (FrmCargaInaComiNuevo.Components[i] is TStaticText) and (Copy(FrmCargaInaComiNuevo.Components[i].Name,1,2)='ST') then begin
+      TStaticText(FrmCargaInaComiNuevo.Components[i]).Caption:='';
+      TStaticText(FrmCargaInaComiNuevo.Components[i]).Color:=clBtnFace;
+    end;
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.MKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  i, fil, col: integer;
+begin
+  if key in [37,38,39,40] then begin
+    fil:=StrToInt(Copy(TMemo(Sender).Name,2,1));
+    col:=StrToInt(Copy(TMemo(Sender).Name,3,1));
+    if (Key=40) and (fil<5) then //bajar
+      fil:=fil+1
+    else if (Key=38) and (fil>0) then //subir
+      fil:=fil-1
+    else if (Key=39) and (col<4) then //izq
+      col:=col+1
+    else if (Key=37) and (col>0) then //dere
+      col:=col-1;
+    if not (FDayHabilita[fil,col]=1) then
+      exit;
+    TMemo(sender).Color:=clGreen;
+    for I := 0 to FrmCargaInaComiNuevo.ComponentCount-1 do
+      if (FrmCargaInaComiNuevo.Components[i] is TMemo) and (FrmCargaInaComiNuevo.Components[i].Name='M'+IntToStr(fil)+IntToStr(col)) then begin
+        TMemo(FrmCargaInaComiNuevo.Components[i]).SetFocus;
+        TMemo(FrmCargaInaComiNuevo.Components[i]).color:=clWhite;
+      end;
+  end
+  else if key in [VK_F1,VK_CONTROL] then begin
+    MemoClick(Sender);
+  end
+  else if key in [VK_TAB] then begin
+    Grilla.SetFocus;
+  end
+end;
+
+procedure TFrmCargaInaComiNuevo.DrawDayInPanels(const mes, anio: integer);
+Var
+  fil,col,day, dayweek, daymonth :integer;
+  dia:TDateTime;
+begin
+  ResetDefaultPanels;
+  daymonth:=DaysInAMonth(anio,mes);
+  for fil := 0 to 5 do
+    for col := 0 to 4 do
+      FdayHabilita[fil,col]:=0;
+
+  for day := 1 to daymonth do begin
+    dia:=EncodeDate(anio,mes,day);
+    dayweek:=DayOfWeek(dia);
+    if not (dayweek in [1,7]) then begin
+      col:=dayweek-2;
+      if (WeekOfTheYear(EncodeDate(anio,mes,day))>50) and (mes=1) then
+        fil:= 0 //WeekOfTheMonth(EncodeDate(anio,mes,day))-1;
+      else if (WeekOfTheYear(EncodeDate(anio,mes,day))=1) and (mes=12) then
+        fil:= 5 //WeekOfTheMonth(EncodeDate(anio,mes,day))-1;
+      else if (WeekOfTheYear(EncodeDate(anio,mes,daymonth))=1) and (mes=12) then
+        fil:= WeekOfTheYear(EncodeDate(anio,mes,day))-52+4
+      else
+        fil:= WeekOfTheYear(EncodeDate(anio,mes,day))-WeekOfTheYear(EncodeDate(anio,mes,daymonth))+4; //WeekOfTheMonth(EncodeDate(anio,mes,day))-1;
+      if MTFaltas.Locate('FECHA',DIA,[]) then begin
+         DrawPanel(fil,col,day,MtFaltasDESCRI.Value);
+      end
+      else begin
+         DrawPanel(fil,col,day,'');
+      end;
+      if FColHabilita[col]=1 then
+        FdayHabilita[fil,col]:=1;
+    end;
+  end;
+  XPanelMes.Caption:=UpperCase(Funciones.MesALetras(mes));
+end;
+
+function TFrmCargaInaComiNuevo.ValidateDatosParametros:string;
+var
+  query:string;
+  datos: variant;
+begin
+  result:='';
+  if (vcarrera<>'333') and (vcarrera<>'650') then begin
+    query:='SELECT DIA1, DIA2, DIA3 FROM COMARM C WHERE C.CARRE='''+VCarrera+''' AND C.CUTUCO='''+Comi+''' AND C.COD_MAT='''+materia+''' AND C.CUA_ANIO='''+cuaanio+'''';
+    datos:=null;
+    funciones.Consulta(query,datos);
+
+    FColHabilita[0]:=0;
+    FColHabilita[1]:=0;
+    FColHabilita[2]:=0;
+    FColHabilita[3]:=0;
+    FColHabilita[4]:=0;
+
+    if not VarIsNull(datos) then begin
+      if (datos[0]='BLANCO') and (datos[1]='BLANCO') and (datos[2]='BLANCO') then begin
+        result:='En la comision no esta cargada los dias de que se cursa';
+      end;
+      if ((datos[0]='LUNES') or (datos[1]='LUNES') or (datos[2]='LUNES')) then
+        FColHabilita[0]:=1;
+      if ((datos[0]='MARTES') or (datos[1]='MARTES') or (datos[2]='MARTES')) then
+        FColHabilita[1]:=1;
+      if ((datos[0]='MIERCOLES') or (datos[1]='MIERCOLES') or (datos[2]='MIERCOLES')) then
+        FColHabilita[2]:=1;
+      if ((datos[0]='JUEVES') or (datos[1]='JUEVES') or (datos[2]='JUEVES')) then
+        FColHabilita[3]:=1;
+      if ((datos[0]='VIERNES') or (datos[1]='VIERNES') or (datos[2]='VIERNES')) then
+        FColHabilita[4]:=1;
+    end
+    else
+      result:='No hay comision cargada para los datos ingresados';
+  end
+  else begin
+    FColHabilita[0]:=1;
+    FColHabilita[1]:=1;
+    FColHabilita[2]:=1;
+    FColHabilita[3]:=1;
+    FColHabilita[4]:=1;
+
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.GrillaDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+begin
+  with TDBGrid(Sender) do begin
+      if SelectedRows.IndexOf(DataSource.Dataset.Bookmark) >= 0 then
+        Canvas.Brush.Color := clPurple
+      else if gdSelected in State then begin
+        Canvas.Brush.Color := clHighlight;
+        Canvas.Font.Color:=ClWhite;
+      end;
+      DefaultDrawColumnCell(Rect,DataCol,Column,State);
+    end;
+end;
+
+procedure TFrmCargaInaComiNuevo.GrillaKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+var
+  i,fil, col:integer;
+begin
+  if key=vk_f2 then
+    dbgrid1.Visible:=not dbgrid1.Visible
+  else if (key=13) then begin
+    for fil := 0 to 5 do
+      for col := 0 to 4 do
+        if FDayHabilita[fil,col]=1 then begin
+          for i := 0 to FrmCargaInaComiNuevo.ComponentCount-1 do begin
+            if (FrmCargaInaComiNuevo.Components[i] is TMemo) and (FrmCargaInaComiNuevo.Components[i].Name='M'+IntToStr(fil)+IntToStr(col)) then begin
+              TMemo(FrmCargaInaComiNuevo.Components[i]).SetFocus;
+              key:=0;
+              exit;
+            end;
+          end;
+        end;
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.MtAlumnosAfterScroll(DataSet: TDataSet);
+begin
+  if not MtAlumnos.Eof then
+    DrawDayInPanels(FMes, FAnio);
+end;
+
+procedure TFrmCargaInaComiNuevo.MemoMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  fil, col, dia: integer;
+begin
+  if Button=mbRight then begin
+    fil:=StrToInt(Copy(TMemo(Sender).Name,2,1));
+    col:=StrToInt(Copy(TMemo(Sender).Name,3,1));
+    dia:=TMemo(Sender).Tag;
+    if MtFaltas.Locate('FECHA',EncodeDate(FAnio,FMes,Dia),[]) then begin
+      MtFaltas.Delete;
+    end;
+    DrawPanel(fil,col,dia,'');
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.MemoClick(Sender: TObject);
+var
+  fil, col, dia: integer;
+  b: Variant;
+begin
+  fil:=StrToInt(Copy(TMemo(Sender).Name,2,1));
+  col:=StrToInt(Copy(TMemo(Sender).Name,3,1));
+  if (FdayHabilita[fil,col]=1) then begin
+    if Funciones.combobusqueda('SELECT FCODIGO, FDESCRI, FCANTID FROM TBL_FALTAS WHERE CARRE IS NULL OR CARRE CONTAINING '''+VCarrera+'''',['Codigo','Descripcion','Cantidad'],b,True) then begin
+      dia:=TMemo(Sender).Tag;
+      if MtFaltas.Locate('FECHA',EncodeDate(FAnio,FMes,Dia),[]) then begin
+        MtFaltas.Edit;
+        MtFaltasCODFAL.Value:=b[0];
+        MtFaltasCANTID.Value:=b[2];
+        MtFaltasDESCRI.Value:=b[1];
+        MtFaltas.Post;
+      end
+      else begin
+        MtFaltas.Append;
+        MtFaltasCODALU.Value:=MtAlumnosCODALU.Value;
+        MtFaltasFECHA.Value:=EncodeDate(FAnio,FMes,Dia);
+        MtFaltasCODFAL.Value:=b[0];
+        MtFaltasCANTID.Value:=b[2];
+        MtFaltasDESCRI.Value:=b[1];
+        MtFaltas.Post;
+      end;
+      DrawPanel(fil,col,dia,b[1]);
+    end;
+    TMemo(Sender).SetFocus;
+    TMemo(Sender).Color:= clWhite;
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.BitBtn1Click(Sender: TObject);
+begin
+  if (FMes<12) and (FMes+1<=FMaxMes) then begin
+    FMes:=FMes+1;
+    DrawDayInPanels(FMes, FAnio);
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.BitBtn2Click(Sender: TObject);
+begin
+  if (FMes>1) and (FMes-1>=FMinMes) then begin
+    FMes:=FMes-1;
+    DrawDayInPanels(FMes, FAnio);
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.BitBtn3Click(Sender: TObject);
+begin
+  ShowMessage('Carga de asistencias por comision '+#13#10+
+              'Grilla:'+#13#10+
+              'Muestra los alumnos de la comision.'+#13#10+
+              'Calendario:'+#13#10+
+              'Muestra los dias correspondientes al mes detallado en la parte superior del mismo'+#13#10+
+              'los días pintados en verde estan habilitados para la carga de asistencia.'+#13#10+
+              'Al hacer click sobre un día habilitado y se le pedirá que'+#13#10+
+              'seleccione el tipo de asistencia. Después de seleccionar una de la lista el día'+#13#10+
+              'quedara pintado en blanco, esto le habilitará poder cambiar de día desde el teclado con las teclas'+#13#10+
+              'de dirección. Al seleccionar otro día con el teclado, quedará ese recuadro seleccionado en blanco,'+#13#10+
+              'estará habilitado para levantar la ventana del tipo de asistencia y lo podra hacer con dos teclas CTRL o F1.'+#13#10+
+              'Asi podra seguir sucesitavamente hasta terminar de cargar las faltas de ese mes del alumno.'+#13#10+
+              'Para volver a la grilla y seleccionar otro alumno basta con precionar la tecla TAB. Una vez en la grilla'+#13#10+
+              'seleccionar al alumno con las teclas de dirección y precionar ENTER para volver al primer día habilitado para la carga');
+end;
+
+procedure TFrmCargaInaComiNuevo.CancelaGrabacionClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmCargaInaComiNuevo.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if trfaltas.Active then
+      TrFaltas.Rollback;
+  trfaltas.Active:=False;
+  DsFaltas.Active:=False;
+  trfaltas.Active:=False;
+end;
+
+procedure TFrmCargaInaComiNuevo.FormCreate(Sender: TObject);
+begin
+  TrFaltas.BeforeStart:=CustomerData.BaseBeforeStart;
+end;
+
+procedure TFrmCargaInaComiNuevo.FormShow(Sender: TObject);
+var
+  dia, mes, year: word;
+  x: integer;
+  mt: TKbmMemTable;
+  q:String;
+  b: Variant;
+begin
+  mt:= TKbmMemTable.Create(Self);
+  try
+    Titulos.Lines.Clear;
+    Titulos.Lines.Add('Comision: '+comi);
+    Titulos.Lines.Add('Cuatrimestre/año: '+ cuaanio+' materia: '+materia);
+    Titulos.Lines.Add('Carrera:'+Vcarrera);
+
+    for x := 0 to FrmCargaInaComiNuevo.ComponentCount-1 do
+      if (FrmCargaInaComiNuevo.Components[x] is TMemo) and (Copy(FrmCargaInaComiNuevo.Components[x].Name,1,1)='M') then begin
+        TMemo(FrmCargaInaComiNuevo.Components[x]).OnClick := MemoClick;
+        TMemo(FrmCargaInaComiNuevo.Components[x]).OnMouseUp := MemoMouseUp;
+        TMemo(FrmCargaInaComiNuevo.Components[x]).OnKeyUp := MKeyUp;
+      end;
+
+    DsFaltas.SQLs.SelectSQL.Text:='SELECT CODALU, NOMBRE, CANANT, CODFAL, CANTID FROM XXX_FALTAS_COMISION('+#39+vCARRERA+#39+','+COMI+',null,'+cuaanio+','''+materia+''')';
+    if trfaltas.Active then
+       TrFaltas.Rollback;
+    trfaltas.Active:=true;
+    DsFaltas.Active:=true;
+    dsFaltas.First;
+    MtAlumnos.Active:=True;
+    MtFaltas.Active:=True;
+    while not (dsfaltas.Eof) do begin
+        MtAlumnos.Append;
+        MtAlumnosCODALU.Value:=DsFaltas.FieldByName('CODALU').Value;
+        MtAlumnosCANTOT.Value:=DsFaltas.FieldByName('CANANT').Value;
+        MtAlumnosNOMBRE.Value:=DsFaltas.FieldByName('NOMBRE').Value;
+        MtAlumnos.Post;
+        Q:='SELECT FECHA, CODFAL, CANTID, DESCRI FROM XXX_FALTAS_FALTAS('''+VCarrera+''', '+comi+', '+CUAANIO+','''+DsFaltas.FieldByName('CODALU').Value+''', '''+materia+''') ORDER BY FECHA';
+        Funciones.Carga_MemTable(Q,Mt,true);
+        Mt.First;
+        while Not Mt.Eof do begin
+          MtFaltas.Append;
+          MtFaltasCODALU.Value:= MtAlumnosCODALU.Value;
+          MtFaltasFECHA.Value:= Mt.FieldByName('FECHA').Value;
+          MtFaltasCODFAL.Value:= Mt.FieldByName('CODFAL').Value;
+          MtFaltasCANTID.Value:= Mt.FieldByName('CANTID').Value;
+          MtFaltasDESCRI.Value:= Mt.FieldByName('DESCRI').Value;
+          MtFaltas.Post;
+          Mt.Next;
+        end;
+        Mt.Active:=False;
+        DsFaltas.Next;
+    end;
+  finally
+    mt.Free;
+    mt:=nil;
+  end;
+  TrFaltas.Rollback;
+  trfaltas.Active:=False;
+  DsFaltas.Active:=False;
+  DecodeDate(date,FAnio,FMes,dia); //dia de hoy
+  MtAlumnos.First;
+  DrawDayInPanels(FMes, FAnio);
+  grilla.Repaint;
+  if (VCarrera='333') or (VCarrera='650') then begin
+    Funciones.Consulta('SELECT EXTRACT(MONTH FROM FDDEPRI), EXTRACT(MONTH FROM FHTATER) FROM TBL_TRIM WHERE FANIO='+IntToStr(FAnio),b);
+    if (Not VarIsNull(b)) or (not VarIsNull(b[0])) then begin
+      FMinMes:=b[0];
+      FMaxMes:=b[1];
+    end
+    else
+      raise Exception.Create('No hay cuatrimestre cargado');
+  end
+  else begin
+    Funciones.Consulta('SELECT EXTRACT(MONTH FROM FDDEPRI), EXTRACT(MONTH FROM FHTAPRI),EXTRACT(MONTH FROM FDDESEG), EXTRACT(MONTH FROM FHTASEG) FROM TBL_CUAT WHERE FANIO='+IntToStr(FAnio),b);
+    if (Not VarIsNull(b)) or (not VarIsNull(b[0])) then begin
+      if Copy(cuaanio,1,1)='1' then begin
+        FMinMes:=b[0];
+        FMaxMes:=b[1];
+      end
+      else begin
+        FMinMes:=b[2];
+        FMaxMes:=b[3];
+      end;
+    end
+    else
+      raise Exception.Create('No hay cuatrimestre cargado');
+  end;
+end;
+
+procedure TFrmCargaInaComiNuevo.GrabamesaClick(Sender: TObject);
+begin
+  MtAlumnos.First;
+  if trfaltas.Active then
+      TrFaltas.Rollback;
+  trfaltas.Active:=false;
+
+  try
+    if (VCarrera='333') or (VCarrera='650') then
+      IbUpins.SQL.Text:=' DELETE FROM FALTAS WHERE CARRERA=:CARRERA AND CUTUCO=:CUTUCO AND COD_MAT IS NULL AND EXTRACT(YEAR FROM FECHA)='+IntToStr(FAnio)+' AND EXTRACT(MONTH FROM FECHA) BETWEEN '+IntToStr(FMinMes)+' AND '+IntToStr(FMaxMes)
+    else
+      IbUpins.SQL.Text:=' DELETE FROM FALTAS WHERE CARRERA=:CARRERA AND CUTUCO=:CUTUCO AND COD_MAT='''+materia+''' AND EXTRACT(YEAR FROM FECHA)='+IntToStr(FAnio)+' AND EXTRACT(MONTH FROM FECHA) BETWEEN '+IntToStr(FMinMes)+' AND '+IntToStr(FMaxMes);
+    ibupins.ParamByName('CARRERA').Value:=vCARRERA;
+    ibupins.ParamByName('CUTUCO').Value:=COMI;
+    trfaltas.Active:=True;
+
+    ibupins.ExecQuery;
+    while not MTAlumnos.Eof do begin
+      MtFaltas.First;
+      while not MtFaltas.Eof do begin
+
+        IbUpins.SQL.Text:=' INSERT INTO FALTAS (CARRERA, CODALU, CUTUCO, FECHA, CODFAL, CANFAL,COD_MAT, USUARIO) '+
+                          ' VALUES (:CARRERA, :CODALU, :CUTUCO, :FECHA, :CODFAL, :CANFAL,:COD_MAT, :USUARIO) ';
+        ibupins.ParamByName('CARRERA').Value:=vCARRERA;
+        ibupins.ParamByName('CODALU').Value:=MtAlumnosCODALU.Value;
+        ibupins.ParamByName('CUTUCO').Value:=COMI;
+        ibupins.ParamByName('FECHA').Value:=MtFaltasFECHA.Value;
+        ibupins.ParamByName('CODFAL').Value:=MtFaltasCODFAL.Value;
+        ibupins.ParamByName('CANFAL').Value:=MtFaltasCANTID.Value;
+        if (VCarrera='333') or (VCarrera='650') then
+           ibupins.ParamByName('COD_MAT').Value:=null
+        else
+           ibupins.ParamByName('COD_MAT').Value:=materia;
+        ibupins.ParamByName('USUARIO').Value:=FUNCIONES.CodUsu;
+        ibupins.ExecQuery;
+        MtFaltas.Next;
+      end;
+      MtAlumnos.Next;
+    end;
+    trfaltas.Commit;
+    trfaltas.Active:=false;
+    MessageDlg(Pchar(VNombreUsuario + ', faltas grabadas'),mtInformation, [mbok],0,mbok);
+    close;
+  except
+    on e: exception do begin
+        ShowMessage(e.Message);
+        TrFaltas.Rollback;
+        ibupins.Close;
+    end;
+  end;
+end;
+
+end.

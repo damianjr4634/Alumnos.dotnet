@@ -1,0 +1,297 @@
+unit FuncionesDB;
+
+interface
+
+Uses
+  SysUtils, Printers, Windows, Messages, Classes, Controls,
+  Dialogs, Db, DBGrids, busqueda,FIBDatabase, pFIBDatabase, FIBQuery,
+  pFIBQuery, FIBDataSet, pFIBDataSet, Variants, kbmMemTable, DataModule;
+
+
+function ExecScript(const query:String):Integer;
+function ExecScriptMsg(const query:String):boolean;
+function ExecQuery_Params(const query:String; const params: array of string; const valores: Array of variant):integer;
+function SqlValidate(const query: string):boolean;
+procedure Consulta(const query:String; var datos:Variant);
+procedure Carga_MemTable(const query:String; var MemTable:TKbmMemtable; GenFld:Boolean);
+function combobusqueda(const query:string; const Titulos:array of string; var Campos:variant; const Show:boolean):boolean;
+
+implementation
+
+function ExecScriptMsg(const query:String):boolean;
+Var x:Integer;
+    Tr: TpFIBTransaction;
+    Ib: TpFIBQuery;
+begin
+  Result:=False;
+  try
+    Tr:= TpFIBTransaction.Create(nil);
+    Ib:= TpFIBQuery.Create(nil);
+    Ib.Transaction:=Tr;
+    tr.DefaultDatabase:= DataModule.CustomerData.FBase;
+    Ib.Database:= DataModule.CustomerData.FBase;
+    if Not DataModule.CustomerData.FBase.Connected then
+      DataModule.CustomerData.FBase.Connected:=True;
+    if tr.Active then
+      Tr.Rollback;
+    Tr.Active:=False;
+    Ib.sql.text:=query;
+    Tr.Active:=True;
+    Ib.ExecQuery;
+    if (ib.FieldCount>0) and (ib.FieldExist('ERRCOD',x)) then begin
+      if (ib.FieldByName('ERRCOD').Value=2) then begin
+        MessageDlg(ib.FieldByName('ERRMSG').Value,mtError,[mbok],0,mbok);
+        tr.Rollback;
+      end
+      else if (ib.FieldByName('ERRCOD').Value=1) then begin
+        If MessageDlg(ib.FieldByName('ERRMSG').Value,mtConfirmation,[mbyes,mbno],0,mbyes) = mrNo Then
+          tr.Rollback
+        else begin
+          tr.Commit;
+          Result:=true;
+        end;
+      end
+      else if (ib.FieldByName('ERRCOD').Value=0) and not ib.FieldByName('ERRMSG').IsNull then begin
+        MessageDlg(ib.FieldByName('ERRMSG').Value,mtError,[mbok],0,mbok);
+        Tr.Commit;
+        Result:=true;
+      end
+      else begin
+        Tr.Commit;
+        Result:=true;
+      end;
+    end;
+    Tr.Active:=False;
+    Ib.Close;
+  finally
+    Tr.Free;
+    Ib.Free;
+    Tr:=Nil;
+    Ib:=nil;
+  end;
+end;
+
+function SqlValidate(const query: string):boolean;
+Var
+   Tr: TpFIBTransaction;
+   Ib: TpFIBQuery;
+begin
+  Result:=False;
+  Tr:= TpFIBTransaction.Create(nil);
+  Ib:= TpFIBQuery.Create(nil);
+  try
+    Ib.Transaction:=Tr;
+    tr.DefaultDatabase:= DataModule.CustomerData.FBase;
+    Ib.Database:= DataModule.CustomerData.FBase;
+    if Not DataModule.CustomerData.FBase.Connected then
+      DataModule.CustomerData.FBase.Connected:=True;
+    if tr.Active then
+      Tr.Rollback;
+    Tr.Active:=False;
+    Ib.sql.text:=query;
+    Tr.Active:=True;
+    Ib.ExecQuery;
+    if ib.RowsAffected>0 then
+       Result:=true;
+    Tr.Commit;
+    Ib.Close;
+  finally
+    Tr.Free;
+    Ib.Free;
+    Tr:=Nil;
+    Ib:=nil;
+  end;
+end;
+
+Function ExecScript(const query:String):Integer;
+Var x:Integer;
+    Tr: TpFIBTransaction;
+    Ib: TpFIBQuery;
+begin
+result:=0;
+   try
+      Tr:= TpFIBTransaction.Create(nil);
+      Ib:= TpFIBQuery.Create(nil);
+      Ib.Transaction:=Tr;
+      tr.DefaultDatabase:= DataModule.CustomerData.FBase;
+      Ib.Database:= DataModule.CustomerData.FBase;
+      if Not DataModule.CustomerData.FBase.Connected then
+         DataModule.CustomerData.FBase.Connected:=True;
+      if tr.Active then
+           Tr.Rollback;
+      Tr.Active:=False;
+      Ib.sql.text:=query;
+      Tr.Active:=True;
+      Ib.ExecQuery;
+      result:=Ib.RowsAffected;
+      Tr.Commit;
+      Tr.Active:=False;
+   finally
+      Tr.Free;
+      Ib.Free;
+      Tr:=Nil;
+      Ib:=nil;
+   end;
+end;
+
+function ExecQuery_Params(const query:String; const params: array of string; const valores: Array of variant):integer;
+Var
+    Tr: TpFIBTransaction;
+    Ib: TpFIBQuery;
+    i: integer;
+begin
+
+  try
+    result := 0;
+    Tr := nil;
+    Ib := Nil;
+    Tr := TpFIBTransaction.Create(nil);
+    Ib := TpFIBQuery.Create(nil);
+    Ib.Transaction := Tr;
+    tr.DefaultDatabase:= DataModule.CustomerData.FBase;
+    Ib.Database:= DataModule.CustomerData.FBase;
+    if Not DataModule.CustomerData.FBase.Connected then
+       DataModule.CustomerData.FBase.Connected:=True;
+
+    Ib.SQL.Text := query;
+
+    Tr.StartTransaction;
+    Ib.Prepare;
+
+    for I := 0 to Length(params)-1 do begin
+      try
+          IB.SetParamValue(IB.Params.FindParam(Params[i]).Index,valores[i]);
+      except
+        on e: exception do
+          raise Exception.Create('Error al asignar parametro '+ params[i]+' valor '+valores[i]);
+      end;
+    end;
+    Ib.ExecQuery;
+    result:=Ib.RowsAffected;
+    Tr.Commit;
+  finally
+    if Tr.Active then
+      tr.Rollback;
+    Tr.Free;
+    Ib.Free;
+    Tr:=Nil;
+    Ib:=nil;
+  end;
+end;
+
+Procedure Consulta(const query:String; var datos:Variant);
+Var x:Integer;
+    Tr: TpFIBTransaction;
+    Ib: TpFIBDataSet;
+begin
+   datos:=null;
+   try
+      Tr:= TpFIBTransaction.Create(nil);
+      Ib:= TpFIBDataSet.Create(nil);
+      Ib.Transaction:=Tr;
+      tr.DefaultDatabase:= DataModule.CustomerData.FBase;
+      Ib.Database:= DataModule.CustomerData.FBase;
+      if tr.Active then
+           Tr.Rollback;
+       Tr.Active:=False;
+       Ib.Active:=False;
+       Ib.SQLs.SelectSQL.Text:=Query;
+       Tr.Active:=True;
+       Ib.Active:=True;
+       datos := VarArrayCreate([0, Ib.FieldCount], varVariant);
+       for x := 0 to Ib.FieldCount-1 do
+          datos[x]:=Ib.Fields.Fields[x].Value;
+       Tr.Commit;
+       Tr.Active:=False;
+       Ib.Active:=False;
+   finally
+      Tr.Free;
+      Ib.Free;
+      Tr:=Nil;
+      Ib:=nil;
+   end;
+end;
+
+Procedure Carga_MemTable(const query:String; var MemTable:TKbmMemtable; GenFld:Boolean);
+Var x:Integer;
+    Tr: TpFIBTransaction;
+    Ib: TpFIBDataSet;
+begin
+   try
+       Tr:= TpFIBTransaction.Create(nil);
+       Ib:= TpFIBDataSet.Create(nil);
+       Ib.Transaction:=Tr;
+       tr.DefaultDatabase:= DataModule.CustomerData.FBase;
+       Ib.Database:= DataModule.CustomerData.FBase;
+       if Tr.Active then
+            Tr.Rollback;
+       Tr.Active:=False;
+       ib.Active:=False;
+       ib.SQLs.SelectSQL.Text:=Query;
+       Tr.Active:=True;
+       ib.Active:=True;
+
+       if MemTable.Active then
+          MemTable.Active:=False;
+       if GenFld then begin
+           if MemTable.FieldCount<>0 then
+               MemTable.FieldDefs.Clear;
+           for x := 0 to ib.FieldCount-1 do Begin
+               MemTable.FieldDefs.Add(ib.Fields.Fields[x].FullName,ib.Fields.Fields[x].DataType,ib.Fields.Fields[x].Size,False);
+           end;
+           MemTable.CreateTable;
+       end;
+       ib.First;
+       MemTable.Active:=True;
+       while not ib.Eof do begin
+          MemTable.Append;
+          for x := 0 to ib.FieldCount-1 do
+             MemTable.Fields.fields[x].Value:=ib.FieldByName(MemTable.Fields.fields[x].fullname).Value;
+          MemTable.Post;
+          ib.Next;
+       end;
+       Tr.Commit;
+       Tr.Active:=False;
+       ib.Active:=False;
+   finally
+      Tr.Free;
+      Ib.Free;
+      Tr:=Nil;
+      Ib:=nil;
+   end;
+end;
+
+Procedure combobusqueda(const query:string; const Titulos:array of string; var Campos:variant; const Show:boolean);
+var x:integer;
+    Bsq:TFrmBusqueda;
+Begin
+  Bsq := TFrmBusqueda.Create(nil);
+  Bsq.Query.SQLs.SelectSQL.Clear;
+  Bsq.Query.SQLs.SelectSQL.Text:=Query;
+  SetLength(Busqueda.Titulos,high(titulos)+1);
+  Bsq.Query.Active:=True;
+  for x:=0 to high(Titulos) do begin
+     Bsq.Dbgrid1.Columns.Add;
+     Bsq.DbGrid1.Columns.Items[x].Field:=Bsq.Query.Fields.Fields[x];
+     Bsq.DbGrid1.Columns.Items[x].Field.DisplayLabel:=Titulos[x];
+     Bsq.DbGrid1.Columns.Items[x].Field.DisplayWidth:=Bsq.Query.Fields.Fields[x].DisplayWidth;
+     Busqueda.Titulos[x]:=Titulos[x];
+  end;
+  Bsq.Width:=50;
+  For x:=0 to High(Titulos) Do
+      Bsq.Width:=Bsq.Width+Bsq.dbgrid1.Columns.Items[x].Width;
+  Bsq.TxtBsq.Width:=Bsq.Width-30;
+  Bsq.Button1.Left:=Bsq.Width-Bsq.Button1.Width-10;
+  Bsq.Button2.Left:=Bsq.Width-Bsq.Button2.Width-Bsq.Button1.Width-20;
+  campos := VarArrayCreate([0, Bsq.Query.FieldCount], varVariant);
+  If Show Then
+     Bsq.ShowModal;
+  If Bsq.Query.Active Then Begin
+     For x:=0 to Bsq.Query.FieldCount-1 do
+       campos[x]:=Bsq.Query.Fields.Fields[x].Value;
+     Bsq.Query.Active:=False;
+  End;
+  Bsq.Free;
+  Bsq:=nil;
+End;
+end.

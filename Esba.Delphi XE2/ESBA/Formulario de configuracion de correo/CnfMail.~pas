@@ -1,0 +1,74 @@
+unit CnfMail;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls,inifiles;
+
+type
+  TFrmCnfMail = class(TForm)
+    Label1: TLabel;
+    correo: TEdit;
+    Label2: TLabel;
+    usuario: TEdit;
+    Label3: TLabel;
+    password: TEdit;
+    Label4: TLabel;
+    smtp: TEdit;
+    Label5: TLabel;
+    puerto: TEdit;
+    Button1: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmCnfMail: TFrmCnfMail;
+  VUnidadPrograma:String;
+  VUsuario:String;
+  IniFile :TiniFile;
+  Function EncriptarPass(Pass:String;Signo:Integer):String;
+implementation
+
+{$R *.dfm}
+
+Function EncriptarPass(Pass:String;Signo:Integer):String;
+Var
+  x : Integer;
+  Text : String;
+Begin
+  Text := '';
+  For x:=1 to Length(Pass) do
+    Text := Text + Chr(Ord(Pass[x])+(2*signo));
+  EncriptarPass := Text;
+End;
+
+procedure TFrmCnfMail.FormCreate(Sender: TObject);
+Begin
+  IniFile := TIniFile.Create(VUnidadPrograma);
+  Correo.text := IniFile.ReadString(VUsuario,'Correo','');
+  Usuario.text := IniFile.ReadString(VUsuario,'Usuario','');
+  Password.text := EncriptarPass(IniFile.ReadString(VUsuario,'Password',''),-1);
+  Smtp.text := IniFile.ReadString(VUsuario,'Smtp','');
+  Puerto.text := IniFile.ReadString(VUsuario,'Puerto','');
+  IniFile.Free;
+end;
+
+procedure TFrmCnfMail.Button1Click(Sender: TObject);
+begin
+  IniFile := TIniFile.Create(VUnidadPrograma);
+  IniFile.WriteString(VUsuario,'Correo',Correo.text);
+  IniFile.WriteString(VUsuario,'Usuario',Usuario.text);
+  IniFile.WriteString(VUsuario,'Password',EncriptarPass(Password.text,1));
+  IniFile.WriteString(VUsuario,'Smtp',Smtp.text);
+  IniFile.WriteString(VUsuario,'Puerto',Puerto.text);
+  IniFile.Free;
+  FrmCnfMail.Close;
+end;
+
+end.

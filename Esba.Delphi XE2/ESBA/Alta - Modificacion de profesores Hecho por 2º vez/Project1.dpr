@@ -1,0 +1,14 @@
+program Project1;
+
+uses
+  Forms,
+  FrmAltaModProfes in 'FrmAltaModProfes.pas' {FrmAltaModifProf},
+  FrmdeEspera in '\\Esba-2\NEW PAILOT\New Pailot\PRG\Formulario Video de espera\FrmdeEspera.pas' {VideoEspera};
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TFrmAltaModifProf, FrmAltaModifProf);
+  Application.Run;
+end.

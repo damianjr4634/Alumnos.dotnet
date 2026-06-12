@@ -1,0 +1,660 @@
+unit Equivalencia;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, Db, Grids, DBGrids, Buttons, ComCtrls,
+  ExtCtrls, DataModuleZeosLib, Mask, RXToolEdit, FIBDataSet, pFIBDataSet, FIBDatabase,
+  pFIBDatabase, Variants, RXCurrEdit,
+  FuncionesConfiguracion, FuncionesDB, FuncionesExcel, FuncionesSystem, FuncionesText, FuncionesVariant, FuncionesPrint;
+
+type
+  TFRMEquivalencias = class(TForm)
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    DataSource1: TDataSource;
+    MateriasCursando: TDBGrid;
+    Label1: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    Label2: TLabel;
+    MateriasCarreraCursa: TEdit;
+    Label3: TLabel;
+    MateriasApellidoyNombre: TEdit;
+    Label4: TLabel;
+    MateriasLibroMatriz: TEdit;
+    GroupBox3: TGroupBox;
+    Label5: TLabel;
+    GrabaMateria: TBitBtn;
+    salir: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    CursadaNueva: TBitBtn;
+    PageControl: TPageControl;
+    Equivalencia: TTabSheet;
+    paseregular: TTabSheet;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label11: TLabel;
+    Label8: TLabel;
+    Label10: TLabel;
+    ComboCuatrimestre: TComboBox;
+    turno: TEdit;
+    Comision: TEdit;
+    pasefinal: TTabSheet;
+    Label12: TLabel;
+    Label13: TLabel;
+    Label14: TLabel;
+    Label15: TLabel;
+    InstitutoPase: TEdit;
+    caracteristicaPase: TEdit;
+    RadioGroup1: TRadioGroup;
+    Interna: TRadioButton;
+    dgegp: TRadioButton;
+    Label16: TLabel;
+    Label17: TLabel;
+    Label18: TLabel;
+    Label19: TLabel;
+    InstitutoEquivalencia: TEdit;
+    CaracteristicaEquivalencia: TEdit;
+    Label20: TLabel;
+    Label21: TLabel;
+    colegio: TEdit;
+    documentacion: TGroupBox;
+    analiticocheck: TRadioButton;
+    constanciacheck: TRadioButton;
+    FechaNota: TDateEdit;
+    Actuacion: TComboEdit;
+    Label23: TLabel;
+    PRInstituto: TEdit;
+    Label24: TLabel;
+    PRCaracteristica: TEdit;
+    CuatrimestreAnio: TComboEdit;
+    ComboMaterias: TComboEdit;
+    NombreMat: TLabel;
+    CmbPlanes: TComboEdit;
+    TrCursada: TpFIBTransaction;
+    Ibcursada: TpFIBDataSet;
+    GroupBox4: TGroupBox;
+    PrAnalitico: TRadioButton;
+    PrConstancia: TRadioButton;
+    RadioGroup2: TRadioGroup;
+    PorMateria: TRadioButton;
+    PorCuatriAno: TRadioButton;
+    Label26: TLabel;
+    CmbCuatAno: TComboBox;
+    LblPlanes: TLabel;
+    Nota: TCurrencyEdit;
+    Label22: TLabel;
+    NotaPaseRegular: TCurrencyEdit;
+    PrFecha: TDateEdit;
+    Label9: TLabel;
+    GroupBox5: TGroupBox;
+    label0: TLabel;
+    ComboDocente: TComboEdit;
+    Label25: TLabel;
+    txtmateriacursada: TEdit;
+    Label27: TLabel;
+    txtcarreracursada: TEdit;
+    Label28: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure turnoKeyPress(Sender: TObject; var Key: Char);
+    procedure ComisionKeyPress(Sender: TObject; var Key: Char);
+    procedure CuatrimestreAnioKeyPress(Sender: TObject; var Key: Char);
+    procedure salirClick(Sender: TObject);
+    procedure CursadaNuevaClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrabaMateriaClick(Sender: TObject);
+    procedure InternaClick(Sender: TObject);
+    procedure dgegpClick(Sender: TObject);
+    procedure actuacionKeyPress(Sender: TObject; var Key: Char);
+    procedure notaKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboMateriasButtonClick(Sender: TObject);
+    procedure ComboMateriasExit(Sender: TObject);
+    procedure CmbPlanesButtonClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure PorMateriaClick(Sender: TObject);
+    procedure PorCuatriAnoClick(Sender: TObject);
+    procedure CmbPlanesExit(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ComboDocenteButtonClick(Sender: TObject);
+    procedure ComboDocenteExit(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FRMEquivalencias: TFRMEquivalencias;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String; // nose
+  VApellido : String; //Pasa el apellido del alumno activo
+  VNombre : String;  //Pasa el nombre del alumno activo
+  VLibroMatriz : String; //Pasa el libro matriz del alumno
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+  IngresoLibroMatriz, Numeronuevo: Boolean; // La utilizo para saber si tengo que llamar al formulario de cambio de libro matriz depues de finalizar la carga de las equivalencias, ya que no lo puedo llamar aca porque el registro de alumnos lo tengo bloqueado.
+  Function ValidoMateria(Formulario:TFRMEquivalencias):Boolean;
+  Function VerificoActuacion(NumActuacion:String):Boolean;
+
+implementation
+
+{$R *.DFM}
+
+uses
+  Carreras;
+
+Function VerificoActuacion(NumActuacion:String):Boolean;
+Var
+  Prueba : Integer;
+Begin
+  VerificoActuacion := True;
+  If Length(NumActuacion) <> 8 Then
+    VerificoActuacion := False;
+  Try
+    Prueba := StrToInt(Copy(NumActuacion,Length(NumActuacion)-1,2));
+    Prueba := StrToInt(Copy(NumActuacion,1,Length(NumActuacion)-3));
+  Except
+    VerificoActuacion := False;
+  End;
+End;
+
+Function ValidoMateria(Formulario:TFRMEquivalencias):Boolean;
+Var
+  Cont : Integer;
+  NombreMateria : String;
+  CodMatVerificar : String[2];
+  PuedeCursar,VerificoMateria : Boolean;
+begin
+{
+    PASAR ZLIB
+  ValidoMateria:=True;
+  With DataModule.CustomerData do
+    Begin
+              If TrQrVarios.Active Then
+                 TRQrVarios.Rollback;
+              TrQrVarios.Active:=False;
+              IbQrVarios.SQL.Clear;
+              IBQrVarios.SQL.Text:='SELECT FERRCOD, FERRMSG FROM XXX_INSC_VALMAT(:CODALU,:CARRE,:CODMAT,''A'');';
+              IBQrVarios.ParamByName('CODALU').AsString:=VCODALU;
+              IBQrVarios.ParamByName('CARRE').AsString:=VCarrera;
+              IBQrVarios.ParamByName('CODMAT').AsString:=Formulario.combomaterias.Text;
+              TrQrVarios.Active:=True;
+              IBQrVarios.ExecQuery;
+              If (IBQrVarios.FieldByName('FERRCOD').AsInteger=2) Then
+                Begin
+                 MessageDlg(PChar(VNombreUsuario + ', '+IBQrVarios.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+                 ValidoMateria:=False;
+                End;
+              TRQrVarios.Rollback;
+    end
+    }
+end;
+
+procedure TFRMEquivalencias.FormActivate(Sender: TObject);
+begin
+  LblPlanes.Caption:='';
+  IngresoLibroMatriz := False;
+  FRMEquivalencias.Height := 356;
+  MateriasCodigoAlumno.Text    := VCODALU;
+  MateriasCarreraCursa.Text    := VCarrera;
+  MateriasApellidoyNombre.Text := VApellido + ', ' + VNombre;
+  MateriasLibroMatriz.Text     := Copy(VlibroMatriz,1,2) + '/' + copy(VlibroMatriz,3,3);
+  ibcursada.SQLs.SelectSQL.Text:='SELECT C.MATRIZ, C.CUTUCO,  C.COD_MAT, M.SIGLA, C.CONDICION, C.CUA_ANIO '+
+                                 'FROM CURSADA C '+
+                                 'LEFT OUTER JOIN MATERIAS M ON C.COD_MAT=M.CODMATERI AND  C.CARRE=M.CODCARRE '+
+                                 'WHERE C.COD_ALU='+#39+VCODALU+#39+' AND C.CARRE='+#39+Vcarrera+#39;
+  IbCursada.Active:=True;
+  TrCursada.Active:=True;
+  If VCarrera = 'BAC' Then
+    ComboCuatrimestre.Items.Delete(5);
+end;
+
+
+procedure TFRMEquivalencias.turnoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)])) Then
+   Key := #0;
+ If (Key = #13) And (Turno.Text <> '') Then
+   Comision.SetFocus;
+end;
+
+procedure TFRMEquivalencias.ComisionKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)])) Then
+   Key := #0;
+ If (Key = #13) And (Comision.Text <> '') Then
+   CuatrimestreAnio.SetFocus;
+end;
+
+
+procedure TFRMEquivalencias.CuatrimestreAnioKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9','/',Chr(8), Chr(7), Chr(13), chr(9)])) Then
+   Key := #0;
+ If (Key = #13) And (CuatrimestreAnio.Text <> '') Then
+   Grabamateria.SetFocus;
+end;
+
+procedure TFRMEquivalencias.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+
+procedure TFRMEquivalencias.CursadaNuevaClick(Sender: TObject);
+begin
+ {
+    PASAR ZLIB
+ Nombremat.Caption:='';
+ ComboMaterias.Text:='';
+
+ FRMEquivalencias.Height := 634;
+ CursadaNueva.Enabled := False;
+ MateriasCursando.Enabled := False;
+ Salir.Enabled := False;
+ combomaterias.SetFocus;
+ PorMateria.Checked:=True;
+ PorMateriaClick(nil);
+
+ With CustomerData do
+    Begin
+      if (TrDSVarios.Active) then
+          TrDSVarios.Rollback;
+      TrDSVarios.Active:=False;
+      IbDSVarios.SQLs.SelectSQL.Clear;
+      IbDSVarios.SQLs.SelectSQL.Text:='SELECT NUM_ENTERO, NUM_FORMA, FERRMSG, FNUMNUE FROM XXX_NUMERO_EQUIVALENCIA('+#39+VCODALU+#39+','+#39+Vcarrera+#39+')';
+      trdsvarios.StartTransaction;
+      TrDSVarios.Active:=True;
+      IBDSVarios.Active:=True;
+      if (IbDSVarios.FieldByName('FERRMSG').AsString<>'') then
+         MessageDlg(Pchar(IbDSVarios.FieldByName('FERRMSG').AsString),mtInformation,[mbok],0,mbok);
+      NumeroNuevo:=False;
+      if (IbDSVarios.FieldByName('FNUMNUE').AsString='S') then
+         numeronuevo:=True;
+      Label16.Caption :=  'Ult. núm. de Act. Int.:'+ IbDSVarios.FieldByName('NUM_FORMA').Value;
+      InternaClick(self);
+      TrDSVarios.Commit;
+      TrDSVarios.Active:=False;
+      ibdsvarios.Close;
+    End;
+ If (Carreras.CarreIndexOf(VCarrera).tipo='TER') Then
+   begin
+     dgegp.Enabled := False;
+     interna.Checked := True;
+     colegio.enabled := false;
+     cmbplanes.enabled := True;
+     documentacion.Enabled := True;
+     Actuacion.Enabled:=True;
+     NotaPaseRegular.Enabled:=False;
+     PrFecha.Enabled:=False;
+     groupbox4.Enabled:=False;
+   end;
+ If (Carreras.CarreIndexOf(VCarrera).tipo='BAC') or (Carreras.CarreIndexOf(VCarrera).tipo='BAD') Then
+   Begin
+     pasefinal.Enabled := False;
+     Paseregular.Enabled := True;
+     ComboCuatrimestre.enabled:=False;
+     Turno.Enabled:=False;
+     Comision.Enabled:=False;
+   End;
+   }
+end;
+
+procedure TFRMEquivalencias.CancelaGrabacionClick(Sender: TObject);
+begin
+  FRMEquivalencias.Height := 356;
+  CursadaNueva.Enabled := True;
+  MateriasCursando.Enabled := True;
+  Salir.Enabled := True;
+end;
+
+procedure TFRMEquivalencias.GrabaMateriaClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  with CustomerData Do
+   Begin
+       TrUpVarios.Active:=False;
+       IbUpVarios.SQL.Clear;
+       if pormateria.Checked then begin
+            IbUpVarios.SQL.Text:='INSERT INTO ANALITIC (COD_ALU, APELLIDO, COD_MAT, CUA_ANIO, NOTA_MAT, FEC_FINAL, MATRIZ, CONDICION, INSTITUT, '+
+                                 'CARAC, ACTINT, ACTDGE, ACTSNE, CARRE, COLEGIO, "PLAN", A_C, NREG, USUARIO, FEQDOCE, FEQMATE, FEQCARRE, FEQINST) '+
+                                 'VALUES (:CODALU, :APELLIDO, :CODMAT, :CUAANIO, :NOTAMAT, :FECFINAL, :MATRIZ, :CONDICION, :INSTITUT, '+
+                                 ':CARAC, :ACTINT, :ACTDGE, :ACTSNE, :CARRE, :COLEGIO, :PLAN1, :A_C, :NREG, :USUARIO, :FEQDOCE, :FEQMATE, :FEQCARRE, :FEQINST);';
+       end else if porcuatriano.Checked then begin
+            IbUpVarios.SQL.Text:='INSERT INTO ANALITIC (COD_ALU, APELLIDO, COD_MAT, CUA_ANIO, NOTA_MAT, FEC_FINAL, MATRIZ, CONDICION, INSTITUT, '+
+                                 'CARAC, ACTINT, ACTDGE, ACTSNE, CARRE, COLEGIO, "PLAN", A_C, NREG, USUARIO, FEQDOCE, FEQMATE, FEQCARRE, FEQINST) '+
+                                 'SELECT :CODALU, :APELLIDO,M.CODMATERI, :CUAANIO, :NOTAMAT, :FECFINAL, :MATRIZ, :CONDICION, :INSTITUT, '+
+                                 ':CARAC, :ACTINT, :ACTDGE, :ACTSNE, :CARRE, :COLEGIO, :PLAN1, :A_C, :NREG, :USUARIO, :FEQDOCE, :FEQMATE, :FEQCARRE, :FEQINST '+
+                                 'FROM MATERIAS M '+
+                                 'WHERE M.CODCARRE=:MCARRE AND M.CUATRIM=:CUATRI AND M.ESTADO='+#39+'Y'+#39+' AND '+
+                                 'NOT EXISTS(SELECT 1 FROM ANALITIC A WHERE A.COD_ALU='+#39+VcodAlu+#39+' AND A.COD_MAT=M.CODMATERI AND A.CARRE='+#39+VCarrera+#39+')';
+       end
+   end;
+  If Pagecontrol.ActivePageIndex = 0 Then //equivalencia
+   Begin
+     If VLibroMatriz = '' Then
+       Begin
+         IngresoLibroMatriz := True;
+       End;
+       With CustomerData Do
+         Begin
+           if porcuatriano.Checked then begin
+              IbUpVarios.ParamByName('MCARRE').Value:=VCarrera;
+              IbUpVarios.ParamByName('CUATRI').Value:=CmbCuatAno.Text;
+           end else
+              IbUpVarios.ParamByName('CODMAT').Value:=combomaterias.text;
+
+           IbUpVarios.ParamByName('CODALU').Value:=VcodAlu;
+           IbUpVarios.ParamByName('APELLIDO').Value:=VApellido;
+           IbUpVarios.ParamByName('MATRIZ').Value:=VlibroMatriz;
+           IbUpVarios.ParamByName('CONDICION').Value:='EQUIVALENCIA';
+           IbUpVarios.ParamByName('INSTITUT').Value:=InstitutoEquivalencia.Text;
+           IbUpVarios.ParamByName('CARAC').Value:=CaracteristicaEquivalencia.Text;
+           If Interna.Checked Then
+                IbUpVarios.ParamByName('ACTINT').Value := Copy(Actuacion.Text,1,Length(Actuacion.Text)-3) + Copy(Actuacion.Text,Length(Actuacion.Text)-1,2);
+           If Dgegp.Checked Then
+                IbUpVarios.ParamByName('ACTDGE').Value:= Copy(Actuacion.Text,1,Length(Actuacion.Text)-3) + Copy(Actuacion.Text,Length(Actuacion.Text)-1,2);
+           IbUpVarios.ParamByName('CARRE').Value:=VCarrera;
+           IbUpVarios.ParamByName('COLEGIO').Value:=Colegio.Text;
+           IbUpVarios.ParamByName('PLAN1').Value:=CmbPlanes.Text;
+           if Constanciacheck.Checked Then
+                 IbUpVarios.ParamByName('A_C').Value:='C';
+           if analiticocheck.Checked Then
+                 IbUpVarios.ParamByName('A_C').Value:='A';
+           IbUpVarios.ParamByName('USUARIO').Value:=FuncionesConfiguracion.CodUsu;
+           IbUpVarios.ParamByName('FEQDOCE').Value:=ComboDocente.Text;
+           IbUpVarios.ParamByName('FEQMATE').Value:=txtmateriacursada.text;
+           IbUpVarios.ParamByName('FEQCARRE').Value:=txtcarreracursada.Text;
+           IbUpVarios.ParamByName('FEQINST').Value:=InstitutoEquivalencia.Text;
+           TrUpVarios.Active:=True;
+           IBUPVarios.ExecQuery;
+           TrUpVarios.Commit;
+           TrUpVarios.Active:=False;
+           CancelaGrabacionClick(Sender);
+           IF (numeronuevo) and not (dgegp.Checked) then begin
+              if (TrqrVarios.Active) then
+                  TrqrVarios.Rollback;
+              TrqrVarios.Active:=False;
+              ibqrVarios.SQL.Clear;
+              IbqrVarios.SQL.Text:='EXECUTE PROCEDURE XXX_GRABA_NUMEQUI('+Copy(Actuacion.Text,1,Length(Actuacion.Text)-3)+','+#39+vCARRERA+#39+')';
+              TrqrVarios.Active:=True;
+              IBqrVarios.ExecQuery;
+              TrqrVarios.Commit;
+              TrqrVarios.Active:=False;
+           end;
+       End;
+   End;
+  If Pagecontrol.ActivePageIndex = 1 Then //pase/regular
+   Begin
+    With CustomerData Do
+      Begin
+         if (Vcarrera='BAC') or (vcarrera='333') or (vcarrera='650') or (Vcarrera='CNA') then
+           Begin
+             IbUpVarios.ParamByName('CODALU').Value:=VcodAlu;
+             IbUpVarios.ParamByName('APELLIDO').Value:=VApellido;
+             IbUpVarios.ParamByName('CODMAT').Value:=combomaterias.text;
+             IbUpVarios.ParamByName('NOTAMAT').Value:=NotaPaseRegular.Value;
+             IbUpVarios.ParamByName('MATRIZ').Value:=VlibroMatriz;
+             IbUpVarios.ParamByName('CONDICION').Value:='REGULAR';
+             IbUpVarios.ParamByName('INSTITUT').Value:=PRInstituto.Text;
+             IbUpVarios.ParamByName('CARAC').Value:=PRCaracteristica.Text;
+             ibUpvarios.ParamByName('CUAANIO').AsString  := Copy(CuatrimestreAnio.Text,1,1) + Copy(CuatrimestreAnio.Text,3,2);
+             IbUpVarios.ParamByName('CARRE').Value:=VCarrera;
+             IbUpVarios.ParamByName('FECFINAL').Value:=PRFecha.Date;
+             if PrConstancia.Checked Then
+                   IbUpVarios.ParamByName('A_C').Value:='C';
+             if PrAnalitico.Checked Then
+                   IbUpVarios.ParamByName('A_C').Value:='A';
+             IbUpVarios.ParamByName('USUARIO').Value:=VnombreUsuario;
+             IbUpVarios.ParamByName('FEQDOCE').Value:=ComboDocente.Text;
+             IbUpVarios.ParamByName('FEQMATE').Value:=txtmateriacursada.text;
+             IbUpVarios.ParamByName('FEQCARRE').Value:=txtcarreracursada.Text;
+             IbUpVarios.ParamByName('FEQINST').Value:=InstitutoEquivalencia.Text;
+             TrUpVarios.Active:=True;
+             IBUPVarios.ExecQuery;
+             TrUpVarios.Commit;
+             TrUpVarios.Active:=False;
+             CancelaGrabacionClick(Sender);
+          end
+        Else
+          begin
+               with CustomerData Do
+                Begin
+                  if TrUpVarios.Active then
+                      TrUpVarios.Rollback;
+                  TrUpVarios.Active:=False;
+                  IbUpVarios.SQL.Clear;
+                  IbUpVarios.SQL.Text:='INSERT INTO CURSADA(COD_ALU,APELLIDO,CARRE,CUTUCO,'+
+                                       ' CUA_ANIO,MATRIZ,INSTITUT,CARAC,CONDICION,COD_MAT,NREG, TP_EVA,FECHA1,USUARIO) ' +
+                                       'VALUES(:COD_ALU,:APELLIDO,:CARRE,:CUTUCO, '+
+                                       ' :CUA_ANIO,:MATRIZ,:INSTITUT,:CARAC,:CONDICION,:COD_MAT,0,:TPEVA,:FECHA1,:USUARIO)';
+                  IbUpVarios.ParamByName('COD_ALU').Value:=VcodAlu;
+                  IbUpVarios.ParamByName('APELLIDO').Value:=VApellido;
+                  IbUpVarios.ParamByName('COD_MAT').Value:=combomaterias.text;
+                  IbUpVarios.ParamByName('MATRIZ').Value:=VlibroMatriz;
+                  IbUpVarios.ParamByName('CONDICION').Value:='REGULAR';
+                  IbUpVarios.ParamByName('INSTITUT').Value:=PRInstituto.Text;
+                  IbUpVarios.ParamByName('CARAC').Value:=PRCaracteristica.Text;
+                  IbUpVarios.ParamByName('CUTUCO').Value:=((ComBoCuatrimestre.ItemIndex + 1)*100) + (StrToInt(Turno.Text)*10) + StrToInt(Comision.Text);
+                  ibUpvarios.ParamByName('CUA_ANIO').AsString  := Copy(CuatrimestreAnio.Text,1,1) + Copy(CuatrimestreAnio.Text,3,2);
+                  IbUpVarios.ParamByName('CARRE').Value:=VCarrera;
+                  IbUpVarios.ParamByName('USUARIO').Value:=VnombreUsuario;
+                  TrUpVarios.Active:=True;
+                  IBUPVarios.ExecQuery;
+                  TrUpVarios.Commit;
+                  TrUpVarios.Active:=False;
+                  CancelaGrabacionClick(Sender);
+                end;
+          end
+      END
+   End;
+  If Pagecontrol.ActivePageIndex = 2 Then //Pase/final
+   Begin
+     If VLibroMatriz = '' Then
+         IngresoLibroMatriz := True;
+     With CustomerData do
+       begin
+         IbUpVarios.ParamByName('CODALU').Value:=VcodAlu;
+         IbUpVarios.ParamByName('APELLIDO').Value:=VApellido;
+         IbUpVarios.ParamByName('CODMAT').Value:=combomaterias.text;
+         IbUpVarios.ParamByName('NOTAMAT').Value:=Nota.Value;
+         IbUpVarios.ParamByName('MATRIZ').Value:=VlibroMatriz;
+         IbUpVarios.ParamByName('CONDICION').Value:='PASE/FINAL';
+         IbUpVarios.ParamByName('INSTITUT').Value:=InstitutoPase.Text;
+         IbUpVarios.ParamByName('CARAC').Value:=CaracteristicaPase.Text;
+         IbUpVarios.ParamByName('CARRE').Value:=VCarrera;
+         IbUpVarios.ParamByName('FECFINAL').AsDateTime := FechaNota.Date;
+         IbUpVarios.ParamByName('USUARIO').Value:=VnombreUsuario;
+         IbUpVarios.ParamByName('FEQDOCE').Value:=ComboDocente.Text;
+         IbUpVarios.ParamByName('FEQMATE').Value:=txtmateriacursada.text;
+         IbUpVarios.ParamByName('FEQCARRE').Value:=txtcarreracursada.Text;
+         IbUpVarios.ParamByName('FEQINST').Value:=InstitutoEquivalencia.Text;
+         TrUpVarios.Active:=True;
+         IBUPVarios.ExecQuery;
+         TrUpVarios.Commit;
+         CancelaGrabacionClick(Sender);
+      end
+   End;
+  TrCursada.Rollback;
+  IbCursada.Active:=False;
+  TrCursada.Active:=False;
+  IbCursada.Active:=True;
+  TrCursada.Active:=True;
+  }
+end;
+
+procedure TFRMEquivalencias.InternaClick(Sender: TObject);
+begin
+  If Interna.Checked Then
+    Actuacion.Text := Copy(Label16.Caption, Length(Label16.Caption)-14,15)
+  Else
+    Actuacion.Text := '';
+end;
+
+procedure TFRMEquivalencias.dgegpClick(Sender: TObject);
+begin
+  If dgegp.Checked Then
+    Actuacion.Text := ''
+  Else
+    Actuacion.Text := Copy(Label16.Caption, Length(Label16.Caption)-14,15);
+end;
+
+procedure TFRMEquivalencias.actuacionKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Not (charinset(key,['0'..'9',chr(8),'/'])) Then
+     Key := #0
+end;
+
+procedure TFRMEquivalencias.notaKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Not (charinset(key,['0'..'9','/',Chr(8), Chr(7), Chr(13), chr(9),','])) Then
+   Key := #0;
+end;
+
+procedure TFRMEquivalencias.ComboDocenteButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL ORDER BY 1',['Codigo','Nombre'],b,True);
+  Combodocente.Text:=b[0];
+  label28.Caption:=b[1];
+end;
+
+procedure TFRMEquivalencias.ComboDocenteExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (Combodocente.Text<>'') Then Begin
+      ComBodocente.Text:=Lpad(Combodocente.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL AND CODPROFES='''+combodocente.Text+''' ORDER BY 1',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         Combodocente.SetFocus;
+      end
+      else begin
+         Combodocente.Text:=b[0];
+         label2.Caption:=b[1];
+      end
+  end
+end;
+
+procedure TFRMEquivalencias.ComboMateriasButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI, CUATRIM FROM MATERIAS WHERE CODCARRE='#39+VCARRERA+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias.Text:=b[0];
+  NombreMat.Caption:=b[1];
+  if (pagecontrol.ActivePageIndex=1) then
+        combocuatrimestre.itemindex:=b[2]-1;
+end;
+
+procedure TFRMEquivalencias.ComboMateriasExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboMaterias.Text<>'') Then Begin
+      ComBoMaterias.Text:=Lpad(ComboMaterias.Text,2,'0');
+      FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI, CUATRIM FROM MATERIAS WHERE CODCARRE='#39+VCARRERA+#39+' AND CODMATERI='#39+ComBoMaterias.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,false);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboMaterias.SetFocus;
+      end
+      else begin
+          ComboMaterias.Text:=b[0];
+          NombreMat.Caption:=b[1];
+          If not ValidoMateria(FRMEquivalencias) Then
+             ComboMaterias.SetFocus;
+          if (pagecontrol.ActivePageIndex=1) then
+              combocuatrimestre.itemindex:=b[2]-1;
+      end
+  end
+  else
+     NombreMat.Caption:='';
+end;
+
+procedure TFRMEquivalencias.CmbPlanesButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT FCODIGO, FDESCRI FROM TBLPLANES',['Codigo','Nombre'],b,True);
+  CmbPlanes.Text:=b[0];
+  LblPlanes.Caption:=b[1];
+end;
+
+procedure TFRMEquivalencias.CmbPlanesExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (CmbPlanes.Text<>'') Then Begin
+      CmbPlanes.Text:=Lpad(CmbPlanes.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT FCODIGO, FDESCRI FROM TBLPLANES WHERE FCODIGO='+#39+CmbPlanes.Text+#39,['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         CmbPlanes.SetFocus;
+      end
+      else begin
+          CmbPlanes.Text:=b[0];
+          LblPlanes.Caption:=b[1];
+      end
+  end
+  else
+     LblPlanes.Caption:='';
+end;
+
+procedure TFRMEquivalencias.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+   if TrCursada.Active then
+      TrCursada.Rollback;
+   TrCursada.Active:=False;
+   IBCursada.Active:=False;
+end;
+
+procedure TFRMEquivalencias.FormCreate(Sender: TObject);
+begin
+  TrCursada.BeforeStart:=CustomerData.BaseBeforeStart;
+end;
+
+procedure TFRMEquivalencias.PorMateriaClick(Sender: TObject);
+begin
+  If Pormateria.checked then begin
+      CmbCuatAno.Enabled:=False;
+      comboMaterias.Enabled:=True;
+      CmbCuatAno.ItemIndex:=-1;
+      PaseRegular.Enabled:=True;
+      PaseFinal.Enabled:=True;
+  end else begin
+      CmbCuatAno.Enabled:=True;
+      comboMaterias.Enabled:=False;
+      combomaterias.Text:='';
+      Nombremat.Caption:='';
+      PaseRegular.Enabled:=False;
+      PaseFinal.Enabled:=False;
+  end
+end;
+
+procedure TFRMEquivalencias.PorCuatriAnoClick(Sender: TObject);
+begin
+  If PorCuatriAno.checked then begin
+      CmbCuatAno.Enabled:=True;
+      comboMaterias.Enabled:=False;
+      combomaterias.Text:='';
+      Nombremat.Caption:='';
+      PaseRegular.Enabled:=False;
+      PaseFinal.Enabled:=False;
+  end else begin
+      CmbCuatAno.Enabled:=False;
+      comboMaterias.Enabled:=True;
+      CmbCuatAno.ItemIndex:=-1;
+      PaseRegular.Enabled:=True;
+      PaseFinal.Enabled:=True;
+  end
+end;
+
+end.

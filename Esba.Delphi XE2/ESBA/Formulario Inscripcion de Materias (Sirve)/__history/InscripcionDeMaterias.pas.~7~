@@ -1,0 +1,420 @@
+unit InscripcionDeMaterias;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls,Grids, DBGrids, Buttons, Funciones, DataModule,
+  Mask, ToolEdit, DB, Variants;
+type
+  TInscripcionMaterias = class(TForm)
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    DataSource1: TDataSource;
+    MateriasCursando: TDBGrid;
+    Label1: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    Label2: TLabel;
+    MateriasCarreraCursa: TEdit;
+    Label3: TLabel;
+    MateriasApellidoyNombre: TEdit;
+    Label4: TLabel;
+    MateriasLibroMatriz: TEdit;
+    GroupBox3: TGroupBox;
+    Label5: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label10: TLabel;
+    ComboCondicionAlumno: TComboBox;
+    GrabaMateria: TBitBtn;
+    Comision: TEdit;
+    modificacursada: TBitBtn;
+    eliminacursada: TBitBtn;
+    salir: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    turno: TEdit;
+    CursadaNueva: TBitBtn;
+    Label11: TLabel;
+    Conjunto: TBitBtn;
+    CuatrimestreAnio: TComboEdit;
+    ComboMaterias: TComboEdit;
+    NombreMat: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure CursadaNuevaClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure modificacursadaClick(Sender: TObject);
+    procedure eliminacursadaClick(Sender: TObject);
+    procedure GrabaMateriaClick(Sender: TObject);
+    procedure MateriasCursandoKeyPress(Sender: TObject; var Key: Char);
+    procedure ConjuntoClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ComboMateriasButtonClick(Sender: TObject);
+    procedure ComboMateriasExit(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    procedure Excepciones(Sender: TObject; E: Exception);
+  end;
+
+
+var
+  InscripcionMaterias: TInscripcionMaterias;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String; // nose
+  VApellido : String; //Pasa el apellido del alumno activo
+  VNombre : String;  //Pasa el nombre del alumno activo
+  VLibroMatriz : String; //Pasa el libro matriz del alumno
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+  Function ValidoMateria(Formulario:TInscripcionMaterias):Boolean;
+
+implementation
+uses IBExternals, uMensajesError;
+{$R *.DFM}
+
+procedure TInscripcionMaterias.Excepciones(Sender: TObject; E: Exception);
+begin
+  if not MostrarMensajeIB(E,'') then
+       Application.ShowException(E);
+end;
+
+
+Function ValidoMateria(Formulario:TInscripcionMaterias):Boolean;
+Var
+  PuedeCursar,VerificoMateria : Boolean;
+begin
+With Formulario do
+Begin
+ PuedeCursar := True;
+ VerificoMateria := True;
+ If (Modificacion) And (ComboMaterias.text = DataModule.CustomerData.IBInscMaterias.FieldbyName('COD_MAT').AsString) Then
+    VerificoMateria := False;
+ If VerificoMateria Then
+  Begin
+    With DataModule.CustomerData do
+      Begin
+        If TrQrVarios.Active Then
+           TRQrVarios.Rollback;
+        TrQrVarios.Active:=False;
+        IbQrVarios.SQL.Clear;
+        IBQrVarios.SQL.Text:='SELECT FERRCOD, FERRMSG FROM XXX_INSC_VALMAT(:CODALU,:CARRE,:CODMAT,''I'');';
+        IBQrVarios.ParamByName('CODALU').AsString:=VCODALU;
+        IBQrVarios.ParamByName('CARRE').AsString:=VCarrera;
+        IBQrVarios.ParamByName('CODMAT').AsString:=ComboMaterias.Text;
+        TrQrVarios.Active:=True;
+        IBQrVarios.ExecQuery;
+        If (IBQrVarios.FieldByName('FERRCOD').AsInteger=2) Then
+          Begin
+           PuedeCursar:=False;
+           MessageDlg(PChar(VNombreUsuario + ', '+IBQrVarios.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+          End
+        ELSE If (IBQrVarios.FieldByName('FERRCOD').AsInteger=1) and
+                (MessageDlg(PChar(VNombreUsuario + ', '+IBQrVarios.FieldByName('FERRMSG').AsString),mtConfirmation,[mbyes,mbno],0,mbno)=mrno) Then
+          Begin
+            PuedeCursar:=False;
+          End;
+        TRQrVarios.Rollback;
+        TrQrVarios.Active:=False;
+      End
+  End;
+ ValidoMateria := PuedeCursar;
+End;
+end;
+
+procedure TInscripcionMaterias.FormActivate(Sender: TObject);
+begin
+  InscripcionMaterias.Height := 357;
+  MateriasCodigoAlumno.Text    := VCODALU;
+  MateriasCarreraCursa.Text    := VCarrera;
+  MateriasApellidoyNombre.Text := VApellido + ', ' + VNombre;
+  MateriasLibroMatriz.Text     := Copy(VlibroMatriz,1,2) + '/' + copy(VlibroMatriz,3,3);
+  DataModule.CustomerData.TrInscMaterias.Active:=False;
+  DataModule.CustomerData.IBInscMaterias.ParamByName('CodigoAlumno').AsString:=VCODALU;
+  DataModule.CustomerData.IBInscMaterias.ParamByName('CARRE').AsString:=VCARRERA;
+  DataModule.CustomerData.TrInscMaterias.Active:=True;
+  DataModule.CustomerData.IBInscMaterias.Active:=True;
+  ModificaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+  EliminaCursada.Enabled :=  DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+  CuatrimestreAnio.Text := Copy(Cuatrimestre(),1,1)+'/'+Copy(Cuatrimestre(),2,2);
+  VCuatrimestreAnio := CuatrimestreAnio.Text;
+  ComboCondicionAlumno.itemIndex := 0;
+end;
+
+procedure TInscripcionMaterias.CursadaNuevaClick(Sender: TObject);
+begin
+ MateriasCursando.Enabled := False;
+ CursadaNueva.Enabled := False;
+ ModificaCursada.Enabled := False;
+ EliminaCursada.Enabled := False;
+ Salir.Enabled := False;
+ InscripcionMaterias.Height := 531;
+ ComboMaterias.Text := '';
+ Turno.Text := '';
+ Comision.Text := '';
+ ComboCondicionAlumno.ItemIndex := -1;
+ CuatrimestreAnio.Text := Copy(Cuatrimestre(vcarrera),1,1)+'/'+Copy(Cuatrimestre(vcarrera),2,2);
+ ComboMaterias.SetFocus;
+ Conjunto.Enabled := False;
+end;
+
+procedure TInscripcionMaterias.CancelaGrabacionClick(Sender: TObject);
+begin
+ InscripcionMaterias.Height := 357;
+ CursadaNueva.Enabled := True;
+ ModificaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount<>0;
+ EliminaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount<>0;
+ Salir.Enabled := True;
+ Modificacion := False;
+ MateriasCursando.Enabled := True;
+ Conjunto.Enabled := True;
+ ComboMaterias.Text := '';
+ Turno.Text := '';
+ Comision.Text := '';
+ ComboCondicionAlumno.ItemIndex := -1
+end;
+
+procedure TInscripcionMaterias.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TInscripcionMaterias.modificacursadaClick(Sender: TObject);
+begin
+     if not CustomerData.IbInscmaterias.Active then
+        exit;
+     if CustomerData.IbInscmaterias.RecordCount=0 then
+        exit;
+     MateriasCursando.Enabled := False;
+     InscripcionMaterias.Height := 531;
+     ComboMaterias.SetFocus;
+     Modificacion := True;
+     CursadaNueva.Enabled := False;
+     ModificaCursada.Enabled := False;
+     EliminaCursada.Enabled := False;
+     Salir.Enabled := False;
+     ComboMaterias.Text := DataModule.CustomerData.IBInscMaterias.FieldByName('COD_MAT').AsString;
+     Turno.Text := Copy(IntToStr(DataModule.CustomerData.IBInscMaterias.FieldByName('CUTUCO').AsInteger),2,1);
+     Comision.Text := Copy(IntToStr(DataModule.CustomerData.IBInscMaterias.FieldByName('CUTUCO').AsInteger),3,1);
+     ComboCondicionAlumno.ItemIndex := ComboCondicionAlumno.Items.IndexOf(Trim(DataModule.CustomerData.IBInscMaterias.FieldByName('CONDICION').AsString));
+     CuatrimestreAnio.Text := Copy(DataModule.CustomerData.IBInscMaterias.FieldByName('CUA_ANIO').AsString,1,1) + '/' + Copy(DataModule.CustomerData.IBInscMaterias.FieldByName('CUA_ANIO').AsString,2,2);
+     Conjunto.Enabled := False;
+     ComboMaterias.OnExit(Sender);
+end;
+
+procedure TInscripcionMaterias.eliminacursadaClick(Sender: TObject);
+Var
+  Mat : String;
+  x : Integer;
+begin
+ if MessageDlg(Pchar(VNombreUsuario + ', estas seguro que deseas eliminar la cursada de' + Chr(13) +
+                        'la materia ' + DataModule.CustomerData.IBInscMaterias.FieldByName('DESCRIPCI').AsString),mtConfirmation,[mbyes,mbno],0,mbno)=mryes Then
+   Begin
+     if DataModule.CustomerData.TRDlVarios.Active then
+        DataModule.CustomerData.TRDlVarios.Rollback;
+     DataModule.CustomerData.TRDlVarios.Active:=False;
+     DataModule.CustomerData.IBDlVarios.SQL.Clear;
+     DataModule.CustomerData.IBDlVarios.SQL.Text:='DELETE FROM CURSADA WHERE COD_ALU=:CODALU AND CARRE=:CARRE AND COD_MAT=:CODMAT;';
+     DataModule.CustomerData.IBDlVarios.ParamByName('CODALU').AsString:=VCODALU;
+     DataModule.CustomerData.IBDlVarios.ParamByName('CARRE').AsString:=VCarrera;
+     DataModule.CustomerData.IBDlVarios.ParamByName('CODMAT').AsString:=DataModule.CustomerData.IBInscmaterias.FieldByName('COD_MAT').AsString;
+     DataModule.CustomerData.TRDlVarios.Active:=True;
+     DataModule.CustomerData.IBDlVarios.ExecQuery;
+     DataModule.CustomerData.TRDlVarios.Commit;
+     DataModule.CustomerData.TRDlVarios.Active:=False;
+     DataModule.CustomerData.TrInscMaterias.Rollback;
+     DataModule.CustomerData.TrInscMaterias.Active:=False;
+     DataModule.CustomerData.IBInscMaterias.ParamByName('CodigoAlumno').AsString:=VCODALU;
+     DataModule.CustomerData.IBInscMaterias.ParamByName('CARRE').AsString:=VCARRERA;
+     DataModule.CustomerData.TrInscMaterias.Active:=True;
+     DataModule.CustomerData.IBInscMaterias.Active:=True;
+     ModificaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+     EliminaCursada.Enabled :=  DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+   End;
+end;
+
+procedure TInscripcionMaterias.GrabaMateriaClick(Sender: TObject);
+begin
+ MateriasCursando.Enabled := True;
+ If Modificacion Then
+  Begin
+    if MessageDlg(PChar(VNombreUsuario + ', confirmás la modificacion de la cursada?'),mtConfirmation,[mbyes,mbno],0,mbno)=mryes Then
+      Begin
+        if DataModule.CustomerData.TRUPVarios.Active then
+           DataModule.CustomerData.TRUPVarios.Rollback;
+        DataModule.CustomerData.TRUPVarios.Active:=False;
+        DataModule.CustomerData.IBUPVarios.SQL.Clear;
+        DataModule.CustomerData.IBUPVarios.SQL.Text:='UPDATE CURSADA SET COD_ALU=:CODALU,APELLIDO=:APELLIDO, CARRE=:CARRE, CUTUCO=:CUTUCO, '+
+                                                     ' CUA_ANIO=:CUAANIO, MATRIZ=:MATRIZ, INSTITUT=:INSTITUT,CARAC=:CARAC,CONDICION=:CONDICION, COD_MAT=:CODMAT, '+
+                                                     ' NREG=0, USUARIO=:USUARIO WHERE COD_ALU=:COD_ALU AND CARRE=:CARRE1 AND COD_MAT=:COD_MAT;';
+        DataModule.CustomerData.IBUpVarios.ParamByName('CODALU').AsString:=VCodAlu;
+        DataModule.CustomerData.IBUpVarios.ParamByName('APELLIDO').AsString:=Vapellido;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CARRE').AsString:=VCarrera;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CUTUCO').AsInteger:=900 + (StrToInt(Turno.Text)*10) + StrToInt(Comision.Text);
+        DataModule.CustomerData.IBUpVarios.ParamByName('CUAANIO').AsString:=Copy(CuatrimestreAnio.Text,1,1) + Copy(CuatrimestreAnio.Text,3,2);
+        DataModule.CustomerData.IBUpVarios.ParamByName('MATRIZ').AsString:=VLibroMatriz;
+        DataModule.CustomerData.IBUpVarios.ParamByName('INSTITUT').AsString:=VInstituto;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CARAC').AsString:=VCaracteristica;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString:=ComboCondicionAlumno.Text;
+        DataModule.CustomerData.IBUpVarios.ParamByName('COD_ALU').AsString:=VCodAlu;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CARRE1').AsString:=VCarrera;
+        DataModule.CustomerData.IBUpVarios.ParamByName('COD_MAT').AsString:=Copy(ComboMaterias.Text,1,2);
+        DataModule.CustomerData.IBUpVarios.ParamByName('CODMAT').AsString:=Copy(ComboMaterias.Text,1,2);
+        DataModule.CustomerData.IBUpVarios.ParamByName('USUARIO').Value:=Funciones.CodUsu;
+        DataModule.CustomerData.TrUPVarios.Active:=True;
+        DataModule.CustomerData.IBUPVarios.ExecQuery;
+        DataModule.CustomerData.TRUPVarios.Commit;
+        DataModule.CustomerData.TRUPVarios.Active:=False;
+        DataModule.CustomerData.TrInscMaterias.Rollback;
+        DataModule.CustomerData.TrInscMaterias.Active:=False;
+        DataModule.CustomerData.IBInscMaterias.ParamByName('CodigoAlumno').AsString:=VCODALU;
+        DataModule.CustomerData.IBInscMaterias.ParamByName('CARRE').AsString:=VCARRERA;
+        DataModule.CustomerData.TrInscMaterias.Active:=True;
+        DataModule.CustomerData.IBInscMaterias.Active:=True;
+        ModificaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+        EliminaCursada.Enabled :=  DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+        CancelaGrabacionClick(Sender);
+        Modificacion := False;
+      End
+  End
+ Else
+  Begin
+    if MessageDlg(Pchar(VNombreUsuario + ', confirmás la grabacion de la cursada?'),mtConfirmation,[mbyes,mbno],0,mbno)=mryes Then
+      Begin
+        Modificacion := False;
+        DataModule.CustomerData.TRUPVarios.Active:=False;
+        DataModule.CustomerData.IBUPVarios.SQL.Clear;
+        DataModule.CustomerData.IBUPVarios.SQL.Text:='INSERT INTO CURSADA(COD_ALU,APELLIDO,CARRE,CUTUCO,'+
+                                                     ' CUA_ANIO,MATRIZ,INSTITUT,CARAC,CONDICION,COD_MAT,NREG,USUARIO) ' +
+                                                     'VALUES(:COD_ALU,:APELLIDO,:CARRE,:CUTUCO, '+
+                                                     ' :CUA_ANIO,:MATRIZ,:INSTITUT,:CARAC,:CONDICION,:COD_MAT,0,:USUARIO)';
+        DataModule.CustomerData.IBUpVarios.ParamByName('APELLIDO').AsString:=Vapellido;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CARRE').AsString:=VCarrera;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CUTUCO').AsInteger:=900 + (StrToInt(Turno.Text)*10) + StrToInt(Comision.Text);
+        DataModule.CustomerData.IBUpVarios.ParamByName('CUA_ANIO').AsString:=Copy(CuatrimestreAnio.Text,1,1) + Copy(CuatrimestreAnio.Text,3,2);
+        DataModule.CustomerData.IBUpVarios.ParamByName('MATRIZ').AsString:=VLibroMatriz;
+        DataModule.CustomerData.IBUpVarios.ParamByName('INSTITUT').AsString:=VInstituto;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CARAC').AsString:=VCaracteristica;
+        DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString:=ComboCondicionAlumno.Text;
+        DataModule.CustomerData.IBUpVarios.ParamByName('COD_ALU').AsString:=VCodAlu;
+        DataModule.CustomerData.IBUpVarios.ParamByName('COD_MAT').AsString:=Copy(ComboMaterias.Text,1,2);
+        DataModule.CustomerData.IBUpVarios.ParamByName('USUARIO').value:=funciones.codusu;
+        DataModule.CustomerData.TrUPVarios.Active:=True;
+        DataModule.CustomerData.IBUPVarios.ExecQuery;
+        DataModule.CustomerData.TRUPVarios.Commit;
+        DataModule.CustomerData.TRUPVarios.Active:=False;
+        DataModule.CustomerData.TrInscMaterias.Rollback;
+        DataModule.CustomerData.TrInscMaterias.Active:=False;
+        DataModule.CustomerData.IBInscMaterias.ParamByName('CodigoAlumno').AsString:=VCODALU;
+        DataModule.CustomerData.IBInscMaterias.ParamByName('CARRE').AsString:=VCARRERA;
+        DataModule.CustomerData.TrInscMaterias.Active:=True;
+        DataModule.CustomerData.IBInscMaterias.Active:=True;
+        ModificaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+        EliminaCursada.Enabled :=  DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+        CancelaGrabacionClick(Sender);
+        Modificacion := False;
+      End;
+  End;
+end;
+
+procedure TInscripcionMaterias.MateriasCursandoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+    ModificacursadaClick(Sender);
+end;
+
+procedure TInscripcionMaterias.ConjuntoClick(Sender: TObject);
+Var
+  Cuat:Integer;
+  msg:AnsiString;
+begin
+  try
+    Cuat := StrToInt(InputBox('Dar de alta todas las de las materias posibles','Ingrese Cuatrimestre','0'));
+  Except
+     MessageDlg(Pchar(VnombreUsuario+', los datos ingresados tienen que ser numeros'),mtError,[mbok],0,mbok);
+  End;
+  msg:='';
+  DataModule.CustomerData.TRUPVarios.Active:=False;
+  DataModule.CustomerData.IBUPVarios.SQL.Clear;
+  DataModule.CustomerData.IBUPVarios.SQL.Text:='SELECT FERRCOD, FERRMSG FROM XXX_INSC_CUAT('''+Vcodalu+''','+IntToStr(CUAT)+','''+VCarrera+''','''+Funciones.Cuatrimestre()+''','''+vinstituto+''','''+vcaracteristica+''')';
+  DataModule.CustomerData.TRUpVarios.Active:=True;
+  DataModule.CustomerData.IBUPVarios.ExecQuery;
+  IF (DataModule.CustomerData.IBUpVarios.FieldByName('FERRCOD').AsInteger=1) Then begin
+      MessageDlg(Pchar(DataModule.CustomerData.IBUpVarios.FieldByName('FERRMSG').Asstring),mtInformation,[mbok],0,mbok);
+      DataModule.CustomerData.TRUpVarios.Commit;
+  end
+  else IF (DataModule.CustomerData.IBUpVarios.FieldByName('FERRCOD').AsInteger=2) Then begin
+      MessageDlg(Pchar(DataModule.CustomerData.IBUpVarios.FieldByName('FERRMSG').Asstring),mtError,[mbok],0,mbok);
+      DataModule.CustomerData.TRUpVarios.Rollback;
+  end
+  else
+       DataModule.CustomerData.TRUpVarios.Commit;
+  DataModule.CustomerData.TrUPVarios.Active:=False;
+  DataModule.CustomerData.TrInscMaterias.Rollback;
+  DataModule.CustomerData.TrInscMaterias.Active:=False;
+  DataModule.CustomerData.IBInscMaterias.ParamByName('CodigoAlumno').AsString:=VCODALU;
+  DataModule.CustomerData.IBInscMaterias.ParamByName('CARRE').AsString:=VCARRERA;
+  DataModule.CustomerData.TrInscMaterias.Active:=True;
+  DataModule.CustomerData.IBInscMaterias.Active:=True;
+  ModificaCursada.Enabled := DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+  EliminaCursada.Enabled :=  DataModule.CustomerData.IBInscMaterias.RecordCount <> 0;
+end;
+
+procedure TInscripcionMaterias.FormCreate(Sender: TObject);
+begin
+  Application.OnException:= Excepciones;
+end;
+
+procedure TInscripcionMaterias.ComboMateriasButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  Funciones.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM XXX_INS_BUSCADOR_MATERIAS('''+VCARRERA+''','''+VCODALU+''') ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias.Text:=b[0];
+  NombreMat.Caption:=b[1];
+end;
+
+procedure TInscripcionMaterias.ComboMateriasExit(Sender: TObject);
+Var b:variant;
+begin
+  if (ComboMaterias.Text<>'') Then Begin
+      ComBoMaterias.Text:=Lpad(ComboMaterias.Text,2,'0');
+      Funciones.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM XXX_INS_BUSCADOR_MATERIAS('''+VCARRERA+''','''+VCODALU+''') WHERE CODMATERI='''+ComboMaterias.Text+''' ORDER BY CODMATERI',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg(Pchar(VnombreUsuario+ ', código incorrecto'),mtError,[mbok],0,mbok);
+         ComboMaterias.SetFocus;
+      end
+      else begin
+          ComboMaterias.Text:=b[0];
+          NombreMat.Caption:=b[1];
+          If not ValidoMateria(InscripcionMaterias) Then
+             ComboMaterias.SetFocus;
+      end
+  end
+end;
+
+procedure TInscripcionMaterias.FormKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key=#13 Then
+     If not (ActiveControl is TDBGrid) then begin
+        Key:=#0;
+        Perform(WM_NEXTDLGCTL,0,0);
+     end
+     else if (activecontrol is TDbgrid) then
+            With TDBGRID(ActiveControl) do
+               If Selectedindex < (Fieldcount-1) then
+                  SelectedIndex := SelectedIndex+1
+               else
+                  SelectedIndex :=0;
+end;
+
+end.

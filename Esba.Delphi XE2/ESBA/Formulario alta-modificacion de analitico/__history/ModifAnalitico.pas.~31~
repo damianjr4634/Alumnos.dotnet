@@ -1,0 +1,435 @@
+unit ModifAnalitico;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Db, StdCtrls, Buttons, Grids, DBGrids, ComCtrls, funcionesText, FuncionesConfiguracion, FuncionesDB,
+  DataModuleZeosLib, Mask, RXToolEdit, RXCurrEdit, Variants;
+
+type
+  TAMAnalitico = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    MateriasCarreraCursa: TEdit;
+    MateriasApellidoyNombre: TEdit;
+    MateriasLibroMatriz: TEdit;
+    GroupBox2: TGroupBox;
+    grilla: TDBGrid;
+    Nuevo: TBitBtn;
+    salir: TBitBtn;
+    GroupBox3: TGroupBox;
+    Graba: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    DataSource1: TDataSource;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Modifica: TBitBtn;
+    Elimina: TBitBtn;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    Label14: TLabel;
+    Label15: TLabel;
+    Label16: TLabel;
+    matriz: TEdit;
+    combocondicion: TComboBox;
+    instituto: TEdit;
+    caracteristica: TEdit;
+    colegio: TEdit;
+    documentacion: TGroupBox;
+    analiticocheck: TRadioButton;
+    constanciacheck: TRadioButton;
+    Fecha: TDateEdit;
+    ComboMaterias: TComboEdit;
+    NombreMateria: TLabel;
+    CmbPlanes: TComboEdit;
+    Actinterna: TCurrencyEdit;
+    Actdgegp: TCurrencyEdit;
+    cuaanio: TCurrencyEdit;
+    Nota: TCurrencyEdit;
+    Label17: TLabel;
+    TxtLibroActa: TCurrencyEdit;
+    TxtFEXDESCRI: TEdit;
+    Label18: TLabel;
+    procedure FormActivate(Sender: TObject);
+    procedure NuevoClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure GrabaClick(Sender: TObject);
+    procedure ModificaClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure EliminaClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure ComboMateriasButtonClick(Sender: TObject);
+    procedure ComboMateriasExit(Sender: TObject);
+    procedure CmbPlanesButtonClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  AMAnalitico: TAMAnalitico;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String; // nose
+  VApellido : String; //Pasa el apellido del alumno activo
+  VNombre : String;  //Pasa el nombre del alumno activo
+  VLibroMatriz : String; //Pasa el libro matriz del alumno
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+
+
+implementation
+
+{$R *.DFM}
+
+
+procedure TAMAnalitico.FormActivate(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  Modificacion := False;
+  GroupBox3.Visible := false;
+  AMAnalitico.Height := 345;
+  MateriasCodigoAlumno.Text    := VCODALU;
+  MateriasCarreraCursa.Text    := VCarrera;
+  MateriasApellidoyNombre.Text := VApellido + ', ' + VNombre;
+  MateriasLibroMatriz.Text     := Copy(VlibroMatriz,1,2) + '/' + copy(VlibroMatriz,3,3);
+  If (VCarrera = 'BAC') or (VCarrera = '333') or (VCarrera = '750') Then
+   Begin
+     ComboCondicion.Items.Add('EQUIVALENCIA');
+     ComboCondicion.Items.Add('REGULAR');
+     ComboCondicion.Items.Add('LIBRES');
+     ComboCondicion.Items.Add('EXIMIDO');
+   End
+  else
+   Begin
+     ComboCondicion.Items.Add('EQUIVALENCIA');
+     ComboCondicion.Items.Add('FINAL');
+     ComboCondicion.Items.Add('PASE/FINAL');
+     ComboCondicion.Items.Add('EXIMIDO');
+   End;
+ CustomerData.TrAnalitico.Active:=False;
+ CustomerData.IbAnalitico.Active:=False;
+ CustomerData.IbAnalitico.ParamByName('CODALU').Value:=Vcodalu;
+ CustomerData.IbAnalitico.ParamByName('CARRE').Value:=VCarrera;
+ CustomerData.IbAnalitico.Active:=True;
+ CustomerData.Tranalitico.Active:=True;
+ }
+end;
+
+procedure TAMAnalitico.NuevoClick(Sender: TObject);
+begin
+ Modificacion := False;
+ AMAnalitico.Height := 728;
+ GroupBox3.Visible := true;
+ ComboMaterias.SetFocus;
+ Nuevo.Enabled := False;
+ Modifica.Enabled := False;
+ Elimina.Enabled := False;
+ Salir.Enabled := False;
+ Instituto.Text:=Vinstituto;
+ Caracteristica.Text:=VCaracteristica;
+ Matriz.Text:=VlibroMatriz;
+ Groupbox1.Enabled:=False;
+ Groupbox2.Enabled:=False;
+end;
+
+procedure TAMAnalitico.salirClick(Sender: TObject);
+begin
+
+ Amanalitico.Close;
+end;
+
+procedure TAMAnalitico.GrabaClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+ if MessageDlg(Pchar(Vnombreusuario+', esta seguro de grabar la información?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+      If Modificacion Then
+        Begin
+          With CustomerData Do
+            Begin
+              iF (TRUpVarios.Active) then
+                  TrUpVarios.Rollback;
+              TrUpVarios.Active:=False;
+              IbUpVarios.SQL.Clear;
+              IbUpVarios.SQL.Text:='UPDATE ANALITIC A SET A.COD_MAT=:CODMAT, A.A_C=:AC, A.ACTDGE=:ACTDGE, A.ACTINT=:ACTINT, '+
+                                   'A.ACTSNE=:ACTSNE, A.CARAC=:CARAC,A.COLEGIO=:COLEGIO, A.CONDICION=:CONDICION, '+
+                                   'A.CUA_ANIO=:CUAANIO, A.FEC_FINAL=:FECFINAL,A.INSTITUT=:INSTITUT, A.NOTA_MAT=:NOTAMAT, '+
+                                   'A.NREG=:NREG,A."PLAN"=:PLAN1, A.USUARIO=:USUARIO, FACTFIN=:FACTFIN, FEXDESCRI=:FEXDESCRI '+
+                                   'WHERE A.COD_ALU=:CODALU AND A.CARRE=:CARRE AND A.COD_MAT=:W_CODMAT;';
+              IbUpVarios.ParamByName('CODMAT').Value:=combomaterias.text;
+              if Constanciacheck.Checked Then
+                 IbUpVarios.ParamByName('AC').Value:='C';
+              if analiticocheck.Checked Then
+                 IbUpVarios.ParamByName('AC').Value:='A';
+              IbUpVarios.ParamByName('ACTDGE').Value:=Actdgegp.Text;
+              IbUpVarios.ParamByName('ACTINT').Value:=Actinterna.Text;
+              IbUpVarios.ParamByName('CARAC').Value:=Caracteristica.Text;
+              IbUpVarios.ParamByName('COLEGIO').Value:=Colegio.Text;
+              IbUpVarios.ParamByName('CONDICION').Value:=ComboCondicion.Text;
+              IbUpVarios.ParamByName('CUAANIO').Value:=Cuaanio.Text;
+              IbUpVarios.ParamByName('FECFINAL').Value:=Fecha.Date;
+              IbUpVarios.ParamByName('INSTITUT').Value:=Instituto.Text;
+              IbUpVarios.ParamByName('NOTAMAT').Value:=Nota.Text;
+              IbUpVarios.ParamByName('PLAN1').Value:=Cmbplanes.Text;
+              IbUpVarios.ParamByName('USUARIO').Value:=funcionesConfiguracion.CodUsu;
+              IbUpVarios.ParamByName('CODALU').Value:=VcodAlu;
+              IbUpVarios.ParamByName('CARRE').Value:=VCarrera;
+              IbUpVarios.ParamByName('FACTFIN').Value:=TxtLibroActa.Text;
+              IbUpVarios.ParamByName('FEXDESCRI').Value:= TxtFEXDESCRI.Text;
+              IbUpVarios.ParamByName('W_CODMAT').Value:=IBAnalitico.fieldByName('Cod_mat').Value;
+            End
+        End
+      Else
+        begin
+           With CustomerData Do
+            Begin
+              If (trupvarios.Active) then
+                  TrUpVarios.Rollback;
+              TrUpVarios.Active:=False;
+              IbUpVarios.SQL.Clear;
+              IbUpVarios.SQL.Text:='INSERT INTO ANALITIC (COD_ALU, APELLIDO, COD_MAT, CUA_ANIO, NOTA_MAT, FEC_FINAL, MATRIZ, CONDICION, INSTITUT, '+
+                                   'CARAC, ACTINT, ACTDGE, ACTSNE, CARRE, COLEGIO, "PLAN", A_C, NREG, USUARIO, FACTFIN, FEXDESCRI) '+
+                                   'VALUES (:CODALU, :APELLIDO, :CODMAT, :CUAANIO, :NOTAMAT, :FECFINAL, :MATRIZ, :CONDICION, :INSTITUT, '+
+                                   ':CARAC, :ACTINT, :ACTDGE, :ACTSNE, :CARRE, :COLEGIO, :PLAN1, :A_C, :NREG, :USUARIO, :FACTFIN, :FEXDESCRI);';
+              IbUpVarios.ParamByName('CODALU').Value:=VcodAlu;
+              IbUpVarios.ParamByName('APELLIDO').Value:=VApellido;
+              IbUpVarios.ParamByName('CODMAT').Value:=combomaterias.text;
+              IbUpVarios.ParamByName('CUAANIO').Value:=Cuaanio.Text;
+              IbUpVarios.ParamByName('NOTAMAT').Value:=Nota.Text;
+              IbUpVarios.ParamByName('FECFINAL').Value:=Fecha.Date;
+              IbUpVarios.ParamByName('MATRIZ').Value:=VlibroMatriz;
+              IbUpVarios.ParamByName('CONDICION').Value:=ComboCondicion.Text;
+              IbUpVarios.ParamByName('INSTITUT').Value:=Instituto.Text;
+              IbUpVarios.ParamByName('CARAC').Value:=Caracteristica.Text;
+              IbUpVarios.ParamByName('ACTINT').Value:=Actinterna.Text;
+              IbUpVarios.ParamByName('ACTDGE').Value:=Actdgegp.Text;
+              IbUpVarios.ParamByName('CARRE').Value:=VCarrera;
+              IbUpVarios.ParamByName('COLEGIO').Value:=Colegio.Text;
+              IbUpVarios.ParamByName('PLAN1').Value:=CmbPlanes.Text;
+              IbUpVarios.ParamByName('FACTFIN').Value:=TxtLibroActa.Text;
+              IbUpVarios.ParamByName('FEXDESCRI').Value:= TxtFEXDESCRI.Text;
+              if Constanciacheck.Checked Then
+                 IbUpVarios.ParamByName('A_C').Value:='C';
+              if analiticocheck.Checked Then
+                 IbUpVarios.ParamByName('A_C').Value:='A';
+              IbUpVarios.ParamByName('USUARIO').Value:=funcionesConfiguracion.codusu;
+            End
+        End;
+      if (CustomerData.TRAnalitico.active) then
+          CustomerData.TRAnalitico.Rollback;
+      CustomerData.TrAnalitico.Active:=False;
+      CustomerData.IbAnalitico.Active:=False;
+      With Datamodule.CustomerData Do
+       Begin
+         try
+            trupvarios.Active:=True;
+            IBUpvarios.ExecQuery;
+            TrUpvarios.Commit;
+            TrUpVarios.Active:=False;
+            CancelaGrabacionClick(Sender);
+         except
+            on E : Exception do begin
+               TrUpvarios.Rollback;
+               TrUpVarios.Active:=False;
+               MessageDlg(PChar(VNombreUsuario+#13+#10+e.Message),mtError,[mbok],0,mbok);
+            end
+         end;
+       End;
+      CustomerData.IbAnalitico.ParamByName('CODALU').Value:=Vcodalu;
+      CustomerData.IbAnalitico.ParamByName('CARRE').Value:=VCarrera;
+      CustomerData.IbAnalitico.Active:=True;
+      CustomerData.Tranalitico.Active:=True;
+  End;
+  }
+end;
+
+procedure TAMAnalitico.ModificaClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+ Groupbox1.Enabled:=False;
+ Groupbox2.Enabled:=False;
+  With CustomerData do
+    Begin
+      Combomaterias.Text := IBAnalitico.fieldByName('Cod_mat').Value;
+      CuaAnio.Text := IBAnalitico.fieldByName('Cua_Anio').Value;
+      Nota.Text   := IBAnalitico.fieldByName('Nota_Mat').Value;
+      Fecha.Date  := IBAnalitico.fieldByName('Fec_Final').Value;
+      Matriz.Text := IBAnalitico.fieldByName('Matriz').Value;
+      ComboCondicion.Text:=IBAnalitico.fieldByName('Condicion').Value;
+      Instituto.Text :=  IBAnalitico.fieldByName('Institut').Value;
+      Caracteristica.Text := IBAnalitico.fieldByName('Carac').Value;
+      ActInterna.Text := IBAnalitico.fieldByName('ActInt').Value;
+      ActDgegp.Text := IBAnalitico.fieldByName('ActDge').Value;
+      Colegio.Text := IBAnalitico.fieldByName('Colegio').Value;
+      CmbPlanes.Text := IBAnalitico.fieldByName('Plan').Value;
+      TxtLibroActa.Text := IBAnalitico.fieldByName('FACTFIN').Value;
+      TxtFEXDESCRI.Text := IBAnalitico.FieldByName('FEXDESCRI').AsString;
+      If IBAnalitico.fieldByName('A_c').Value = 'A' Then
+        Analiticocheck.Checked := True
+      Else If IBAnalitico.fieldByName('A_c').Value = 'C' Then
+        Constanciacheck.Checked := True;
+     Modificacion := True;
+     AMAnalitico.Height := 728;
+     groupbox3.Visible:=true;
+     ComboMaterias.SetFocus;
+     Graba.Enabled := True;
+     Nuevo.Enabled := False;
+     Modifica.Enabled := False;
+     Elimina.Enabled := False;
+     Salir.Enabled := False;
+  end;
+  }
+end;
+
+procedure TAMAnalitico.CancelaGrabacionClick(Sender: TObject);
+begin
+  Modificacion := False;
+  groupbox3.Visible:=false;
+  AMAnalitico.Height := 345;
+  Nuevo.Enabled := True;
+  Modifica.Enabled := True;
+  Elimina.Enabled := True;
+  Salir.Enabled := True;
+  GroupBox2.Enabled := True;
+  ComboMaterias.Text:='';
+  Cuaanio.Text:='';
+  Nota.Text:='';
+  Matriz.text:='';
+  ComboCondicion.Text:='';
+  comboCondicion.ItemIndex:=-1;
+  Instituto.Text:='';
+  Caracteristica.Text:='';
+  Actinterna.text:='';
+  Actdgegp.Text:='';
+  Colegio.Text:='';
+  CmbPlanes.Text:='';
+  TxtLibroActa.Text:='';
+  TxtFEXDESCRI.Text := '';
+  ConstanciaCheck.Checked:=False;
+  AnaliticoCheck.Checked:=False;
+  Groupbox1.Enabled:=True;
+  Groupbox2.Enabled:=True;
+end;
+
+procedure TAMAnalitico.EliminaClick(Sender: TObject);
+begin
+{
+    PASAR ZLIB
+  if MessageDlg(Pchar(Vnombreusuario+', esta seguro de borrar el registro del analitico?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+     Begin
+        With CustomerData Do
+         Begin
+           if TrDlVarios.Active then
+               TRDlVarios.Rollback;
+           TRDlVarios.Active:=False;
+           IbDlVarios.Close;
+           IBDlVarios.SQL.Clear;
+           IbDlVarios.SQL.Text:='DELETE FROM ANALITIC WHERE COD_ALU=:CODALU AND COD_MAT=:CODMAT AND CARRE=:CARRE;';
+           IBDlVarios.ParamByName('CODALU').Value:=VCodAlu;
+           IBDlVarios.ParamByName('CODMAT').Value:=IBAnalitico.FieldByName('COD_MAT').Value;
+           IBDlVarios.ParamByName('CARRE').Value:=VCarrera;
+           TrDlVarios.Active:=True;
+           IBDlVarios.ExecQuery;
+           TRDlVarios.Commit;
+           CustomerData.TrAnalitico.Active:=False;
+           CustomerData.IbAnalitico.Active:=False;
+           CustomerData.IbAnalitico.ParamByName('CODALU').Value:=Vcodalu;
+           CustomerData.IbAnalitico.ParamByName('CARRE').Value:=VCarrera;
+           CustomerData.IbAnalitico.Active:=True;
+           CustomerData.Tranalitico.Active:=True;
+         End
+     End;
+     }
+end;
+
+procedure TAMAnalitico.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+{
+    PASAR ZLIB
+  CustomerData.TrAnalitico.Rollback;
+  CustomerData.TrAnalitico.Active:=False;
+  CustomerData.IbAnalitico.Active:=False;
+  }
+end;
+
+procedure TAMAnalitico.ComboMateriasButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS M WHERE M.CODCARRE='''+VCARRERA+''' AND M.ESTADO<>''B'' '+
+                          ' AND NOT EXISTS(SELECT 1 FROM CURSADA C WHERE C.CARRE=M.CODCARRE AND C.COD_MAT=M.CODMATERI AND C.COD_ALU='''+Vcodalu+''') '+
+                          ' ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias.Text:=b[0];
+  NombreMateria.Caption:=b[1];
+end;
+
+procedure TAMAnalitico.ComboMateriasExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboMaterias.Text<>'') Then Begin
+      ComBoMaterias.Text:=Lpad(ComboMaterias.Text,2,'0');
+      FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS M WHERE M.CODMATERI='''+ComboMaterias.Text+''' AND M.CODCARRE='''+VCARRERA+''' AND M.ESTADO<>''B'' '+
+                              ' AND NOT EXISTS(SELECT 1 FROM CURSADA C WHERE C.CARRE=M.CODCARRE AND C.COD_MAT=M.CODMATERI AND C.COD_ALU='''+Vcodalu+''') '+
+                              ' ORDER BY CODMATERI' ,['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboMaterias.SetFocus;
+      end
+      else if not (Modificacion) then begin
+          With DataModule.CustomerData do
+             Begin
+              If TrQrVarios.Active Then
+                 TRQrVarios.Rollback;
+              TrQrVarios.Active:=False;
+              IbQrVarios.SQL.Clear;
+              IBQrVarios.SQL.Text:='SELECT FERRCOD, FERRMSG FROM XXX_INSC_VALMAT(:CODALU,:CARRE,:CODMAT,''A'');';
+              IBQrVarios.ParamByName('CODALU').AsString:=VCODALU;
+              IBQrVarios.ParamByName('CARRE').AsString:=VCarrera;
+              IBQrVarios.ParamByName('CODMAT').AsString:=b[0];
+              TrQrVarios.Active:=True;
+              IBQrVarios.ExecQuery;
+              If (IBQrVarios.FieldByName('FERRCOD').AsInteger=2) Then
+                Begin
+                 MessageDlg(PChar(VNombreUsuario + ', '+IBQrVarios.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+                 ComboMaterias.SetFocus;
+                End
+              Else
+                Begin
+                 Cuaanio.SetFocus;
+                End;
+              TRQrVarios.Rollback;
+              TrQrVarios.Active:=False;
+            End;
+      end;
+   ComboMaterias.Text:=b[0];
+   NombreMateria.Caption:=b[1];
+  end
+end;
+
+procedure TAMAnalitico.CmbPlanesButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT FCODIGO, FDESCRI FROM TBLPLANES',['Codigo','Nombre'],b,True);
+  CmbPlanes.Text:=b[1];
+end;
+
+end.

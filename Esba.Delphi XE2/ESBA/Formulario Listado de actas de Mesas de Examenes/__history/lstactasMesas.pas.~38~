@@ -1,0 +1,404 @@
+unit lstactasMesas;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Db, StdCtrls, Buttons, Imprimir, GmTypes, GmPreview,gmprinter, FuncionesConfiguracion,
+  FuncionesText,FuncionesDB, Printers,
+  ComCtrls, DBCtrls, DataModuleZeosLib, Mask, RXToolEdit,
+  strutils, Variants, TipodeExamen, Vcl.ExtCtrls, Vcl.FileCtrl, kbmMemTable;
+
+type
+  TFrmlstMesas= class(TForm)
+    GroupBox1: TGroupBox;
+    Label3: TLabel;
+    Imprimir: TBitBtn;
+    salir: TBitBtn;
+    PrintDialog1: TPrintDialog;
+    PrintSetup: TPrinterSetupDialog;
+    ComboMesa: TComboEdit;
+    NombreMat: TLabel;
+    Panel1: TPanel;
+    BtnExcel: TBitBtn;
+    mtComi: TkbmMemTable;
+    mtDatos: TkbmMemTable;
+    procedure FormActivate(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure OpcionesClick(Sender: TObject);
+    procedure CodigoMateriaKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboMesaButtonClick(Sender: TObject);
+    procedure ComboMesaExit(Sender: TObject);
+    procedure BtnExcelClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmlstMesas: TFrmlstMesas;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  VCarreraLarga : String; //Trae el nombre completo de la carrera
+implementation
+
+uses
+   OleServer, ExcelXP;
+
+{$R *.dfm}
+procedure TFrmlstMesas.FormActivate(Sender: TObject);
+begin
+ COMBOMESA.SetFocus;
+end;
+
+procedure TFrmlstMesas.ImprimirClick(Sender: TObject);
+var
+  largopagina:real;
+  contareg:integer;
+  sw : integer;
+  Cutuco_Aux : Integer;
+  CodigoMateria_Aux : Integer;
+  verti:real;
+  x:integer;
+  Imagen : TMetaFile;
+  tipoexamen:string;
+  FormulTipoExamen:TFrmTipoExamen;
+begin
+ if (combomesa.Text='') then begin
+     MessageDlg('El codigo de mesa es obligatorio',mtInformation, [mbok],0,mbok);
+     exit;
+ end;
+
+ mtComi.Active:=false;
+
+ funcionesDb.Carga_MemTable('SELECT TRIM(T.DOCENTE)||'', ''||TRIM(V1.DOCENTE)||'', ''||TRIM(V2.DOCENTE) AS DOCENTE, M.COMI1 AS CUTUCO,MA.DESCRIPCI, '+
+                               '       EXTRACT(DAY FROM M.FECH_EXA) AS DIA, EXTRACT(MONTH FROM M.FECH_EXA) AS MES, EXTRACT(YEAR FROM M.FECH_EXA) AS ANIO '+
+                               'FROM MESAS M '+
+                               'LEFT OUTER JOIN DOCENTES T  ON M.TITULAR=T.CODPROFES '+
+                               'LEFT OUTER JOIN DOCENTES V1  ON M.VOCAL1 =V1.CODPROFES '+
+                               'LEFT OUTER JOIN DOCENTES V2 ON M.VOCAL2=V2.CODPROFES '+
+                               'LEFT OUTER JOIN MATERIAS MA  ON MA.CODMATERI=M.COD_MAT AND MA.CODCARRE=M.CARRE '+
+                               'WHERE M.MESA='+combomesa.Text+' AND M.CARRE='+#39+vcarrera+#39,mtComi,true);
+
+ sw := 0;
+ contareg:=1;
+
+ If mtComi.RecordCount = 0 Then
+   Begin
+    MessageDlg(Pchar(VnombreUsuario+', no hay datos para mostrar'),mtError,[mbok],0,mbok);
+    COMBOMESA.SetFocus;
+
+   End
+ Else
+  If PrintDialog1.execute then
+   Begin
+    FormPreview:=tFormPreview.create(self);
+    largopagina:= 1.5;
+    Imagen := TMetaFile.Create;
+    Imagen.LoadFromFile(vUnidad+CARPETA_PLANTILLA+'\actas_volantes.wmf');
+    FormPreview.VistaPrevia1.PaperSize:=Legal;
+    FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21.54,35.56,Imagen,GmCentimeters);
+    tipoexamen:= 'FINAL';
+    if (vcarrera='BAC') or (vcarrera='333') or (VCarrera = '650') then begin
+        FormulTipoExamen:=TFrmTipoExamen.Create(nil);
+        FormulTipoExamen.CbTipo.Items.Clear;
+        FormulTipoExamen.CbTipo.Items.Add('LIBRES');
+        FormulTipoExamen.CbTipo.Items.Add('PREVIOS');
+        If (VCarrera = '333') or (VCarrera = '650') Then begin
+           FormulTipoExamen.CbTipo.Items.Add('DICIEMBRE');
+           FormulTipoExamen.CbTipo.Items.Add('MARZO');
+           FormulTipoExamen.CbTipo.Items.Add('P/EQUIVALEN');
+        end;
+        FormulTipoExamen.CbTipo.ItemIndex:=0;
+
+
+        if FormulTipoExamen.ShowModal<>mrOk then begin
+           FormulTipoExamen.Free;
+           FormulTipoExamen:=nil;
+           exit;
+        end;
+        tipoexamen:=FormulTipoExamen.CbTipo.Text;
+        FormulTipoExamen.Free;
+        FormulTipoExamen:=nil;
+    end;
+    Mtdatos.active:=false;
+    While not MtComi.eof do
+     begin
+      if not Mtdatos.active then
+        begin
+         FuncionesDb.Carga_MemTable('SELECT PERM_EXA, COD_ALU, APELLIDO, NOM_APE '+
+                                       'FROM XXX_MESAS_ALUMNOS('+COMBOMESA.Text+','+#39+vcarrera+#39+','+#39+tipoexamen+#39+')',mtDatos,true);
+         mtDatos.First;
+        end;
+      FormPreview.VistaPrevia1.BeginUpdate;
+      // **** INICIO DEL ENCABEZADO ***//
+      FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+      FormPreview.VistaPrevia1.Canvas.Font.Size := 9;
+      FormPreview.VistaPrevia1.Canvas.Font.Style := [FsBold];
+      LargoPagina:=LargoPagina+0.7;
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(10.5,LargoPagina,VCarreraLarga,GmCentimeters);
+      LargoPagina:=LargoPagina+0.4;
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(10.5,LargoPagina,'ACTA DE EXAMEN '+UpperCase(tipoexamen),GmCentimeters);
+      LargoPagina:=LargoPagina+0.4;
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(10.5,LargoPagina,'Asignatura: '+mtComi.FieldByName('DESCRIPCI').AsString,GmCentimeters);
+      LargoPagina:=LargoPagina+0.5;
+      if not((mtComi.FieldByName('CUTUCO').IsNull) or (mtComi.FieldByName('CUTUCO').value<100)) then
+         FormPreview.VistaPrevia1.Canvas.TextOutCenter(10.5,LargoPagina,'Cuat.: '+(Copy(IntToStr(mtComi.FieldByName('CUTUCO').AsInteger),1,1))+'    Turno: '+Turnos(StrtoInt(Copy(IntToStr(mtComi.FieldByName('CUTUCO').AsInteger),2,1)))+'     División: '+Division(StrtoInt(Copy(IntToStr(mtComi.FieldByName('CUTUCO').AsInteger),3,1)))+'      Mesa: '+ComboMesa.Text,GmCentimeters)
+      else
+         FormPreview.VistaPrevia1.Canvas.TextOutCenter(10.5,LargoPagina,'  Mesa: '+ComboMesa.Text,GmCentimeters);
+      LargoPagina:=LargoPagina+0.5;
+      FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+      FormPreview.VistaPrevia1.Canvas.Font.Size := 7;
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(10.5,LargoPagina,'Correspondiente al '+(Copy(IntToStr(mtComi.FieldByName('CUTUCO').AsInteger),1,1))+'º CUATRIMESTRE de estudios',GmCentimeters);
+      LargoPagina:=LargoPagina+0.55;
+      FormPreview.VistaPrevia1.Canvas.Font.Size := 8;
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(2.2,LargoPagina,mtComi.FieldByName('DIA').value,GmCentimeters);
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(5.2,LargoPagina,funcionesText.MesALetras(mtComi.FieldByName('MES').value),GmCentimeters);
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(6.9,LargoPagina,mtComi.FieldByName('ANIO').value,GmCentimeters);
+      LargoPagina:=LargoPagina+0.4;
+      FormPreview.VistaPrevia1.Canvas.TextOutCenter(11.5,LargoPagina,mtComi.FieldByName('DOCENTE').AsString,GmCentimeters);
+      // **** FIN DEL ENCABEZADO ***//
+      // **** INICIO DEL DETALLE ***//
+      FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+      FormPreview.VistaPrevia1.Canvas.Font.Size := 8;
+      FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+      LargoPagina := 7.8;
+      //llenar los parametro de sqlcursada y ejecutarlo
+      While (not mtDatos.eof) and  (largopagina<=29)  do
+       begin
+           contareg:=contareg+1;
+           //TOMA DATOS DE LA BD
+           FormPreview.VistaPrevia1.Canvas.Font.Name := 'Arial';
+           FormPreview.VistaPrevia1.Canvas.Font.Size := 8;
+           FormPreview.VistaPrevia1.Canvas.Font.Style := [];
+           FormPreview.VistaPrevia1.Canvas.FloatOut(3.1,largopagina,mtDatos.FieldByName('PERM_EXA').AsInteger,'0',gmcentimeters);
+           FormPreview.VistaPrevia1.Canvas.TextOut(3.4,largopagina,mtDatos.FieldByName('COD_ALU').AsString,mtDatos);
+           FormPreview.VistaPrevia1.Canvas.TextOut(5.9,largopagina,mtDatos.FieldByName('APELLIDO').AsString + ', ' + MtDatos.FieldByName('NOM_APE').AsString ,gmcentimeters);
+           LargoPagina := LargoPagina + 0.9;
+           mtDatos.next;
+       end;
+        FormPreview.VistaPrevia1.EndUpdate;
+        if mtDatos.eof then
+         Begin
+           mtDatos.Active:=False;
+           MtComi.Next;
+           sw:=0;
+           contareg:=1;
+         end;
+        if (not mtcomi.Eof) or (largopagina>31) then begin
+          FormPreview.VistaPrevia1.Newpage;
+          FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21.54,35.56,Imagen,GmCentimeters);
+        end;
+        LargoPagina := 1.5;
+     end; //end del while sqlcomi
+     FormPreview.VistaPrevia1.CurrentPage := 1;
+     FormPreview.ShowModal;
+     FormPreview.Free;
+     CoMBOMESA.SetFocus;
+  end;
+end;
+
+procedure TFrmlstMesas.salirClick(Sender: TObject);
+begin
+  Close
+end;
+
+
+procedure TFrmlstMesas.OpcionesClick(Sender: TObject);
+begin
+  PrintSetup.Execute;
+end;
+
+procedure TFrmlstMesas.BtnExcelClick(Sender: TObject);
+Var
+  FrmProgress: TForm;
+  FDir: string;
+  Barra : TProgressBar;
+  AppExcel: TExcelApplication;
+  Libro : _WORKBOOK;
+  Hoja  : _WORKSHEET;
+  x, ContHojas, contalumnos : Integer;
+  contareg:integer;
+  sw : integer;
+  tipoexamen:string;
+  FormulTipoExamen:TFrmTipoExamen;
+begin
+  if (combomesa.Text='') then begin
+    MessageDlg('El codigo de mesa es obligatorio',mtInformation, [mbok],0,mbok);
+    exit;
+  end;
+  if not SelectDirectory('Seleccione Directorio para guardar los archivos', ExtractFileDrive(FDir), FDir,
+             [sdNewUI, sdNewFolder]) then
+    exit;
+
+  MtComi.Active:=False;
+  FuncionesDb.Carga_MemTable('SELECT TRIM(T.DOCENTE)||'', ''||TRIM(V1.DOCENTE)||'', ''||TRIM(V2.DOCENTE) AS DOCENTE, M.COMI1 AS CUTUCO,MA.DESCRIPCI, '+
+                               '       EXTRACT(DAY FROM M.FECH_EXA) AS DIA, EXTRACT(MONTH FROM M.FECH_EXA) AS MES, EXTRACT(YEAR FROM M.FECH_EXA) AS ANIO, '+
+                               '       MA.CUATRIM AS CUATMAT '+
+                               'FROM MESAS M '+
+                               'LEFT OUTER JOIN DOCENTES T  ON M.TITULAR=T.CODPROFES '+
+                               'LEFT OUTER JOIN DOCENTES V1  ON M.VOCAL1 =V1.CODPROFES '+
+                               'LEFT OUTER JOIN DOCENTES V2 ON M.VOCAL2=V2.CODPROFES '+
+                               'LEFT OUTER JOIN MATERIAS MA  ON MA.CODMATERI=M.COD_MAT AND MA.CODCARRE=M.CARRE '+
+                               'WHERE M.MESA='+combomesa.Text+' AND M.CARRE='+#39+vcarrera+#39,mtComi,true);
+
+  sw := 0;
+  contareg:=1;
+
+  If MtComi.RecordCount = 0 Then Begin
+    MessageDlg(Pchar(VnombreUsuario+', no hay datos para mostrar'),mtError,[mbok],0,mbok);
+    COMBOMESA.SetFocus;
+  End
+  Else begin
+    tipoexamen:= 'FINAL';
+    if (vcarrera='BAC') or (vcarrera='333') or (VCarrera = '650') then begin
+      FormulTipoExamen:=TFrmTipoExamen.Create(nil);
+      FormulTipoExamen.CbTipo.Items.Clear;
+      FormulTipoExamen.CbTipo.Items.Add('LIBRES');
+      FormulTipoExamen.CbTipo.Items.Add('PREVIOS');
+      If (VCarrera = '333') or (VCarrera = '650') Then begin
+        FormulTipoExamen.CbTipo.Items.Add('DICIEMBRE');
+        FormulTipoExamen.CbTipo.Items.Add('MARZO');
+        FormulTipoExamen.CbTipo.Items.Add('P/EQUIVALEN');
+      end;
+      FormulTipoExamen.CbTipo.ItemIndex:=0;
+
+      if FormulTipoExamen.ShowModal<>mrOk then begin
+         FormulTipoExamen.Free;
+         FormulTipoExamen:=nil;
+         exit;
+      end;
+      tipoexamen:=FormulTipoExamen.CbTipo.Text;
+      FormulTipoExamen.Free;
+      FormulTipoExamen:=nil;
+    end;
+
+    FrmProgress := TForm.Create(Application);
+    Try
+      FrmProgress.Caption := 'Exportando.....0%';
+      FrmProgress.Position := poDesktopCenter;
+      FrmProgress.Width := 400;
+      FrmProgress.Height := 60;
+      FrmProgress.BorderStyle := bsDialog;
+      FrmProgress.Show;
+      Barra := TProgressBar.Create(FrmProgress);
+      Barra.Parent := FrmProgress;
+      Barra.Visible := True;
+      Barra.Align := AlClient;
+      Barra.Max := MtComi.RecordCount;
+      Barra.Min := 0;
+      Barra.Step := 1;
+      Barra.Smooth := True;
+    Finally
+
+    End;
+
+    Mtdatos.active:= false;
+    While not MtComi.eof do begin
+      Try
+        AppExcel:= TExcelApplication.Create(Nil);
+      Except
+        ShowMessage('Excel no se pudo iniciar.');
+        Exit;
+      End;
+      Libro:=AppExcel.Workbooks.Open(vUnidad+CARPETA_PLANTILLA+'\Planilla_de_actas_volantes.xls',EmptyParam,true,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,EmptyParam,0);
+
+      if not Mtdatos.active then begin
+        FuncionesDb.Carga_MemTable('SELECT PERM_EXA, COD_ALU, APELLIDO, NOM_APE '+
+                                       'FROM XXX_MESAS_ALUMNOS('+COMBOMESA.Text+','+#39+vcarrera+#39+','+#39+tipoexamen+#39+')',MtDatos, true);
+
+        MtDatos.First;
+      end;
+
+
+      ContHojas:=1;
+      contalumnos:=0;
+      while not MtDatos.Eof do begin
+        if (ContAlumnos=0) or (ContALumnos>24) then begin
+          Hoja:=Libro.WorkSheets.Get_Item(ContHojas) as _WorkSheet;
+
+          Hoja.Cells.Item[4,'C']:= VCarreraLarga;
+          Hoja.Cells.Item[5,'E']:= 'ACTA DE EXAMEN '+UpperCase(tipoexamen);
+          Hoja.Cells.Item[6,'E']:= 'Asignatura: '+MtComi.FieldByName('DESCRIPCI').AsString;
+
+          if not((MtComi.FieldByName('CUTUCO').IsNull) or (MtComi.FieldByName('CUTUCO').value<100)) then
+           Hoja.Cells.Item[7,'E']:= 'Cuat.: '+(Copy(IntToStr(MtComi.FieldByName('CUTUCO').AsInteger),1,1))+'    Turno: '+Turnos(StrtoInt(Copy(IntToStr(MtComi.FieldByName('CUTUCO').AsInteger),2,1)))+'     División: '+Division(StrtoInt(Copy(IntToStr(MtComi.FieldByName('CUTUCO').AsInteger),3,1)))+'      Mesa: '+ComboMesa.Text
+          else
+           Hoja.Cells.Item[7,'E']:='Mesa: '+ComboMesa.Text+' Cuat: '+IntToStr(MtComi.FieldByName('CUATMAT').AsInteger);
+
+          Hoja.Cells.Item[8,'D']:='Correspondiente al '+(Copy(IntToStr(MtComi.FieldByName('CUTUCO').AsInteger),1,1))+'º CUATRIMESTRE de estudios';
+
+          Hoja.Cells.Item[9,'A']:= 'A los '+MtComi.FieldByName('DIA').AsString+' días del mes '+funcionesText.MesALetras(Mtcomi.FieldByName('MES').value)+' de '+SqlComi.FieldByName('ANIO').AsString+' reunida la Comisión Examinadora de la asignatura mencionada, con asistencia de';
+          Hoja.Cells.Item[10,'A']:= 'sus tres miembros señores '+MtComi.FieldByName('DOCENTE').AsString;
+          X:=14;
+          contAlumnos:=1;
+          ContHojas:=conthojas+1;
+        end;
+
+        Hoja.Cells.Item[x,'B']:=MtDatos.FieldByName('PERM_EXA').AsInteger;
+        Hoja.Cells.Item[x,'C']:=MtDatos.FieldByName('COD_ALU').AsString;
+        Hoja.Cells.Item[x,'D']:=MtDatos.FieldByName('APELLIDO').AsString + ', ' + MtDatos.FieldByName('NOM_APE').AsString;
+
+        X:=X+1;
+        MtDatos.Next;
+        contAlumnos:=contalumnos+1;
+      end;
+
+      Barra.StepIt;
+      FrmProgress.Caption := 'Exportando.....'+FloatToStr(Int((MtComi.RecNo/Barra.Max)*100))+'%';
+      FrmProgress.Refresh;
+
+      deletefile(FDir+'\MESA_'+ComboMesa.Text+'_'+MtComi.FieldByName('DESCRIPCI').AsString+'.xls');
+
+      AppExcel.ActiveWorkbook.Close(true,FDir+'\MESA_'+ComboMesa.Text+'_'+MTComi.FieldByName('DESCRIPCI').AsString+'.xls',EmptyParam,0);
+
+      AppExcel.Visible[0] := False;
+      AppExcel.Disconnect;
+      AppExcel.Free;
+      MtComi.Next;
+
+    end;
+    FrmProgress.Free;
+ end;
+ MtComi.Active:=False;
+ MtDatos.Active:=False;
+end;
+
+procedure TFrmlstMesas.CodigoMateriaKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ if key=#13 then
+    Imprimir.SetFocus;
+end;
+
+procedure TFrmlstMesas.ComboMesaButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT M.MESA, M.FECH_EXA,M.HORA, A.DESCRIPCI FROM MESAS M LEFT OUTER JOIN MATERIAS A ON M.COD_MAT=A.CODMATERI AND A.CODCARRE=M.CARRE WHERE M.CARRE='''+VCARRERA+''' ORDER BY M.MESA',['Mesa','Fecha','Hora','Materia'],b,True);
+  ComboMesa.Text:=b[0];
+  NombreMat.Caption:=b[1];
+end;
+
+procedure TFrmlstMesas.ComboMesaExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (Combomesa.Text<>'') Then Begin
+      FuncionesDB.combobusqueda('SELECT M.MESA, M.FECH_EXA,M.HORA, A.DESCRIPCI FROM MESAS M LEFT OUTER JOIN MATERIAS A ON M.COD_MAT=A.CODMATERI AND A.CODCARRE=M.CARRE WHERE M.CARRE='+#39+VCARRERA+#39+'AND M.MESA='+Combomesa.Text+' ORDER BY M.MESA',['Mesa','Fecha','Hora','Materia'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         Combomesa.SetFocus;
+      end
+      else begin
+         Combomesa.Text:=b[0];
+         NombreMat.Caption:=b[1];
+      end
+  end
+end;
+
+end.

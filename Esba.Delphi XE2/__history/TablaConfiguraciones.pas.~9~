@@ -1,0 +1,93 @@
+unit TablaConfiguraciones;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Data.DB, ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset, kbmMemTable,
+  Vcl.Grids, Vcl.DBGrids, Vcl.StdCtrls, Vcl.Buttons, FuncionesDb;
+
+type
+  TFrmTablaConfiguracion = class(TForm)
+    grilla: TDBGrid;
+    MTxxxconf: TkbmMemTable;
+    DataSource1: TDataSource;
+    MTxxxconfPARAME: TStringField;
+    MTxxxconfDESCRI: TStringField;
+    MTxxxconfVALOR: TStringField;
+    Panel1: TPanel;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    procedure FormShow(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrabamesaClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmTablaConfiguracion: TFrmTablaConfiguracion;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmTablaConfiguracion.CancelaGrabacionClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmTablaConfiguracion.FormShow(Sender: TObject);
+var
+   x:integer;
+   query: string;
+begin
+  query:='SELECT parame, descri, valor FROM xxx_conf';
+  FuncionesDb.Carga_MemTable(query,MTxxxconf,false);
+  MTxxxconf.First;
+  grilla.Repaint;
+end;
+
+procedure TFrmTablaConfiguracion.GrabamesaClick(Sender: TObject);
+Var
+   x:integer;
+   zconn: TZConnection;
+   ZQuery: TZQuery;
+begin
+  zconn := DataModuleZLib.GetConnection();
+  ZQuery:= TZQuery.Create(nil);
+  try
+    if MTxxxconf.State In [DsInsert,DsEdit] then
+       MTxxxconf.Post;
+    MTxxxconf.First;
+    zConn.Connect;
+    ZQuery.Connection:= zConn;
+    zConn.StartTransaction;
+
+    zquery.SQL.Text:='update XXX_CONF set VALOR = :VALOR where PARAME = :PARAME';
+
+    while not MTxxxconf.Eof do begin
+       For x:=0 to zquery.Params.Count-1 do
+           zquery.ParamByName(ZQuery.Params.Items[x].Name).Value:=MTxxxconf.FieldByName(ZQuery.Params.Items[x].Name).Value;
+       zquery.ExecSql;
+       MTxxxconf.Next;
+    end;
+
+    Zconn.Commit;
+    ZConn.Disconnect;
+    MessageDlg('Cambios grabados',mtInformation, [mbok],0,mbok);
+    close;
+  finally
+    if zConn.Connected then begin
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    ZQuery.Free;
+    zconn.Free;
+  end;
+end;
+
+end.

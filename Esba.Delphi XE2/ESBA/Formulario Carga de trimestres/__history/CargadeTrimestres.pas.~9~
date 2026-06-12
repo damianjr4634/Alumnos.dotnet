@@ -1,0 +1,127 @@
+unit CargadeTrimestres;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, DataModuleZeosLib, FuncionesDb, DB, StdCtrls, Buttons, kbmMemTable,
+  Grids, DBGrids, ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset;
+
+type
+  TFrmCargaTri = class(TForm)
+    DataSource1: TDataSource;
+    grilla: TDBGrid;
+    MTTrimestre: TkbmMemTable;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    MTTrimestreFANIO: TIntegerField;
+    MTTrimestreFDDEPRI: TDateField;
+    MTTrimestreFHTAPRI: TDateField;
+    MTTrimestreFDDESEG: TDateField;
+    MTTrimestreFHTASEG: TDateField;
+    MTTrimestreFDDETER: TDateField;
+    MTTrimestreFHTATER: TDateField;
+    procedure FormActivate(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrabamesaClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmCargaTri: TFrmCargaTri;
+  modo : String;
+implementation
+
+{$R *.dfm}
+
+procedure TFrmCargaTri.FormActivate(Sender: TObject);
+var
+   x:integer;
+   query: string;
+begin
+  if (modo='TRIMESTRAL') then
+     query:='SELECT FANIO, FDDEPRI, FHTAPRI, FDDESEG, FHTASEG, FDDETER, FHTATER FROM TBL_TRIM'
+  else
+     query:='SELECT FANIO, FDDEPRI, FHTAPRI, FDDESEG, FHTASEG FROM TBL_CUAT';
+  if (modo='CUATRIMESTRAL') then begin
+    grilla.Columns.Items[5].Visible:=False;
+    grilla.Columns.Items[6].Visible:=False;
+    MtTrimestre.Fields.FieldByName('FDDETER').Required:=False;
+    MtTrimestre.Fields.FieldByName('FHTATER').Required:=False;
+  end
+  else begin
+    grilla.Columns.Items[5].Visible:=True;
+    grilla.Columns.Items[6].Visible:=True;
+    MtTrimestre.Fields.FieldByName('FDDETER').Required:=True;
+    MtTrimestre.Fields.FieldByName('FHTATER').Required:=True;
+  end;
+
+  FuncionesDb.Carga_MemTable(query,MTTrimestre,false);
+  Mttrimestre.First;
+  grilla.Repaint;
+end;
+
+procedure TFrmCargaTri.FormCreate(Sender: TObject);
+begin
+
+
+  if (modo='TRIMESTRAL') then
+     FrmCargaTri.Caption:='Carga de trimestres uso 333'
+  else
+     FrmCargaTri.Caption:='Carga de Cuatrimestres (Para carreras Cuatrimestrales)';
+end;
+
+procedure TFrmCargaTri.CancelaGrabacionClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmCargaTri.GrabamesaClick(Sender: TObject);
+Var
+   x:integer;
+   zconn: TZConnection;
+begin
+  zconn := DataModuleZLib.GetConnection();
+  try
+    if Mttrimestre.State In [DsInsert,DsEdit] then
+       MtTrimestre.Post;
+    MtTrimestre.First;
+
+    if (modo='CUATRIMESTRAL') then
+       QrTri.SQL.Text:=' DELETE FROM TBL_CUAT'
+    else
+       QrTri.SQL.Text:=' DELETE FROM TBL_TRIM';
+
+    trTri.Active:=True;
+    QrTri.ExecQuery;
+    TRTri.Commit;
+
+    trtRI.Active:=false;
+    if (modo='CUATRIMESTRAL') then
+       QrTri.SQL.Text:='INSERT INTO TBL_CUAT (FANIO, FDDEPRI, FHTAPRI, FDDESEG, FHTASEG) '+
+                       ' VALUES (:FANIO, :FDDEPRI, :FHTAPRI, :FDDESEG, :FHTASEG)'
+    else
+       QrTri.SQL.Text:='INSERT INTO TBL_TRIM (FANIO, FDDEPRI, FHTAPRI, FDDESEG, FHTASEG, FDDETER, FHTATER) '+
+                       ' VALUES (:FANIO, :FDDEPRI, :FHTAPRI, :FDDESEG, :FHTASEG, :FDDETER, :FHTATER)';
+    trtri.Active:=True;
+    while not mttrimestre.Eof do begin
+       For x:=0 to qrtri.ParamCount-1 do
+           qrtri.ParamByName(qrTri.ParamName(x)).Value:=MtTrimestre.FieldByName(qrTri.ParamName(x)).Value;
+       QrTri.ExecQuery;
+       mtTrimestre.Next;
+    end;
+    trtri.Commit;
+    trtri.Active:=false;
+    MessageDlg('Registro grabado',mtInformation, [mbok],0,mbok);
+    close;
+  finally
+
+  end;
+end;
+
+end.

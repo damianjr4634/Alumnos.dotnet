@@ -1,0 +1,498 @@
+unit FrmAltaModProfes;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, Buttons, Grids, DBGrids, Menus, Db, ComCtrls,DataModule,
+  Mask, ToolEdit;
+
+type
+  TFrmAltaModifProf = class(TForm)
+    GroupBox1: TGroupBox;
+    Grilla: TDBGrid;
+    Nuevo: TBitBtn;
+    Buscar: TBitBtn;
+    Modificar: TBitBtn;
+    salir: TBitBtn;
+    GroupBox2: TGroupBox;
+    Label1: TLabel;
+    Label3: TLabel;
+    Label6: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    Label15: TLabel;
+    Label16: TLabel;
+    Label17: TLabel;
+    Label19: TLabel;
+    Label20: TLabel;
+    Label18: TLabel;
+    Label21: TLabel;
+    Label14: TLabel;
+    Label13: TLabel;
+    Label7: TLabel;
+    Label4: TLabel;
+    Label2: TLabel;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label5: TLabel;
+    Label10: TLabel;
+    Grabar: TBitBtn;
+    Cancelar: TBitBtn;
+    DataSource1: TDataSource;
+    PopupMenu1: TPopupMenu;
+    BusquedaporApellido1: TMenuItem;
+    BusquedaporCodigo1: TMenuItem;
+    Codigo: TEdit;
+    Nombre: TEdit;
+    ComboDocumento: TComboBox;
+    NumeroDocumento: TEdit;
+    Direccion: TEdit;
+    Piso: TEdit;
+    depto: TEdit;
+    localidad: TEdit;
+    codigopostal: TEdit;
+    combonacionalidad: TComboBox;
+    TelefonoParti: TEdit;
+    TelefonoMensa: TEdit;
+    Interno: TEdit;
+    Titulo: TEdit;
+    Universidad: TEdit;
+    Licencia: TCheckBox;
+    Fechaingreso: TDateEdit;
+    FechaEgreso: TDateEdit;
+    AntiguedadCatedra: TDateEdit;
+    AntiguedadDocente: TDateEdit;
+    AntiguedadDocSup: TDateEdit;
+    FechaLicencia: TDateEdit;
+    Label22: TLabel;
+    fechanacimiento: TDateEdit;
+    Label23: TLabel;
+    procedure BuscarClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure NuevoClick(Sender: TObject);
+    procedure GrabarClick(Sender: TObject);
+    procedure BusquedaporApellido1Click(Sender: TObject);
+    procedure BusquedaporCodigo1Click(Sender: TObject);
+    procedure CancelarClick(Sender: TObject);
+    procedure ModificarClick(Sender: TObject);
+    procedure NombreKeyPress(Sender: TObject; var Key: Char);
+    procedure ComboDocumentoClick(Sender: TObject);
+    procedure NumeroDocumentoKeyPress(Sender: TObject; var Key: Char);
+    procedure DireccionKeyPress(Sender: TObject; var Key: Char);
+    procedure PisoKeyPress(Sender: TObject; var Key: Char);
+    procedure deptoKeyPress(Sender: TObject; var Key: Char);
+    procedure localidadKeyPress(Sender: TObject; var Key: Char);
+    procedure codigopostalKeyPress(Sender: TObject; var Key: Char);
+    procedure combonacionalidadClick(Sender: TObject);
+    procedure TelefonoPartiKeyPress(Sender: TObject; var Key: Char);
+    procedure TelefonoMensaKeyPress(Sender: TObject; var Key: Char);
+    procedure InternoKeyPress(Sender: TObject; var Key: Char);
+    procedure TituloKeyPress(Sender: TObject; var Key: Char);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    Procedure ResetearControles(Seteo:Boolean);
+    Procedure PasoCampos;
+    Procedure CreaCertServ(Codigo : String);
+  end;
+
+var
+  VUsuario : String;
+  Modificacion : Boolean;
+  FrmAltaModifProf: TFrmAltaModifProf;
+
+implementation
+
+{$R *.DFM}
+
+Procedure TFrmAltaModifProf.CreaCertServ(Codigo : String);
+Var
+  Copiar : Boolean;
+  Origen, Destino : String;
+Begin
+  Copiar := True;
+  //Origen := Vunidad+':\new pailot\dbfgral\CertServ.dbf';
+  //Destino :=Vunidad+':\new pailot\dbfgral\certserv\CertServ.dbf';
+  CopyFile(Pchar(Origen),Pchar(Destino),Copiar);
+  If Copiar Then
+      Begin
+  //     Origen  := Vunidad+':\new pailot\dbfgral\certserv\CertServ.dbf';
+  //     Destino :=Vunidad+':\new pailot\dbfgral\CertServ\'+Codigo+'.dbf';
+         RenameFile(Pchar(Origen),Pchar(Destino));
+         MessageBox(frmAltaModifProf.Handle,Pchar(VUsuario+', se creo la base correspodiente al docente para su certificacion de servisios'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+      End
+   Else
+      MessageBox(frmAltaModifProf.Handle,Pchar(VUsuario+', hubo un error al crear el archivo para la certificacion de servicios. Llame al administrador o hagalo manualmente'),'Error',MB_OK+MB_ICONERROR+MB_APPLMODAL);
+End;
+
+Procedure TFrmAltaModifProf.PasoCampos;
+Begin
+ With  CustomerData do Begin
+   IBUpdateProf.ParamByName('CODPROFES').AsString   := Codigo.Text;
+//   fechaingreso.GetDateMask;
+   IBUpdateProf.ParamByName('DOCENTE').AsString     := Nombre.Text;
+   if (fechaIngreso.date<>0) then
+      IBUpdateProf.ParamByName('FECHA_ING').AsDatetime := strtodate(fechaIngreso.text);
+   if (fechaegreso.date<>0) then
+      IBUpdateProf.ParamByName('FECHA_BAJ').AsDatetime := strtodate(FechaEgreso.text);
+   IBUpdateProf.ParamByName('DI_ECCION').AsString   := Direccion.Text;
+   IBUpdateProf.ParamByName('PISO').AsString        := Piso.Text;
+   IBUpdateProf.ParamByName('DEPTO').AsString       := Depto.Text;
+   IBUpdateProf.ParamByName('TELEFONO_P').AsString  := TelefonoParti.Text;
+   IBUpdateProf.ParamByName('TELEFONO_M').AsString  := TelefonoMensa.Text;
+   IBUpdateProf.ParamByName('INTERNO').AsString     := Interno.Text;
+   IBUpdateProf.ParamByName('LOCALIDAD').AsString   := Localidad.Text;
+   IBUpdateProf.ParamByName('TITULO').AsString      := Titulo.Text;
+   IBUpdateProf.ParamByName('UNIVERDID').AsString   := universidad.Text;
+   IBUpdateProf.ParamByName('CODPROFES').AsString   := Codigo.Text;
+   IBUpdateProf.ParamByName('NRODOCUM').AsString    := NumeroDocumento.Text;
+   IBUpdateProf.ParamByName('TIPODOC').AsString     := ComboDocumento.Text;
+   if (fechanacimiento.date<>0) then
+      IBUpdateProf.ParamByName('FEC_NAC').AsDateTime   := strtodate(FechaNacimiento.text);
+   IBUpdateProf.ParamByName('COD_POST').AsString    := CodigoPostal.Text;
+   IBUpdateProf.ParamByName('NACIONALI').AsString   := Copy(ComboNacionalidad.Text,1,1);
+   if (antiguedaddocente.date<>0) then
+      IBUpdateProf.ParamByName('ANTDOCENT').AsDateTime :=  strtodate(AntiguedadDocente.text);
+   if (antiguedaddocsup.date<>0) then
+      IBUpdateProf.ParamByName('ANTDOCSUP').AsDateTime :=  strtodate(AntiguedadDocSup.text);
+   if (antiguedadcatedra.date<>0) then
+      IBUpdateProf.ParamByName('ANTCATEDR').AsDateTime :=  strtodate(AntiguedadCatedra.text);
+   if (fechalicencia.date<>0) then
+       IBUpdateProf.ParamByName('LICENFECH').AsDateTime :=  strtodate(FechaLicencia.text);
+   if Licencia.Checked then
+     IBUpdateProf.ParamByName('LICENCIA').AsString :=  'S'
+   else
+     IBUpdateProf.ParamByName('LICENCIA').AsString :=  'N';
+ end
+End;
+
+Procedure TFrmAltaModifProf.ResetearControles(Seteo:Boolean);
+Begin
+   Nombre.Text := '';
+//   fechaIngreso.Date := StrToDate('01/01/1900');
+//   FechaEgreso.Date := StrToDate('01/01/1900');
+   fechaEgreso.Text:='';
+   Direccion.Text := '';
+   Piso.Text := '';
+   Depto.Text := '';
+   TelefonoParti.Text := '';
+   TelefonoMensa.Text := '';
+   Interno.Text := '';
+   Localidad.Text := '';
+   Titulo.Text := '';
+   universidad.Text := '';
+   Codigo.Text := '';
+   NumeroDocumento.Text := '';
+   ComboDocumento.Text := '';
+//  FechaNacimiento.Date := StrToDate('01/01/1900');
+   CodigoPostal.Text := '';
+   ComboNacionalidad.Text := '';
+   Grilla.Enabled := Seteo;
+   Nuevo.Enabled := Seteo;
+   buscar.Enabled := Seteo;
+   Modificar.Enabled := Seteo;
+   Salir.Enabled := Seteo;
+//   AntiguedadCatedra.Date := StrToDate('01/01/1900');
+//   AntiguedadDocente.Date := StrToDate('01/01/1900');
+//   AntiguedadDocSup.Date := StrToDate('01/01/1900');
+End;
+
+procedure TFrmAltaModifProf.BuscarClick(Sender: TObject);
+begin
+  PopupMenu1.Popup(Buscar.Left+FrmAltaModifProf.Left,Buscar.Top+FrmAltaModifProf.Top);
+end;
+
+procedure TFrmAltaModifProf.FormActivate(Sender: TObject);
+begin
+ Modificacion := False;
+ FrmAltaModifProf.Height := 276;
+ If not CustomerData.IBProfesores.Active Then
+   Begin
+    Try
+       CustomerData.TrProfesores.Active := True;
+       CustomerData.IBProfesores.Active := True;
+    Except
+       CustomerData.TrProfesores.Rollback;
+       CustomerData.TrProfesores.Active := False;
+    End
+   End
+end;
+
+procedure TFrmAltaModifProf.salirClick(Sender: TObject);
+begin
+ Close
+end;
+
+procedure TFrmAltaModifProf.NuevoClick(Sender: TObject);
+begin
+ Modificacion := False;
+ FrmAltaModifProf.Height := 579;
+ ResetearControles(False);
+ Nombre.SetFocus;
+ Codigo.Enabled := True;
+end;
+
+procedure TFrmAltaModifProf.GrabarClick(Sender: TObject);
+
+begin
+ If MessageBox(FrmAltaModifProf.Handle,Pchar(VUsuario+', estas seguro de grabar la información?'),'Aviso',MB_ICONQUESTION+MB_YESNO+MB_APPLMODAL) = IDYES Then
+  Begin
+   CustomerData.IBUpdateProf.SQL.Clear;
+   If Modificacion Then
+       CustomerData.IBUpdateProf.SQL.Text := 'UPDATE DOCENTES SET DOCENTE=:DOCENTE,FECHA_ING=:FECHA_ING,FECHA_BAJ=:FECHA_BAJ,'+
+                                             'DI_ECCION=:DI_ECCION,PISO=:PISO, DEPTO=:DEPTO,TELEFONO_P=:TELEFONO_P,'+
+                                             'TELEFONO_M=:TELEFONO_M,INTERNO=:INTERNO,LOCALIDAD=:LOCALIDAD,TITULO=:TITULO,'+
+                                             'UNIVERDID=:UNIVERDID,NROREGIST=:NROREGIST,ANTDOCENT=:ANTDOCENT,ANTDOCSUP=:ANTDOCSUP,'+
+                                             'ANTCATEDR=:ANTCATEDR,CODPROFES=:CODPROFES,NRODOCUM=:NRODOCUM,TIPODOC=:TIPODOC,'+
+                                             'FEC_NAC=:FEC_NAC,COD_POST=:COD_POST, NACIONALI=:NACIONALI, LICENCIA=:LICENCIA, LICENFECH=:LICENFECH '+
+                                             'WHERE CODPROFES=:CODPROFES;'
+   Else
+      CustomerData.IBUpdateProf.SQL.Text := 'INSERT INTO DOCENTES (CODPROFES,DOCENTE,FECHA_ING,FECHA_BAJ,DI_ECCION,PISO, DEPTO, TELEFONO_P,  TELEFONO_M,'+
+                                            '  INTERNO,LOCALIDAD,    TITULO,    UNIVERDID,    NROREGIST,'+
+                                            '  ANTDOCENT,    ANTDOCSUP,    ANTCATEDR, NRODOCUM,'+
+                                            '  TIPODOC,    FEC_NAC,    COD_POST, NACIONALI, LICENCIA, LICENFECH)'+
+                                            '  VALUES (:CODPROFES,:DOCENTE,:FECHA_ING,:FECHA_BAJ,:DI_ECCION,:PISO,:DEPTO,:TELEFONO_P,:TELEFONO_M,'+
+                                            '  :INTERNO,:LOCALIDAD,:TITULO,:UNIVERDID,:NROREGIST,'+
+                                            '  :ANTDOCENT,:ANTDOCSUP,:ANTCATEDR,:NRODOCUM,'+
+                                            '  :TIPODOC,:FEC_NAC,:COD_POST,:NACIONALI,:LICENCIA,:LICENFECH );';
+   PasoCampos;
+
+   Try
+     CustomerData.TRUpdateProf.Active := True;
+     CustomerData.IBUpdateProf.ExecQuery;
+     CustomerData.TRUpdateProf.Commit;
+   Except
+     CustomerData.TRUpdateProf.Rollback;
+   end;
+   CustomerData.TRUpdateProf.Active := False;
+  End;
+ ResetearControles(True);
+ FrmAltaModifProf.Height := 276;
+ Modificacion := False;
+ Try
+    CustomerData.TrProfesores.Rollback;
+    CustomerData.TrProfesores.Active := False;
+    CustomerData.IBProfesores.Active := False;
+    CustomerData.TrProfesores.Active := True;
+    CustomerData.IBProfesores.Active := True;
+ Except
+    CustomerData.TrProfesores.Rollback;
+    CustomerData.TrProfesores.Active := False;
+ End;
+end;
+
+procedure TFrmAltaModifProf.BusquedaporApellido1Click(Sender: TObject);
+Var
+ Ape:String;
+begin
+ { Ape := UpperCase(InputBox('Ingrese apellido a buscar','Busqueda por apellido',''));
+  If  Ape <> '' Then
+   Begin
+     Profesores.IndexFieldNames := 'DOCENTE';
+     If Not (Profesores.FindKey([Ape])) Then
+      Begin
+        MessageBox(FrmAltaModifProf.Handle,Pchar(VUsuario+', el nombre del docente no existe'),'Error',MB_ICONERROR+MB_OK+MB_APPLMODAL);
+        Profesores.FindNearest([Ape]);
+      End;
+     with TStringGrid(Grilla) do
+      begin
+        Col:=1;  //Columna
+        SetFocus;
+     end;
+   End;}
+end;
+
+procedure TFrmAltaModifProf.BusquedaporCodigo1Click(Sender: TObject);
+Var
+ Cod:String;
+begin
+  Cod := UpperCase(InputBox('Ingrese codigo a buscar','Busqueda por Codigo',''));
+{  If  Cod <> '' Then
+    Begin
+      Profesores.IndexFieldNames := 'CODPROFES';
+      If Not (Profesores.FindKey([cod])) Then
+       Begin
+         MessageBox(FrmAltaModifProf.Handle,Pchar(VUsuario+', el código del docente no existe'),'Error',MB_ICONERROR+MB_OK+MB_APPLMODAL);
+         Profesores.FindNearest([cod]);
+       End;
+     Profesores.IndexName := 'CODPROFVAL';
+     with TStringGrid(Grilla) do
+      begin
+        Col:=1;  //Columna
+        SetFocus;
+      End;
+    End;}
+end;
+
+procedure TFrmAltaModifProf.CancelarClick(Sender: TObject);
+begin
+ ResetearControles(True);
+ FrmAltaModifProf.Height := 276;
+ Modificacion := False;
+end;
+
+procedure TFrmAltaModifProf.ModificarClick(Sender: TObject);
+begin
+ Codigo.Enabled := False;
+ Modificacion := True;
+ FrmAltaModifProf.Height := 579;
+ ResetearControles(False);
+ With CustomerData do Begin
+   Nombre.SetFocus;
+   Nombre.Text := IBProfesores.FieldByName('DOCENTE').AsString;
+   Try
+     fechaIngreso.Date := IBProfesores.FieldByName('FECHA_ING').AsDateTime;
+   Except
+     fechaIngreso.Date := StrToDate('01/01/1900');
+   End;
+   Try
+    FechaEgreso.Date := IBProfesores.FieldByName('FECHA_BAJ').AsDateTime;
+   Except
+    FechaEgreso.Date := StrToDate('01/01/1900');
+   End;
+   Direccion.Text := IBProfesores.FieldByName('DI_ECCION').AsString;
+   Piso.Text := IBProfesores.FieldByName('PISO').AsString;
+   Depto.Text := IBProfesores.FieldByName('DEPTO').AsString;
+   TelefonoParti.Text := IBProfesores.FieldByName('TELEFONO_P').AsString;
+   TelefonoMensa.Text := IBProfesores.FieldByName('TELEFONO_M').AsString;
+   Interno.Text := IBProfesores.FieldByName('INTERNO').AsString;
+   Localidad.Text := IBProfesores.FieldByName('LOCALIDAD').AsString;
+   Titulo.Text := IBProfesores.FieldByName('TITULO').AsString;
+   universidad.Text := IBProfesores.FieldByName('UNIVERDID').AsString;
+   Codigo.Text := IBProfesores.FieldByName('CODPROFES').AsString;
+   NumeroDocumento.Text := IBProfesores.FieldByName('NRODOCUM').AsString;
+   ComboDocumento.Text := IBProfesores.FieldByName('TIPODOC').AsString;
+   Try
+     FechaNacimiento.Date := IBProfesores.FieldByName('FEC_NAC').AsDateTime;
+   Except
+     FechaNacimiento.Date := StrToDate('01/01/1900');
+   End;
+   CodigoPostal.Text := IBProfesores.FieldByName('COD_POST').AsString;
+   if (IBProfesores.FieldByName('NACIONALI').AsString='A') then
+       ComboNacionalidad.ItemIndex:=0
+   Else
+       ComboNacionalidad.ItemIndex:=1;
+   try
+     AntiguedadDocSup.Date := IBProfesores.FieldByName('ANTDOCSUP').AsDateTime;
+   except
+     AntiguedadDocSup.Date := StrToDate('01/01/1900');
+   end;
+   try
+     AntiguedadDocente.Date := IBProfesores.FieldByName('ANTDOCENT').AsDateTime;
+   except
+     AntiguedadDocente.Date := StrToDate('01/01/1900');
+   end;
+   try
+     AntiguedadCatedra.Date := IBProfesores.FieldByName('ANTCATEDR').AsDateTime;
+   except
+     AntiguedadCatedra.Date := StrToDate('01/01/1900');
+   end;
+   if (IbProfesores.FieldByName('LICENCIA').AsString='S') Then
+       Licencia.Checked:=True
+   else
+       Licencia.Checked:=False;
+   try
+     FechaLicencia.Date := IBProfesores.FieldByName('LICENFECH').AsDateTime;
+   except
+     FechaLicencia.Date := StrToDate('01/01/1900');
+   end;
+   label23.Caption:='Antigüedad en años: '+IntToStr(IBProfesores.FieldByName('ANIOS').asinteger);
+ end;
+end;
+
+
+procedure TFrmAltaModifProf.NombreKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+   ComboDocumento.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.ComboDocumentoClick(Sender: TObject);
+begin
+ NumeroDocumento.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.NumeroDocumentoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+   FechaNacimiento.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.DireccionKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Piso.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.PisoKeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+   Depto.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.deptoKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+   Localidad.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.localidadKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   CodigoPostal.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.codigopostalKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   ComboNacionalidad.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.combonacionalidadClick(Sender: TObject);
+begin
+   TelefonoParti.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.TelefonoPartiKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   TelefonoMensa.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.TelefonoMensaKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Interno.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.InternoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   Titulo.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.TituloKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then
+   Universidad.Setfocus;
+end;
+
+procedure TFrmAltaModifProf.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  CustomerData.TrProfesores.Rollback;
+  CustomerData.TrProfesores.Active := False;
+end;
+
+end.

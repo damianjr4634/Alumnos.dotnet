@@ -1,0 +1,556 @@
+object mesasexamenes: Tmesasexamenes
+  Left = 292
+  Top = 69
+  BorderStyle = bsDialog
+  Caption = 'Mesas de Ex'#225'menes'
+  ClientHeight = 563
+  ClientWidth = 746
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  KeyPreview = True
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnKeyPress = FormKeyPress
+  PixelsPerInch = 96
+  TextHeight = 13
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 0
+    Width = 746
+    Height = 329
+    Align = alTop
+    Caption = 'Mesas de Examen'
+    TabOrder = 0
+    object Grilla: TDBGrid
+      Left = 2
+      Top = 15
+      Width = 742
+      Height = 312
+      Align = alClient
+      DataSource = DataSource1
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit]
+      TabOrder = 0
+      TitleFont.Charset = DEFAULT_CHARSET
+      TitleFont.Color = clWindowText
+      TitleFont.Height = -11
+      TitleFont.Name = 'MS Sans Serif'
+      TitleFont.Style = []
+      OnKeyPress = GrillaKeyPress
+      Columns = <
+        item
+          Expanded = False
+          FieldName = 'COD_MAT'
+          Title.Alignment = taCenter
+          Title.Caption = 'C'#243'digo de Materia'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CARRE'
+          Title.Alignment = taCenter
+          Title.Caption = 'Carrera'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'MESA'
+          Title.Alignment = taCenter
+          Title.Caption = 'Mesa'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'LLAMADO'
+          Title.Alignment = taCenter
+          Title.Caption = 'Llamado'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'FECH_EXA'
+          Title.Alignment = taCenter
+          Title.Caption = 'Fecha de Examen'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'HORA'
+          Title.Alignment = taCenter
+          Title.Caption = 'Hora'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'TITULAR'
+          Title.Alignment = taCenter
+          Title.Caption = 'Titular'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'VOCAL1'
+          Title.Alignment = taCenter
+          Title.Caption = 'Primer Vocal'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'VOCAL2'
+          Title.Alignment = taCenter
+          Title.Caption = 'Segundo Vocal'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'AULA'
+          Title.Alignment = taCenter
+          Title.Caption = 'Aula'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'CUATRIM'
+          Title.Alignment = taCenter
+          Title.Caption = 'Cuatrimestre'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'COMI1'
+          Title.Alignment = taCenter
+          Title.Caption = 'Comision 1'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'COMI2'
+          Title.Alignment = taCenter
+          Title.Caption = 'Comision 2'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'COMI3'
+          Title.Alignment = taCenter
+          Title.Caption = 'Comision 2'
+          Visible = True
+        end
+        item
+          Expanded = False
+          FieldName = 'DESCRI'
+          Title.Caption = 'Tipo'
+          Width = 70
+          Visible = True
+        end>
+    end
+  end
+  object NuevaMesa: TBitBtn
+    Left = 8
+    Top = 336
+    Width = 113
+    Height = 33
+    Caption = '&Nueva Mesa'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000130B0000130B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF0033333333B333
+      333B33FF33337F3333F73BB3777BB7777BB3377FFFF77FFFF77333B000000000
+      0B3333777777777777333330FFFFFFFF07333337F33333337F333330FFFFFFFF
+      07333337F33333337F333330FFFFFFFF07333337F33333337F333330FFFFFFFF
+      07333FF7F33333337FFFBBB0FFFFFFFF0BB37777F3333333777F3BB0FFFFFFFF
+      0BBB3777F3333FFF77773330FFFF000003333337F333777773333330FFFF0FF0
+      33333337F3337F37F3333330FFFF0F0B33333337F3337F77FF333330FFFF003B
+      B3333337FFFF77377FF333B000000333BB33337777777F3377FF3BB3333BB333
+      3BB33773333773333773B333333B3333333B7333333733333337}
+    NumGlyphs = 2
+    TabOrder = 1
+    OnClick = NuevaMesaClick
+  end
+  object modificaMesa: TBitBtn
+    Left = 128
+    Top = 336
+    Width = 113
+    Height = 33
+    Caption = '&Modifica Mesa'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333000000
+      000033333377777777773333330FFFFFFFF03FF3FF7FF33F3FF700300000FF0F
+      00F077F777773F737737E00BFBFB0FFFFFF07773333F7F3333F7E0BFBF000FFF
+      F0F077F3337773F3F737E0FBFBFBF0F00FF077F3333FF7F77F37E0BFBF00000B
+      0FF077F3337777737337E0FBFBFBFBF0FFF077F33FFFFFF73337E0BF0000000F
+      FFF077FF777777733FF7000BFB00B0FF00F07773FF77373377373330000B0FFF
+      FFF03337777373333FF7333330B0FFFF00003333373733FF777733330B0FF00F
+      0FF03333737F37737F373330B00FFFFF0F033337F77F33337F733309030FFFFF
+      00333377737FFFFF773333303300000003333337337777777333}
+    NumGlyphs = 2
+    TabOrder = 2
+    OnClick = modificaMesaClick
+  end
+  object eliminaMesa: TBitBtn
+    Left = 248
+    Top = 336
+    Width = 113
+    Height = 33
+    Caption = '&Elimina Mesa'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+      55555FFFFFFF5F55FFF5777777757559995777777775755777F7555555555550
+      305555555555FF57F7F555555550055BB0555555555775F777F55555550FB000
+      005555555575577777F5555550FB0BF0F05555555755755757F555550FBFBF0F
+      B05555557F55557557F555550BFBF0FB005555557F55575577F555500FBFBFB0
+      B05555577F555557F7F5550E0BFBFB00B055557575F55577F7F550EEE0BFB0B0
+      B05557FF575F5757F7F5000EEE0BFBF0B055777FF575FFF7F7F50000EEE00000
+      B0557777FF577777F7F500000E055550805577777F7555575755500000555555
+      05555777775555557F5555000555555505555577755555557555}
+    NumGlyphs = 2
+    TabOrder = 3
+    OnClick = eliminaMesaClick
+  end
+  object salir: TBitBtn
+    Left = 672
+    Top = 336
+    Width = 65
+    Height = 33
+    Caption = 'Salir'
+    Glyph.Data = {
+      76010000424D7601000000000000760000002800000020000000100000000100
+      04000000000000010000120B0000120B00001000000000000000000000000000
+      800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+      FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00330000000000
+      03333377777777777F333301BBBBBBBB033333773F3333337F3333011BBBBBBB
+      0333337F73F333337F33330111BBBBBB0333337F373F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F337F33337F333301110BBBBB0333337F337FF3337F33330111B0BBBB
+      0333337F337733337F333301110BBBBB0333337F337F33337F333301110BBBBB
+      0333337F3F7F33337F333301E10BBBBB0333337F7F7F33337F333301EE0BBBBB
+      0333337F777FFFFF7F3333000000000003333377777777777333}
+    NumGlyphs = 2
+    TabOrder = 4
+    OnClick = salirClick
+  end
+  object GroupBox2: TGroupBox
+    Left = 1
+    Top = 378
+    Width = 745
+    Height = 177
+    Caption = 'Datos de la Mesa'
+    TabOrder = 5
+    object Label1: TLabel
+      Left = 16
+      Top = 24
+      Width = 86
+      Height = 13
+      Caption = 'C'#243'digo de Materia'
+    end
+    object Label2: TLabel
+      Left = 401
+      Top = 25
+      Width = 81
+      Height = 13
+      Caption = 'N'#250'mero de Mesa'
+    end
+    object Label3: TLabel
+      Left = 16
+      Top = 50
+      Width = 40
+      Height = 13
+      Caption = 'Llamado'
+    end
+    object Label4: TLabel
+      Left = 401
+      Top = 50
+      Width = 86
+      Height = 13
+      Caption = 'Fecha de Examen'
+    end
+    object Label5: TLabel
+      Left = 16
+      Top = 75
+      Width = 23
+      Height = 13
+      Caption = 'Hora'
+    end
+    object Label6: TLabel
+      Left = 401
+      Top = 75
+      Width = 21
+      Height = 13
+      Caption = 'Aula'
+    end
+    object Label7: TLabel
+      Left = 16
+      Top = 100
+      Width = 29
+      Height = 13
+      Caption = 'Titular'
+    end
+    object Label8: TLabel
+      Left = 16
+      Top = 125
+      Width = 36
+      Height = 13
+      Caption = 'Vocal 1'
+    end
+    object Label9: TLabel
+      Left = 16
+      Top = 150
+      Width = 36
+      Height = 13
+      Caption = 'Vocal 2'
+    end
+    object Label10: TLabel
+      Left = 401
+      Top = 100
+      Width = 51
+      Height = 13
+      Caption = 'Comisi'#243'n 1'
+    end
+    object Label11: TLabel
+      Left = 401
+      Top = 125
+      Width = 51
+      Height = 13
+      Caption = 'Comisi'#243'n 2'
+    end
+    object Label12: TLabel
+      Left = 401
+      Top = 150
+      Width = 51
+      Height = 13
+      Caption = 'Comisi'#243'n 3'
+    end
+    object NombreMat: TLabel
+      Left = 173
+      Top = 24
+      Width = 3
+      Height = 13
+    end
+    object Labeltitular: TLabel
+      Left = 193
+      Top = 96
+      Width = 3
+      Height = 13
+    end
+    object LabelVocal1: TLabel
+      Left = 190
+      Top = 124
+      Width = 3
+      Height = 13
+    end
+    object LabelVocal2: TLabel
+      Left = 188
+      Top = 148
+      Width = 3
+      Height = 13
+    end
+    object Grabamesa: TBitBtn
+      Left = 606
+      Top = 89
+      Width = 123
+      Height = 33
+      Caption = 'Graba Mesa'
+      Enabled = False
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000120B0000120B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00555555555555
+        555555555555555555555555555555555555555555FF55555555555559055555
+        55555555577FF5555555555599905555555555557777F5555555555599905555
+        555555557777FF5555555559999905555555555777777F555555559999990555
+        5555557777777FF5555557990599905555555777757777F55555790555599055
+        55557775555777FF5555555555599905555555555557777F5555555555559905
+        555555555555777FF5555555555559905555555555555777FF55555555555579
+        05555555555555777FF5555555555557905555555555555777FF555555555555
+        5990555555555555577755555555555555555555555555555555}
+      NumGlyphs = 2
+      TabOrder = 11
+      OnClick = GrabamesaClick
+    end
+    object CancelaGrabacion: TBitBtn
+      Left = 605
+      Top = 129
+      Width = 123
+      Height = 34
+      Caption = 'Cancela Grabaci'#243'n'
+      Glyph.Data = {
+        76010000424D7601000000000000760000002800000020000000100000000100
+        04000000000000010000130B0000130B00001000000000000000000000000000
+        800000800000008080008000000080008000808000007F7F7F00BFBFBF000000
+        FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
+        333333333333333333333333333333333333333FFF33FF333FFF339993370733
+        999333777FF37FF377733339993000399933333777F777F77733333399970799
+        93333333777F7377733333333999399933333333377737773333333333990993
+        3333333333737F73333333333331013333333333333777FF3333333333910193
+        333333333337773FF3333333399000993333333337377737FF33333399900099
+        93333333773777377FF333399930003999333337773777F777FF339993370733
+        9993337773337333777333333333333333333333333333333333333333333333
+        3333333333333333333333333333333333333333333333333333}
+      NumGlyphs = 2
+      TabOrder = 12
+      OnClick = CancelaGrabacionClick
+    end
+    object ComboMaterias2: TComboEdit
+      Left = 112
+      Top = 20
+      Width = 57
+      Height = 21
+      ClickKey = 112
+      GlyphKind = gkEllipsis
+      MaxLength = 2
+      NumGlyphs = 1
+      TabOrder = 0
+      OnButtonClick = ComboMaterias2ButtonClick
+      OnExit = ComboMaterias2Exit
+    end
+    object ComboTitular: TComboEdit
+      Left = 112
+      Top = 93
+      Width = 73
+      Height = 21
+      ClickKey = 112
+      GlyphKind = gkEllipsis
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 3
+      OnButtonClick = ComboTitularButtonClick
+      OnExit = ComboTitularExit
+    end
+    object Combovocal1: TComboEdit
+      Left = 112
+      Top = 118
+      Width = 73
+      Height = 21
+      ClickKey = 112
+      GlyphKind = gkEllipsis
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 4
+      OnButtonClick = Combovocal1ButtonClick
+      OnExit = Combovocal1Exit
+    end
+    object ComboVocal2: TComboEdit
+      Left = 112
+      Top = 144
+      Width = 73
+      Height = 21
+      ClickKey = 112
+      GlyphKind = gkEllipsis
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 5
+      OnButtonClick = ComboVocal2ButtonClick
+      OnExit = ComboVocal2Exit
+    end
+    object hora: TComboEdit
+      Left = 112
+      Top = 66
+      Width = 41
+      Height = 21
+      ButtonWidth = 0
+      NumGlyphs = 1
+      TabOrder = 2
+    end
+    object llamado: TComboEdit
+      Left = 112
+      Top = 43
+      Width = 41
+      Height = 21
+      Alignment = taRightJustify
+      EditMask = '!9;0;_'
+      ButtonWidth = 0
+      MaxLength = 1
+      NumGlyphs = 1
+      TabOrder = 1
+    end
+    object Aula: TComboEdit
+      Left = 496
+      Top = 65
+      Width = 37
+      Height = 21
+      Alignment = taRightJustify
+      ButtonWidth = 0
+      BiDiMode = bdLeftToRight
+      ParentBiDiMode = False
+      NumGlyphs = 1
+      TabOrder = 7
+    end
+    object comision1: TComboEdit
+      Left = 496
+      Top = 91
+      Width = 39
+      Height = 21
+      Alignment = taRightJustify
+      EditMask = '!999;0;_'
+      ButtonWidth = 0
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 8
+    end
+    object comision2: TComboEdit
+      Left = 496
+      Top = 116
+      Width = 39
+      Height = 21
+      Alignment = taRightJustify
+      EditMask = '!999;0;_'
+      ButtonWidth = 0
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 9
+    end
+    object comision3: TComboEdit
+      Left = 496
+      Top = 142
+      Width = 39
+      Height = 21
+      Alignment = taRightJustify
+      EditMask = '!999;0;_'
+      ButtonWidth = 0
+      MaxLength = 3
+      NumGlyphs = 1
+      TabOrder = 10
+    end
+    object Mesa: TComboEdit
+      Left = 496
+      Top = 17
+      Width = 39
+      Height = 21
+      Alignment = taRightJustify
+      ButtonWidth = 0
+      NumGlyphs = 1
+      TabOrder = 6
+      OnExit = MesaExit
+      OnKeyPress = MesaKeyPress
+    end
+    object Fecha: TDateEdit
+      Left = 496
+      Top = 42
+      Width = 97
+      Height = 21
+      NumGlyphs = 2
+      YearDigits = dyFour
+      TabOrder = 13
+    end
+  end
+  object DataSource1: TDataSource
+    DataSet = CustomerData.IbDsVarios
+    Left = 136
+    Top = 112
+  end
+end

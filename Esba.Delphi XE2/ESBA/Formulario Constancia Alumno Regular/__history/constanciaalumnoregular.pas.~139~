@@ -1,0 +1,439 @@
+unit constanciaalumnoregular;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls,Printers, funcionesText, FuncionesConfiguracion, FuncionesSystem, Buttons, Imprimir, GmTypes, GmPreview,
+  DataModule, Vcl.ExtCtrls, SynPdf, SynGdiPlus, jpeg, enviocorreo, System.Variants;
+
+type
+  TConstAlumnoRegular = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    GroupBox2: TGroupBox;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Apenom: TEdit;
+    Label7: TLabel;
+    docum: TEdit;
+    Carre: TEdit;
+    Comi: TEdit;
+    antequien: TEdit;
+    Label9: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    dialogoimpre: TPrintDialog;
+    Memo: TMemo;
+    dias: TEdit;
+    meses: TEdit;
+    anios: TEdit;
+    Panel1: TPanel;
+    Imprimir: TBitBtn;
+    Cancelar: TBitBtn;
+    BtnPdf: TBitBtn;
+    SaveDialog1: TSaveDialog;
+    procedure CancelarClick(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormShow(Sender: TObject);
+  private
+    procedure CreatePDF(FileName:string);
+  public
+    { Public declarations }
+  end;
+
+var
+  ConstAlumnoRegular: TConstAlumnoRegular;
+  CarreraActiva  : String;
+  CodigoAlumno   : String;
+  Apellidonombre : String;
+  Carreralarga   : String;
+  Usuario        : String;
+  UnidadPrograma : String;
+  Distancia      : String;
+  MailAlumno     : String;
+  Dictamen       : String;
+
+implementation
+
+{$R *.DFM}
+
+uses
+    Carreras, funcionesdb, System.StrUtils;
+
+procedure TConstAlumnoRegular.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if DataModule.CustomerData.TrQrVarios.Active then begin
+    DataModule.CustomerData.IBQrVarios.Close;
+    DataModule.CustomerData.TrQrVarios.Rollback;
+  end;
+end;
+
+procedure TConstAlumnoRegular.FormShow(Sender: TObject);
+var
+ Anio,Mes,Dia : Word;
+
+begin
+ Apenom.Text := Apellidonombre;
+ Docum.Text  := PonePuntos(CodigoAlumno);
+ Carre.Text  := Carreralarga;
+ if DataModule.CustomerData.TrQrVarios.Active then begin
+  DataModule.CustomerData.IBQrVarios.Close;
+  DataModule.CustomerData.TrQrVarios.Rollback;
+ end;
+ DataModule.CustomerData.IBQrVarios.Sql.Clear;
+ DataModule.CustomerData.IBQrVarios.Sql.Text:='SELECT C.COD_ALU, C.CUTUCO, C.CUA_ANIO, C.CONDICION, A.DISTANCIA, A.DICTAMEN '+
+                                              'FROM CURSADA C '+
+                                              'LEFT OUTER JOIN CARRERA A ON A.CARRE=C.CARRE '+
+                                              'WHERE C.CARRE=:CARRE AND C.COD_ALU=:CODALU AND TRIM(C.CONDICION) IN (''CURSANDO'',''RECURSANDO'') AND C.CUA_ANIO=:CUAANIO '+
+                                              'ORDER BY C.CUTUCO DESC, C.CONDICION;';
+ DataModule.CustomerData.IBQrVarios.ParambyName('CODALU').AsString := CodigoAlumno;
+ DataModule.CustomerData.IBQrVarios.ParambyName('CUAANIO').AsString := Cuatrimestre(CarreraActiva);
+ DataModule.CustomerData.IBQrVarios.ParambyName('CARRE').AsString:= CarreraActiva;
+ DataModule.CustomerData.TrQrVarios.Active:=True;
+ DataModule.CustomerData.IBQrVarios.ExecQuery;
+
+ If DataModule.CustomerData.IBQrVarios.RecordCount = 0 then
+  Begin
+   DataModule.CustomerData.TrQrVarios.Rollback;
+   DataModule.CustomerData.TrQrVarios.Active:=False;
+   MessageDlg(Pchar(Usuario+', EL ALUMNO NO SE ENCUENTRA CURSANDO ACTUALMENTE'),mtError,[mbok],0,mbok);
+   BtnPdf.Enabled:=False;
+   Imprimir.Enabled := False;
+   Cancelar.SetFocus;
+   ConstAlumnoRegular.Close;
+  end
+ Else
+  Begin
+    distancia:= DataModule.CustomerData.IBQrVarios.FieldByName('DISTANCIA').AsString;
+    Dictamen:= DataModule.CustomerData.IBQrVarios.FieldByName('DICTAMEN').AsString;
+
+
+    Try
+     Comi.Text := InttoStr(DataModule.CustomerData.IBQrVarios.FieldByName('CUTUCO').AsInteger);
+    Except
+     Comi.text := '';
+    End;
+    DecodeDate(date,anio,mes,dia);
+    dias.text := InttoStr(dia);
+    meses.text  := MesALetras(mes);
+    anios.text := InttoStr(anio);
+    Memo.Enabled:=True;
+    Label5.Caption:='y asiste a clase los días:';
+    if (distancia<>'S') then begin
+        if (CarreraActiva='BAC') then begin
+          case StrToInt(Copy(Comi.Text,2,1)) of
+             1: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 8:30 a 11:30 hs.';
+             2: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 13:30 a 16:30 hs.';
+             3: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 17:30 a 20:00 hs.';
+             4: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 19:00 a 22:00 hs.';
+          end
+        end
+        else if (CarreraActiva='333') or (CarreraActiva='650') then begin
+           case StrToInt(Copy(Comi.Text,2,1)) of
+             1: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 8:00 a 13:00 hs.';
+             2: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 13:00 a 18:00 hs.';
+             3: Memo.Lines.Text:= 'Sin horario definido';
+             4: Memo.Lines.Text:= 'Sin horario definido';
+           end
+        end
+        else begin
+            case StrToInt(Copy(Comi.Text,2,1)) of
+              1: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 8:30 a 11:45 hs.';
+              2: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 13:30 a 16:45 hs.';
+              3: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 17:15 a 20:00 hs.';
+              4: Memo.Lines.Text:= 'Lunes a Viernes en el horario de 19:00 a 22:00 hs.';
+            end
+        end;
+    end
+    else begin
+       Memo.Enabled:=False;
+       Label5.Caption:='';
+    end;
+    antequien.SetFocus;
+  End;
+end;
+
+procedure TConstAlumnoRegular.BitBtn1Click(Sender: TObject);
+var
+ opcion: integer;
+begin
+Case FuncionesSystem.CustomMessageDialog('Que desea hacer?', mtConfirmation,
+          [mbNo, mbYes, mbCancel], ['Mail', 'Guardar', 'Cancelar']) of
+       mrYes: opcion:=1;
+       mrNo:  opcion:=2
+       else exit;
+End;
+
+if opcion=1 then begin
+  CreatePdf(UnidadPrograma+'pdfs\'+Apellidonombre+'.pdf');
+  Frmenviomail := TFrmenviomail.Create(Self);
+  EnvioCorreo.VUnidad := UnidadPrograma;
+  EnvioCorreo.Vcarrera := CarreraActiva;
+  EnvioCorreo.VUsuario := Usuario;
+  FrmEnvioMail.DEPara.Text := MailAlumno;
+  Frmenviomail.Asunto.Text := 'Constancia de Alumno regular';
+  Frmenviomail.ArchAdj.Items.Add(UnidadPrograma+'pdfs\'+Apellidonombre+'.pdf');
+  Frmenviomail.SetButtons;
+  FrmEnvioMail.Position:=poScreenCenter;
+  FrmEnvioMail.ShowModal;
+  FrmEnvioMail.Free;
+  Frmenviomail:=nil;
+end
+else If (opcion=2) and (SaveDialog1.Execute) then
+    CreatePdf(SaveDialog1.FileName);
+end;
+
+procedure TConstAlumnoRegular.CancelarClick(Sender: TObject);
+begin
+ Close;
+end;
+
+procedure TConstAlumnoRegular.ImprimirClick(Sender: TObject);
+Const
+ margen=1.80;
+ sangria=1.80;
+var
+ fila: Real;
+ texto : string;
+ sello,Imagen, FirmaSecre, FirmaRecto:TPicture;
+begin
+  //funcionesdb.Consulta('SELECT SUPERV, CARGO, NOMUSU, APELLIDO, IMGFIRMA FROM USUARIOS WHERE CODUSU='+IntToStr(funcionesconfiguracion.CodUsu),datos);
+  firmasecre := TPicture.Create;
+  firmaRecto := TPicture.Create;
+
+  FirmaSecre.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_secre.jpg');
+  FirmaRecto.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_recto.jpg');
+
+  Imagen := TPicture.Create;
+  sello := TPicture.Create;
+
+  If DialogoImpre.Execute then begin
+    FormPreview := TFormPreview.Create(Self);
+    Imagen.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+
+    FormPreview.VistaPrevia1.Canvas.StretchDraw(0,0,21,29.5,Imagen.Graphic,GmCentimeters);
+
+    With FormPreview.VistaPrevia1 Do Begin
+//     Title:='Constancia Alumno Regular';
+      BeginUpdate;
+      With Canvas Do Begin
+        Pen.Width:=1;
+        Pen.Color:=ClWhite;
+        Font.Name := 'ARIAL';
+        Font.Size:= 14;
+        Font.Style:=[fsBold];
+        FILA:=5.00;
+        TextOut(7,Fila,'CONSTANCIA DE ALUMNO REGULAR',GmCentimeters);
+        Font.Size := 11;
+        Font.Style := [];
+        fila:=fila+2.00;
+
+      {  if distancia='S' then begin
+          texto := '      ' + Label2.Caption + ' ' + Apenom.Text + ' ' + Docum.Text + ', es alumno regular del '+LetrasCuat(StrtoInt(Copy(Comi.Text,1,1)))+
+                   ' cuatrimestre de la carrera '+PasoAMayusculas(Carre.Text);
+          texto:= texto + ' del Ministerio de Educación del Gobierno de la Ciudad Autónoma de Buenos Aires y Dictamen del Consejo Federal de Educación, del Ministerio de Educación de la Nación N° '+dictamen+'.'+
+                  #13+#10+#13+#10+Label6.Caption + ' ' + PasoAMayusculas(Antequien.Text) + '.'+
+                  #13+#10+#13+#10+Label9.Caption + ' ' + dias.Text + ' ' + Label10.caption + meses.text + ' ' + Label11.Caption + anios.Text + '.';
+        end
+        else begin
+          texto := '      ' + Label2.Caption + ' ' + Apenom.Text + ' ' + Docum.Text + ', ' + Label3.Caption + ' ' +
+                  PasoAMayusculas(Carre.Text) + ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1)));
+          if (CarreraActiva='333') or (CarreraActiva='650') then
+              texto:= texto + ' año.'
+          else
+              texto:= texto + ' cuatrimestre.';
+          texto:= texto + #13+#10+#13+#10+'Asiste los dias: '+ memo.Lines.Text+
+                #13+#10+#13+#10+Label6.Caption + ' ' + PasoAMayusculas(Antequien.Text) + '.'+
+                #13+#10+#13+#10+Label9.Caption + ' ' + dias.Text + ' ' + Label10.caption + meses.text + ' ' + Label11.Caption + anios.Text + '.';
+        end;}
+
+        texto := '      ' + Label2.Caption + ' ' + Apenom.Text + ' ' + Docum.Text + ', ' + Label3.Caption + ' ' +
+                  PasoAMayusculas(Carre.Text) + ifThen(distancia='N', '',' en modalidad a distancia') + ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1)));
+
+        if (CarreraActiva='333') or (CarreraActiva='650') then
+          texto:= texto + ' año.'
+        else
+          texto:= texto + ' cuatrimestre.';
+
+        if distancia='N' then begin
+          texto:= texto + #13+#10+#13+#10+'Asiste los dias: '+ memo.Lines.Text;
+        end;
+          texto:= texto +#13+#10+#13+#10+Label6.Caption + ' ' + PasoAMayusculas(Antequien.Text) + '.'+
+                  #13+#10+#13+#10+Label9.Caption + ' ' + dias.Text + ' ' + Label10.caption + meses.text + ' ' + Label11.Caption + anios.Text + '.';
+
+
+        TextBox(margen,fila,19,fila+5,texto,taLeftJustify,GmCentimeters);
+
+
+        TextOut(margen+8.50,fila+10.5,'SELLO',GmCentimeters);
+
+        fila:=fila+9;
+
+
+        Sello.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\sello2.jpg');
+
+        Canvas.StretchDraw(9,12,13.5,17.5,sello.Graphic, GmCentimeters);
+
+        //TextOut(margen+13.50,fila,funcionesConfiguracion.Rector,GmCentimeters);
+
+        TextOut(margen+1.50,fila,funcionesConfiguracion.Secretaria,GmCentimeters);
+
+        fila:=fila+0.50;
+
+        //Canvas.StretchDraw(14.5,13.5,19,16,firmaRecto.Graphic, GmCentimeters);
+
+        Canvas.StretchDraw(2.5,13.5,7,16,firmaSecre.Graphic, GmCentimeters);
+
+        //TextOut(margen+14,fila,'Rectora',GmCentimeters);
+
+        TextOut(margen+2,fila,'Secretaria',GmCentimeters);
+
+        fila:=fila+2.50;
+
+        TextOut(margen,fila,'NOTA: La presente certificación carecerá de valor si no estuviera firmada por la autoridad competente.-',GmCentimeters);
+
+        If Carreras.CarreIndexOf(CarreraActiva).tipo='TER' then Begin
+          fila:=fila+1.00;
+          if distancia<>'S' then
+            TextOut(margen,fila,'La mencionada carrera cuenta con el 80% de la subvención del Estado',GmCentimeters);
+        end
+        else If Carreras.CarreIndexOf(CarreraActiva).tipo='BAC' then Begin
+          fila:=fila+1.00;
+          if distancia<>'S' then
+            TextOut(margen,fila,'La mencionada carrera cuenta con el 70% de la subvención del Estado',GmCentimeters);
+         end;
+      End;
+     EndUpdate;
+   End;
+  FormPreview.ShowModal;
+  Cancelar.Caption := '&Salir';
+  FormPreview.Free;
+ End;
+end;
+
+
+procedure TConstAlumnoRegular.CreatePDF(FileName:string);
+const
+ margen=40;
+ sangria=20;
+var
+ fila: Single;
+ sello, firmaSecre, FirmaRecto, FirmaDirectora:TPicture;
+ texto : string;
+ lPdf   : TPdfDocumentGDI;
+ lPage  : TPdfPage;
+ pdfr: TpdfRect;
+ Picture: TPicture;
+begin
+   lPdf := TPdfDocumentGDI.Create;
+   picture := TPicture.Create;
+   sello := TPicture.Create;
+   firmaSecre := TPicture.Create;
+   firmaRecto := TPicture.Create;
+   FirmaDirectora := TPicture.Create;
+   picture.LoadFromFile(UnidadPrograma+CARPETA_PLANTILLA+'\membrete_con_direccion.jpg');
+   Sello.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\sello2.jpg');
+
+   FirmaSecre.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_secre.jpg');
+   FirmaRecto.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_recto.jpg');
+   FirmaDirectora.LoadFromFile(UnidadPrograma+CARPETA_FIRMAS+'\firma_direc.jpg');
+
+   lPdf.Info.Author        := 'ESBA';
+   lPdf.Info.CreationDate  := Now;
+   lPdf.Info.Creator       := 'ESBA';
+   lPdf.DefaultPaperSize   := psA4;
+
+   lPage:= lPdf.AddPage;
+   lPDF.Canvas.SetFont('Arial',14.0,[FsBold]);
+   lPDF.Canvas.SetLeading(lPDF.Canvas.Page.FontSize);
+   lPDF.Canvas.SetLineWidth(0.1);
+   lPdf.Canvas.RenderMetaFile(picture,0.18,0,0);
+   lPdf.Canvas.BeginText;
+
+   FILA:=700;
+   //PDF.Canvas.TextOut(vertical,horizontal
+   // vertical: 0 a partir del marguen izquierdo
+   // horizontal: 0 a partir de abajo porque no se
+
+   lPDF.Canvas.TextOut(200,fila,'CONSTANCIA DE ALUMNO REGULAR');
+   //lPDF.Canvas.TextOut(strtofloat(edit1.text),strtofloat(edit2.text),'CONSTANCIA DE ALUMNO REGULAR');
+   lPDF.Canvas.SetFont('Arial',11.0,[]);
+   lPDF.Canvas.SetLeading(lPDF.Canvas.Page.FontSize);
+   fila:=fila-70;
+
+   if distancia='S' then begin
+          texto := '      ' + Label2.Caption + ' ' + Apenom.Text + ' ' + Docum.Text + ', es alumno regular del '+LetrasCuat(StrtoInt(Copy(Comi.Text,1,1)))+
+                   ' cuatrimestre de la carrera '+PasoAMayusculas(Carre.Text);
+          texto:= texto + ' del Ministerio de Educación del Gobierno de la Ciudad Autónoma de Buenos Aires y Dictamen del Consejo Federal de Educación, del Ministerio de Educación de la Nación N° '+dictamen+'.'+
+                  #13+#10+#13+#10+Label6.Caption + ' ' + PasoAMayusculas(Antequien.Text) + '.'+
+                  #13+#10+#13+#10+Label9.Caption + ' ' + dias.Text + ' ' + Label10.caption + meses.text + ' ' + Label11.Caption + anios.Text + '.';
+   end
+   else begin
+          texto := '      ' + Label2.Caption + ' ' + Apenom.Text + ' ' + Docum.Text + ', ' + Label3.Caption + ' ' +
+                  PasoAMayusculas(Carre.Text) + ' - ' + LetrasCuat(StrtoInt(Copy(Comi.Text,1,1)));
+          if (CarreraActiva='333') or (CarreraActiva='650') then
+              texto:= texto + ' año.'
+          else
+              texto:= texto + ' cuatrimestre.';
+          texto:= texto + #13+#10+#13+#10+'Asiste los dias: '+ memo.Lines.Text+
+                #13+#10+#13+#10+Label6.Caption + ' ' + PasoAMayusculas(Antequien.Text) + '.'+
+                #13+#10+#13+#10+Label9.Caption + ' ' + dias.Text + ' ' + Label10.caption + meses.text + ' ' + Label11.Caption + anios.Text + '.';
+   end;
+
+    pdfr.Left:=margen;
+    pdfr.Top:=fila;
+    pdfr.Right:=550;
+    pdfr.bottom:=fila-200;
+    lPdf.Canvas.MultilineTextRect(pdfr,texto,true);
+    fila:=fila-200;
+    //imagen,scala,horizontal,vertical
+
+
+    lPdf.VCLCanvas.StretchDraw(rect(round(margen+130),round(fila-40),round(margen+230),round(fila+110)),sello.Graphic);
+
+    lPdf.VCLCanvas.StretchDraw(rect(round(margen+405),round(fila-30),round(margen+600),round(fila)+80),firmaSecre.Graphic);
+    lPdf.VCLCanvas.Draw(round(margen+355),round(fila),firmaRecto.Graphic);
+
+
+    lPdf.Canvas.TextOut(margen+100,fila,'SELLO');
+
+    lPdf.Canvas.TextOut(margen,fila,funcionesConfiguracion.Secretaria);
+    lPdf.Canvas.TextOut(margen+335,fila,funcionesConfiguracion.Rector);
+
+    fila:=fila-15;
+
+    lPdf.Canvas.TextOut(margen,fila,'Secretaria');
+    lPdf.Canvas.TextOut(margen+347,fila,'Rector/a');
+
+    fila:=fila-50;
+
+    lPdf.Canvas.TextOut(margen,fila,'NOTA: La presente certificación carecerá de valor si no estuviera firmada por la autoridad competente.-');
+
+    If carreras.CarreIndexOf(CarreraActiva).tipo='TER' then Begin
+        fila:=fila-15;
+        if distancia='S' then
+          lPdf.Canvas.TextOut(margen,fila,'La mencionada carrera cuenta con el 80% de la subvención del Estado');
+    end
+    else If carreras.CarreIndexOf(CarreraActiva).tipo='BAC' then Begin
+        fila:=fila-15;
+        if distancia='S' then
+          lPdf.Canvas.TextOut(margen,fila,'La mencionada carrera cuenta con el 70% de la subvención del Estado');
+    end;
+
+    lPdf.Canvas.EndText;
+    lPdf.SaveToFile(FileName);
+    lPdf.Free;
+    picture.Free;
+    sello.Free;
+    firmaSecre.Free;
+    firmaRecto.Free;
+end;
+
+end.

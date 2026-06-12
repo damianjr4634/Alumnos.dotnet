@@ -1,0 +1,15 @@
+program Project1;
+
+uses
+  Forms,
+  altamodifmaterias in 'altamodifmaterias.pas' {AlMoMaterias},
+  Funciones in '..\ESBA\Funciones.pas',
+  Imprimir in '..\Formulario Impresion\Imprimir.pas' {FormPreview};
+
+{$R *.RES}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TAlMoMaterias, AlMoMaterias);
+  Application.Run;
+end.

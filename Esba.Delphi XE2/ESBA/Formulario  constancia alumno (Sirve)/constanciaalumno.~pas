@@ -1,0 +1,173 @@
+unit constanciaalumno;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, StdCtrls, Db, DBTables;
+
+type
+  TConstanciadelAlumno = class(TForm)
+    Label1: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    MateriasApellidoyNombre: TEdit;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label2: TLabel;
+    MateriasCarreraCursa: TEdit;
+    MateriasLibroMatriz: TEdit;
+    GroupBox1: TGroupBox;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    CodigodelAlumno: TEdit;
+    CarreraCursa: TEdit;
+    ApellidoyNombre: TEdit;
+    LibroyFolio: TEdit;
+    GroupBox2: TGroupBox;
+    Constanciaalumno: TStringGrid;
+    FiltroMaterias: TQuery;
+    FiltroMateriasCodmateri: TStringField;
+    FiltroMateriasCuatrim: TSmallintField;
+    FiltroMateriasCodcarre: TStringField;
+    FiltroMateriasSigla: TStringField;
+    FiltroAnaliticos: TQuery;
+    FiltroCursada: TQuery;
+    FiltroCursadaCod_Alu: TStringField;
+    FiltroCursadaCod_Mat: TStringField;
+    FiltroCursadaCondicion: TStringField;
+    FiltroCursadaCua_Anio: TStringField;
+    FiltroAnaliticosCod_Alu: TStringField;
+    FiltroAnaliticosCod_Mat: TStringField;
+    FiltroAnaliticosNota_Mat: TFloatField;
+    FiltroAnaliticosFec_Final: TDateField;
+    FiltroAnaliticosCondicion: TStringField;
+    FiltroAnaliticosInstitut: TStringField;
+    FiltroAnaliticosCarac: TStringField;
+    FiltroAnaliticosActint: TStringField;
+    FiltroAnaliticosActdge: TStringField;
+    FiltroAnaliticosActsne: TStringField;
+    FiltroAnaliticosCua_Anio: TStringField;
+    procedure FormActivate(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  ConstanciadelAlumno: TConstanciadelAlumno;
+  CarreraActiva : String[3];
+  CodigoAlumno  : String[11];
+  UnidadPrograma : String[3];
+  ApellidoNombre : String[50];
+  LibroMatriz : String[5];
+  Procedure ConstanciaASC(ConsAlu:TConstanciadelAlumno);
+  Procedure ConstanciaBAC(ConsAlu:TConstanciadelAlumno);
+
+
+implementation
+
+{$R *.DFM}
+Procedure ConstanciaASC(ConsAlu:TConstanciadelAlumno);
+var
+  i:integer;
+begin
+  With ConsAlu Do
+   Begin
+    FiltroMaterias.Active :=True;
+    Constanciaalumno.RowCount :=FiltroMaterias.RecordCount+1;
+    FiltroMaterias.First;
+    for i:= 1 to FiltroMaterias.RecordCount do
+      Begin
+        ConstanciaAlumno.Cells[1,i]:=InttoStr(FiltroMateriasCuatrim.Value);
+        ConstanciaAlumno.Cells[2,i]:=FiltroMateriasCodmateri.Value;
+        ConstanciaAlumno.Cells[3,i]:=FiltroMateriasSigla.Value ;
+        FiltroMaterias.Next;
+      end;
+    FiltroMaterias.Active :=False;
+    FiltroCursada.Active := True;
+    While Not FiltroCursada.Eof do
+      begin
+        ConstanciaAlumno.Cells[4,strtoint(FiltroCursadaCod_Mat.Value)]:= FiltroCursadaCondicion.Value ;
+        ConstanciaAlumno.Cells[5,strtoint(FiltroCursadaCod_Mat.Value)]:= Copy(FiltroCursadaCua_Anio.Value,1,1)+'/'+Copy(FiltroCursadaCua_Anio.Value,2,2) ;
+        FiltroCursada.Next
+      end;
+    FiltroCursada.Active := False;
+    FiltroAnaliticos.Active := True;
+    While Not FiltroAnaliticos.Eof do
+      begin
+        ConstanciaAlumno.Cells[4,strtoint(FiltroAnaliticosCod_Mat.Value)]:= FiltroAnaliticosCondicion.Value ;
+        ConstanciaAlumno.Cells[5,strtoint(FiltroAnaliticosCod_Mat.Value)]:= Copy(FiltroAnaliticosCua_Anio.Value,1,1)+'/'+Copy(FiltroAnaliticosCua_Anio.Value,2,2) ;
+        ConstanciaAlumno.Cells[6,strtoint(FiltroAnaliticosCod_Mat.Value)]:= Floattostr(FiltroAnaliticosNota_Mat.Value);
+        ConstanciaAlumno.Cells[7,strtoint(FiltroAnaliticosCod_Mat.Value)]:= Datetostr(FiltroAnaliticosFec_Final.Value) ;
+        ConstanciaAlumno.Cells[8,strtoint(FiltroAnaliticosCod_Mat.Value)]:= FiltroAnaliticosInstitut.Value ;
+        ConstanciaAlumno.Cells[9,strtoint(FiltroAnaliticosCod_Mat.Value)]:= FiltroAnaliticosCarac.Value ;
+        ConstanciaAlumno.Cells[10,strtoint(FiltroAnaliticosCod_Mat.Value)]:= FiltroAnaliticosActint.Value ;
+        ConstanciaAlumno.Cells[11,strtoint(FiltroAnaliticosCod_Mat.Value)]:= FiltroAnaliticosActdge.Value ;
+        ConstanciaAlumno.Cells[12,strtoint(FiltroAnaliticosCod_Mat.Value)]:= FiltroAnaliticosActsne.Value ;
+        FiltroAnaliticos.Next
+      end;
+    FiltroAnaliticos.Active := False;
+    for i:=1 to ConstanciaAlumno.RowCount +1 do
+      if ConstanciaAlumno.Cells[4,i]='' then
+         ConstanciaAlumno.Cells[4,i]:= '* ADEUDA *';
+  End;
+End;
+
+Procedure ConstanciaBAC(ConsAlu:TConstanciadelAlumno);
+Begin
+End;
+
+procedure TConstanciadelAlumno.FormActivate(Sender: TObject);
+
+begin
+  CarreraActiva  := 'ASC';              // esto despues se TIENE que borrar
+  CodigoAlumno   := 'DNI27222630';
+  UnidadPrograma := 'G:\';
+  ApellidoNombre := 'Rouco Damián';
+  LibroMatriz := '11111';
+  CodigodelAlumno.Text :=CodigoAlumno;
+  ApellidoyNombre.Text :=ApellidoNombre;
+  CarreraCursa.Text := CarreraActiva;
+  LibroyFolio.Text := Copy(LibroMatriz,1,2)+'/'+Copy(LibroMatriz,3,3);
+  ConstanciaAlumno.SetFocus;
+  ConstanciaAlumno.ColWidths[0]:=20;
+  ConstanciaAlumno.ColWidths[1]:=45;
+  ConstanciaAlumno.ColWidths[2]:=45;
+  ConstanciaAlumno.ColWidths[3]:=75;
+  ConstanciaAlumno.ColWidths[4]:=100;
+  ConstanciaAlumno.ColWidths[5]:=84;
+  ConstanciaAlumno.ColWidths[6]:=80;
+  ConstanciaAlumno.ColWidths[7]:=85;
+  ConstanciaAlumno.ColWidths[8]:=160;
+  ConstanciaAlumno.ColWidths[10]:=90;
+  ConstanciaAlumno.ColWidths[11]:=90;
+  ConstanciaAlumno.ColWidths[12]:=90;
+  
+  ConstanciaAlumno.Cells[1,0]:='Cuat.';
+  ConstanciaAlumno.Cells[2,0]:='Cód.';
+  ConstanciaAlumno.Cells[3,0]:='Materia';
+  ConstanciaAlumno.Cells[4,0]:='Condición';
+  ConstanciaAlumno.Cells[5,0]:='Cuat./Año';
+  ConstanciaAlumno.Cells[6,0]:='Nota Final';
+  ConstanciaAlumno.Cells[7,0]:='Fecha Final';
+  ConstanciaAlumno.Cells[8,0]:='Instituto';
+  ConstanciaAlumno.Cells[9,0]:='Caract.';
+  ConstanciaAlumno.Cells[10,0]:='Act. Int.';
+  ConstanciaAlumno.Cells[11,0]:='Act. DGEGP';
+  ConstanciaAlumno.Cells[12,0]:='Act. SNEP';
+  FiltroMaterias.DatabaseName := UnidadPrograma + 'New Pailot\Dbfgral\';
+  FiltroMaterias.Params.Items[0].Value :=CarreraActiva;
+  FiltroCursada.DatabaseName := UnidadPrograma + 'New Pailot\Archivos\' + CarreraActiva;
+  FiltroCursada.Params.Items[0].Value := CodigoAlumno;
+  FiltroAnaliticos.DatabaseName := UnidadPrograma + 'New Pailot\Archivos\' + CarreraActiva;
+  FiltroAnaliticos.Params.Items[0].Value := CodigoAlumno;
+  if CarreraActiva='BAC' then
+    ConstanciaBac(ConstanciadelAlumno)
+  else
+    ConstanciaAsc(ConstanciadelAlumno);
+end;
+
+end.

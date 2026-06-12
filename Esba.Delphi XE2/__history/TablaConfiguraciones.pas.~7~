@@ -1,0 +1,79 @@
+unit TablaConfiguraciones;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Data.DB, ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset, kbmMemTable,
+  Vcl.Grids, Vcl.DBGrids, Vcl.StdCtrls, Vcl.Buttons, FuncionesDb;
+
+type
+  TFrmTablaConfiguracion = class(TForm)
+    grilla: TDBGrid;
+    MTxxxconf: TkbmMemTable;
+    DataSource1: TDataSource;
+    MTxxxconfPARAME: TStringField;
+    MTxxxconfDESCRI: TStringField;
+    MTxxxconfVALOR: TStringField;
+    Panel1: TPanel;
+    Grabamesa: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    procedure FormShow(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure GrabamesaClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmTablaConfiguracion: TFrmTablaConfiguracion;
+
+implementation
+
+{$R *.dfm}
+
+procedure TFrmTablaConfiguracion.CancelaGrabacionClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmTablaConfiguracion.FormShow(Sender: TObject);
+var
+   x:integer;
+   query: string;
+begin
+  query:='SELECT parame, descri, valor FROM xxx_conf';
+   FuncionesDb.Carga_MemTable(query,MTxxxconf,false);
+  MTxxxconf.First;
+  grilla.Repaint;
+end;
+
+procedure TFrmTablaConfiguracion.GrabamesaClick(Sender: TObject);
+Var
+   x:integer;
+begin
+  if MTxxxconf.State In [DsInsert,DsEdit] then
+     MTxxxconf.Post;
+  MTxxxconf.First;
+  if trtri.Active then
+      TrTri.Rollback;
+  trTri.Active:=false;
+
+ QrTri.SQL.Text:='update XXX_CONF set VALOR = :VALOR where PARAME = :PARAME';
+  trtri.Active:=True;
+  while not MTxxxconf.Eof do begin
+     For x:=0 to qrtri.ParamCount-1 do
+         qrtri.ParamByName(qrTri.ParamName(x)).Value:=MTxxxconf.FieldByName(qrTri.ParamName(x)).Value;
+     QrTri.ExecQuery;
+     MTxxxconf.Next;
+  end;
+  trtri.Commit;
+  trtri.Active:=false;
+  MessageDlg('Cambios grabados',mtInformation, [mbok],0,mbok);
+  close;
+end;
+
+end.

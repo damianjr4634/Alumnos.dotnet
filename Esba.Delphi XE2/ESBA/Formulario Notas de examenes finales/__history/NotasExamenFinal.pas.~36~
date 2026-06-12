@@ -1,0 +1,569 @@
+unit NotasExamenFinal;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, DBGrids, StdCtrls, Buttons, ComCtrls, Datamodule, DB,
+  RXToolEdit, Mask, RXCurrEdit,
+  FuncionesConfiguracion, FuncionesDB, FuncionesExcel, FuncionesSystem, FuncionesText, FuncionesVariant, FuncionesPrint;
+
+type
+  TNotasExamenes = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    MateriasCarreraCursa: TEdit;
+    MateriasApellidoyNombre: TEdit;
+    MateriasLibroMatriz: TEdit;
+    DataSource1: TDataSource;
+    GroupBox2: TGroupBox;
+    Carganota: TBitBtn;
+    salir: TBitBtn;
+    GroupBox3: TGroupBox;
+    GrabaNotaFinal: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    grilla: TDBGrid;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    nota1: TCurrencyEdit;
+    nota2: TCurrencyEdit;
+    nota3: TCurrencyEdit;
+    Fecha1: TDateEdit;
+    Fecha3: TDateEdit;
+    FEcha2: TDateEdit;
+    Label8: TLabel;
+    TxtLibroActa1: TCurrencyEdit;
+    Label9: TLabel;
+    TxtLibroActa2: TCurrencyEdit;
+    Label10: TLabel;
+    TxtLibroActa3: TCurrencyEdit;
+    procedure FormActivate(Sender: TObject);
+    procedure CarganotaClick(Sender: TObject);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure fecha1KeyPress(Sender: TObject; var Key: Char);
+    procedure FormCreate(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure GrabaNotaFinalClick(Sender: TObject);
+    Procedure notaexit(Sender:TObject);
+    procedure notaKeyPress(Sender: TObject; var Key: Char);
+    procedure TxtLibroActa1KeyPress(Sender: TObject; var Key: Char);
+    procedure FEcha2KeyPress(Sender: TObject; var Key: Char);
+    procedure Fecha3KeyPress(Sender: TObject; var Key: Char);
+  private
+    { Private declarations }
+  public
+    Procedure GraboNotaASC;
+    Procedure GraboNotaBAC;
+    { Public declarations }
+  end;
+
+var
+  NotasExamenes: TNotasExamenes;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String; // nose
+  VApellido : String; //Pasa el apellido del alumno activo
+  VNombre : String;  //Pasa el nombre del alumno activo
+  VLibroMatriz : String; //Pasa el libro matriz del alumno
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+implementation
+
+{$R *.DFM}
+
+Procedure TNotasExamenes.notaKeyPress(Sender: TObject; var Key: Char);
+begin
+If Not (charinset(key,['0'..'9',Chr(8), Chr(7), Chr(13), chr(9),'.',','])) Then
+    Key := #0;
+if TcurrencyEdit(Sender).Name='nota1' then begin
+ If (Key = #13) and (TcurrencyEdit(Sender).Value>0) Then Begin
+     Fecha1.Enabled := True;
+     Fecha1.Date := Date();
+     Fecha1.SetFocus;
+     GrabaNotaFinal.Enabled := True;
+ End
+ else If (Key = #13) and (TcurrencyEdit(Sender).Value=0) Then begin
+     Fecha1.Enabled := False;
+     Fecha1.Date := 0;
+     GrabaNotaFinal.Enabled := False;
+  end;
+end
+else if TcurrencyEdit(Sender).Name='nota2' then begin
+ If (Key = #13) and (TcurrencyEdit(Sender).Value>0) Then Begin
+     Fecha2.Enabled := True;
+     Fecha2.Date := Date();
+     Fecha2.SetFocus;
+     GrabaNotaFinal.Enabled := True;
+ End
+ else If (Key = #13) and (TcurrencyEdit(Sender).Value=0) Then begin
+     Fecha2.Enabled := False;
+     Fecha2.Date := 0;
+     GrabaNotaFinal.Enabled := False;
+  end;
+end
+else if TcurrencyEdit(Sender).Name='nota3' then begin
+ If (Key = #13) and (TcurrencyEdit(Sender).Value>0) Then Begin
+     Fecha3.Enabled := True;
+     Fecha3.Date := Date();
+     Fecha3.SetFocus;
+     GrabaNotaFinal.Enabled := True;
+ End
+ else If (Key = #13) and (TcurrencyEdit(Sender).Value=0) Then begin
+     Fecha3.Enabled := False;
+     Fecha3.Date := 0;
+     GrabaNotaFinal.Enabled := False;
+  end;
+end
+end;
+
+Procedure TNotasExamenes.notaexit(Sender: TObject);
+begin
+ if TcurrencyEdit(Sender).Name='nota1' then begin
+   If TCurrencyEdit(Sender).Value>0 Then Begin
+     Fecha1.Enabled := True;
+     Fecha1.Date := Date();
+     GrabaNotaFinal.Enabled := True;
+   End
+   else begin
+     Fecha1.Enabled := False;
+     Fecha1.Date := 0;
+     GrabaNotaFinal.Enabled := False;
+   end;
+ end
+ else if TcurrencyEdit(Sender).Name='nota2' then begin
+   If TCurrencyEdit(Sender).Value>0 Then Begin
+     Fecha2.Enabled := True;
+     Fecha2.Date := Date();
+     GrabaNotaFinal.Enabled := True;
+   End
+   else begin
+     Fecha2.Enabled := False;
+     Fecha2.Date := 0;
+     GrabaNotaFinal.Enabled := False;
+   end;
+ end
+ else if TcurrencyEdit(Sender).Name='nota3' then begin
+   If TCurrencyEdit(Sender).Value>0 Then Begin
+     Fecha3.Enabled := True;
+     Fecha3.Date := Date();
+     GrabaNotaFinal.Enabled := True;
+   End
+   else begin
+     Fecha3.Enabled := False;
+     Fecha3.Date := 0;
+     GrabaNotaFinal.Enabled := False;
+   end;
+ end
+end;
+
+Procedure TNotasExamenes.GraboNotaBAC;
+Begin
+     If MessageBox(NotasExamenes.Handle, Pchar(VNombreUsuario + ', grabas la nota de examen final?'),'Aviso',MB_OKCANCEL+MB_ICONQUESTION+MB_APPLMODAL)
+     = IDOK Then
+       Begin
+         If Nota1.Text = '' Then
+            Nota1.text := '0';
+         if DataModule.CustomerData.TrUpVarios.Active then
+             DataModule.CustomerData.TrUpVarios.Rollback;
+         DataModule.CustomerData.TrUpVarios.Active:=False;
+         DataModule.CustomerData.IBUpVarios.SQL.Clear;
+         DataModule.CustomerData.IBUpVarios.SQL.Text:='UPDATE "$$$PERMEXA" SET FINAL1=:FINAL1, FECHA1=:FECHA1, CONDICION=:CONDICION, FACTFIN1=:FACTFIN1 WHERE USUARIO=:USUARIO AND COD_ALU=:COD_ALU AND COD_MAT=:COD_MAT;';
+         DataModule.CustomerData.IBUpVarios.ParamByName('USUARIO').value:=funcionesConfiguracion.codusu;
+         DataModule.CustomerData.IBUpVarios.ParamByName('COD_ALU').AsString:=DataModule.CustomerData.IBDsVarios.FieldByName('COD_ALU').AsString;
+         DataModule.CustomerData.IBUpVarios.ParamByName('COD_MAT').AsString:=DataModule.CustomerData.IBDsVarios.FieldByName('COD_MAT').AsString;
+         DataModule.CustomerData.IBUpVarios.ParamByName('FACTFIN1').AsString := TxtLibroActa1.Text;
+         Try
+           DataModule.CustomerData.IBUpVarios.ParamByName('FINAL1').AsFloat := Nota1.value;
+         Except
+           DataModule.CustomerData.IBUpVarios.ParamByName('FINAL1').AsFloat := 0;
+           MessageDlg(Pchar(VNombreUsuario + ', la nota esta mal escrita!'),mtError,[mbok],0,mbok);
+         End;
+         DataModule.CustomerData.IBUpVarios.ParamByName('FECHA1').AsDate := Fecha1.Date;
+         If (Nota1.value >= 6) And (Nota1.value <= 10)Then
+           Begin
+            If DataModule.CustomerData.IBdsVarios.FieldByName('CONDICION').AsString = 'PREVIO' Then
+             Begin
+                MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Regular'),mtInformation, [mbok],0,mbok);
+                DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := 'LIBRE'
+             End
+            else If DataModule.CustomerData.IBDsVarios.FieldByName('CONDICION').AsString = 'LIBRES' Then
+             Begin
+                MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Libre'),mtInformation, [mbok],0,mbok);
+                DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := 'LIBRE'
+             End
+            else If DataModule.CustomerData.IBdsVarios.FieldByName('CONDICION').AsString = 'DICIEMBRE' Then //por la 333
+             Begin
+                MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Libre'),mtInformation, [mbok],0,mbok);
+                DataModule.CustomerData.IBupVarios.ParamByName('CONDICION').AsString := 'LIBRE'
+             End
+            else If DataModule.CustomerData.IBdsVarios.FieldByName('CONDICION').AsString = 'MARZO' Then //por la 333
+             Begin
+                MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Libre'),mtInformation, [mbok],0,mbok);
+                DataModule.CustomerData.IBupVarios.ParamByName('CONDICION').AsString := 'LIBRE'
+             End
+            else If DataModule.CustomerData.IBdsVarios.FieldByName('CONDICION').AsString = 'LIBRE' Then
+             Begin
+                MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Libre'),mtInformation, [mbok],0,mbok);
+                DataModule.CustomerData.IBupVarios.ParamByName('CONDICION').AsString := 'LIBRE'
+             End;
+           End
+         Else
+           Begin
+            MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de '+DataModule.CustomerData.IBdsVarios.FieldByName('CONDIANT').AsString),mtInformation, [mbok],0,mbok);
+            DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := DataModule.CustomerData.IBdsVarios.FieldByName('CONDIANT').AsString;
+           End;
+         DataModule.CustomerData.TrUpVarios.Active:=True;
+         DataModule.CustomerData.IBUPVarios.ExecQuery;
+         Datamodule.CustomerData.TRUpVarios.Commit;
+         DataModule.CustomerData.TrUpVarios.Active:=False;
+
+         Datamodule.CustomerData.TrdsVarios.Rollback;
+         Datamodule.CustomerData.TrdsVarios.Active:=False;
+         Datamodule.CustomerData.IBdsVarios.Active:=False;
+         Datamodule.CustomerData.IBdsVarios.ParamByName('USUARIO').value:=funcionesConfiguracion.codusu;
+         Datamodule.CustomerData.TrdsVarios.Active:=True;
+         Datamodule.CustomerData.IBdsVarios.Active:=True;
+       End;
+End;
+
+Procedure TNotasExamenes.GraboNotaASC;
+begin
+    if MessageDlg(Pchar(VNombreUsuario + ', grabas la nota de examen final?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then Begin
+         If Nota1.Text = '' Then
+            Nota1.text := '0';
+         If Nota2.Text = '' Then
+            Nota2.text := '0';
+         If Nota3.Text = '' Then
+            Nota3.text := '0';
+        if DataModule.CustomerData.TrUpVarios.Active then
+             DataModule.CustomerData.TrUpVarios.Rollback;
+        DataModule.CustomerData.TrUpVarios.Active:=False;
+        DataModule.CustomerData.IBUpVarios.SQL.Clear;
+        DataModule.CustomerData.IBUpVarios.SQL.Text:='UPDATE "$$$PERMEXA" SET FINAL1=:FINAL1, FINAL2=:FINAL2, FINAL3=:FINAL3,FECHA1=:FECHA1, FECHA2=:FECHA2, FECHA3=:FECHA3, CONDICION=:CONDICION, '+
+                                                     ' FACTFIN1=:FACTFIN1, FACTFIN2=:FACTFIN2, FACTFIN3=:FACTFIN3 WHERE USUARIO=:USUARIO AND COD_ALU=:COD_ALU AND COD_MAT=:COD_MAT';
+        DataModule.CustomerData.IBUpVarios.ParamByName('FINAL1').AsFloat := Nota1.value;
+        DataModule.CustomerData.IBUpVarios.ParamByName('FINAL2').AsFloat := Nota2.value;
+        DataModule.CustomerData.IBUpVarios.ParamByName('FINAL3').AsFloat := Nota3.value;
+        DataModule.CustomerData.IBUpVarios.ParamByName('FACTFIN1').AsString := TxtLibroActa1.Text;
+        DataModule.CustomerData.IBUpVarios.ParamByName('FACTFIN2').AsString := TxtLibroActa2.Text;
+        DataModule.CustomerData.IBUpVarios.ParamByName('FACTFIN3').AsString := TxtLibroActa3.Text;
+        DataModule.CustomerData.IBUpVarios.ParamByName('USUARIO').value:=funcionesConfiguracion.codusu;
+        DataModule.CustomerData.IBUpVarios.ParamByName('COD_MAT').AsString:=DataModule.CustomerData.IBDsVarios.FieldByName('COD_MAT').AsString;
+        DataModule.CustomerData.IBUpVarios.ParamByName('COD_ALU').AsString:=DataModule.CustomerData.IBDsVarios.FieldByName('COD_ALU').AsString;
+        If Nota1.value <> 0 Then
+            DataModule.CustomerData.IBUpVarios.ParamByName('FECHA1').AsDate := Fecha1.Date;
+        If Nota2.value <> 0 Then
+            DataModule.CustomerData.IBUpVarios.ParamByName('FECHA2').AsDate := Fecha2.Date;
+        If Nota3.value <> 0 Then
+                DataModule.CustomerData.IBUpVarios.ParamByName('FECHA3').AsDate := Fecha3.Date;
+
+        If (Nota1.value > 0 ) And (nota1.value < 4) and
+           (Nota2.value > 0 ) And (nota2.value < 4) and
+           (Nota3.value > 0 ) And (nota3.value < 4) Then
+                Begin
+                  MessageDlg(Pchar(VNombreUsuario + ', el alumno ha superado el limete de 3 intentos fallidos. Cambia su condicion a RECURSA'),mtInformation, [mbok],0,mbok);
+                  DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := 'RECURSA';
+                End
+        else begin
+         If ((Nota1.value >= 4 ) And (nota1.value <= 10)) Then
+            Begin
+              MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Final'),mtInformation, [mbok],0,mbok);
+              DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := 'FINAL';
+            End
+         Else
+            If ((Nota2.value >= 4 ) And (nota2.value <= 10)) Then
+               Begin
+                 MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Final'),mtInformation, [mbok],0,mbok);
+                 DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := 'FINAL';
+               End
+            Else
+              If ((Nota3.value >= 4 ) And (nota3.value <= 10)) Then
+                Begin
+                  MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de Final'),mtInformation, [mbok],0,mbok);
+                  DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := 'FINAL';
+                End
+              Else
+                Begin
+                  MessageDlg(Pchar(VNombreUsuario + ', el alumno quedo en condicion de '+DataModule.CustomerData.IBDSVarios.FieldByName('CONDIANT').AsString),mtInformation, [mbok],0,mbok);
+                  DataModule.CustomerData.IBUpVarios.ParamByName('CONDICION').AsString := DataModule.CustomerData.IBdsVarios.FieldByName('CONDIANT').AsString;
+                End;
+        end;
+       DataModule.CustomerData.TrUpVarios.Active:=True;
+       DataModule.CustomerData.IBUPVarios.ExecQuery;
+       Datamodule.CustomerData.TRUpVarios.Commit;
+       DataModule.CustomerData.TrUpVarios.Active:=False;
+
+       Datamodule.CustomerData.TrdsVarios.Rollback;
+       Datamodule.CustomerData.TrdsVarios.Active:=False;
+       Datamodule.CustomerData.IBdsVarios.Active:=False;
+       Datamodule.CustomerData.IBdsVarios.ParamByName('USUARIO').value:=funcionesConfiguracion.codusu;
+       Datamodule.CustomerData.TrdsVarios.Active:=True;
+       Datamodule.CustomerData.IBdsVarios.Active:=True;
+    End;
+End;
+
+procedure TNotasExamenes.FEcha2KeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then begin
+    TxtLibroActa2.Enabled:=true;
+    TXTLIBROACTA2.SetFocus;
+  end;
+end;
+
+procedure TNotasExamenes.Fecha3KeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key = #13 Then begin
+    TxtLibroActa3.Enabled:=true;
+    TXTLIBROACTA3.SetFocus;
+  end;
+end;
+
+procedure TNotasExamenes.FormActivate(Sender: TObject);
+begin
+   MateriasCodigoAlumno.Text    := VCODALU;
+   MateriasCarreraCursa.Text    := VCarrera;
+   MateriasApellidoyNombre.Text := TRIM(VApellido) + ', ' + TRIM(VNombre);
+   MateriasLibroMatriz.Text     := Copy(VlibroMatriz,1,2) + '/' + copy(VlibroMatriz,3,3);
+   NotasExamenes.Height := 345;
+end;
+
+procedure TNotasExamenes.CarganotaClick(Sender: TObject);
+Var
+  Sigo : Boolean;
+begin
+  NotasExamenes.Height := 460;
+  Carganota.Enabled := False;
+  Salir.Enabled :=  False;
+  Grilla.Enabled := False;
+  Nota1.Enabled := False;
+  Nota2.Enabled := False;
+  Nota3.Enabled := False;
+  Fecha2.Enabled := False;
+  Fecha1.Enabled := False;
+  Fecha3.Enabled := False;
+  TxtLibroActa1.Enabled := False;
+  TxtLibroActa2.Enabled := False;
+  TxtLibroActa3.Enabled := False;
+  If (VCarrera = 'BAC') Or (VCarrera = 'CNA') or (vcarrera='333') or (vcarrera='650') or (VCarrera<>'197916') Then
+     Begin
+         Nota1.Enabled  := True;
+         Nota2.Visible  := False;
+         Nota3.Visible  := False;
+         Fecha2.Visible := False;
+         Fecha1.Enabled := False;
+         Fecha3.Visible := False;
+         TxtLibroActa2.Visible := False;
+         TxtLibroActa3.Visible := False;
+         label6.visible:=False;
+         label7.visible:=False;
+         label12.visible:=False;
+         label13.visible:=False;
+         label9.visible:=False;
+         label10.visible:=False;
+         Nota1.SetFocus;
+         Nota1.Value := DataModule.CustomerData.IBdsVarios.FieldByName('FINAL1').AsFloat;
+         Fecha1.Date:=0;
+         if not DataModule.CustomerData.IBdsVarios.FieldByName('FECHA1').IsNull then
+             Fecha1.Date := DataModule.CustomerData.IBdsVarios.FieldByName('FECHA1').AsDateTime;
+  End
+  else If (VCarrera = 'ASC') Or (VCarrera = 'ADM') Or (VCarrera = 'RRP') Or (VCarrera = 'RRH') Or (VCarrera = 'TAE') Or (VCarrera = 'TRH') or (VCarrera = 'DAE') or (VCarrera = 'DRH') or (VCarrera = 'DAS') or (VCarrera = '37414') or (VCarrera = '36514') or (VCarrera = '28712') Then Begin
+         If (DataModule.CustomerData.IBDsVarios.FieldByName('NUMFIN').value = 1) Then Begin
+            Nota1.Text := FloatToStr(DataModule.CustomerData.IBDSVarios.FieldByName('FINAL1').AsFloat);
+            Fecha1.Date := DataModule.CustomerData.IBDSVarios.FieldByName('FECHA1').AsDateTime;
+            TxtLibroActa1.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN1').Value;
+            TxtLibroActa1.Enabled:=True;
+            Nota1.Enabled := True;
+            Nota1.SetFocus;
+         End
+         Else Begin
+            If (DataModule.CustomerData.IBDsVarios.FieldByName('NUMFIN').AsFloat = 2) Then Begin
+                 Nota1.Text := FloatToStr(DataModule.CustomerData.IBDSVarios.FieldByName('FINAL1').AsFloat);
+                 Fecha1.Date := DataModule.CustomerData.IBDSVarios.FieldByName('FECHA1').AsDateTime;
+                 TxtLibroActa1.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN1').Value;
+                 Nota2.Text := FloatToStr(DataModule.CustomerData.IBDSVarios.FieldByName('FINAL2').AsFloat);
+                 Fecha2.Date := DataModule.CustomerData.IBDSVarios.FieldByName('FECHA2').AsDateTime;
+                 TxtLibroActa2.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN2').Value;
+                 TxtLibroActa2.Enabled:=True;
+                 Nota2.Enabled := True;
+                 Nota2.SetFocus;
+            End
+            Else If (DataModule.CustomerData.IBDsVarios.FieldByName('NUMFIN').AsFloat = 3) Then Begin
+                 Nota1.Text := FloatToStr(DataModule.CustomerData.IBdsVarios.FieldByName('FINAL1').AsFloat);
+                 Fecha1.Date := DataModule.CustomerData.IBdsVarios.FieldByName('FECHA1').AsDateTime;
+                 TxtLibroActa1.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN1').Value;
+                 Nota2.Text := FloatToStr(DataModule.CustomerData.IBdsVarios.FieldByName('FINAL2').AsFloat);
+                 Fecha2.Date := DataModule.CustomerData.IBdsVarios.FieldByName('FECHA2').AsDateTime;
+                 TxtLibroActa2.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN2').Value;
+                 Nota3.Text := FloatToStr(DataModule.CustomerData.IBDSVarios.FieldByName('FINAL3').AsFloat);
+                 Fecha3.Date := DataModule.CustomerData.IBDSVarios.FieldByName('FECHA3').AsDateTime;
+                 TxtLibroActa3.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN3').Value;
+                 TxtLibroActa3.Enabled:=True;
+                 Nota3.Enabled := True;
+                 Nota3.SetFocus;
+            End
+            Else If (DataModule.CustomerData.IBDsVarios.FieldByName('NUMFIN').AsFloat = 4) Then Begin
+                 Nota1.Text := FloatToStr(DataModule.CustomerData.IBdsVarios.FieldByName('FINAL1').AsFloat);
+                 Fecha1.Date := DataModule.CustomerData.IBdsVarios.FieldByName('FECHA1').AsDateTime;
+                 TxtLibroActa1.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN1').Value;
+                 Nota2.Text := FloatToStr(DataModule.CustomerData.IBdsVarios.FieldByName('FINAL2').AsFloat);
+                 Fecha2.Date := DataModule.CustomerData.IBdsVarios.FieldByName('FECHA2').AsDateTime;
+                 TxtLibroActa2.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN2').Value;
+                 Nota3.Text := FloatToStr(DataModule.CustomerData.IBdsVarios.FieldByName('FINAL3').AsFloat);
+                 Fecha3.Date := DataModule.CustomerData.IBdsVarios.FieldByName('FECHA3').AsDateTime;
+                 TxtLibroActa3.Text:= DataModule.CustomerData.IBDSVarios.FieldByName('FACTFIN3').Value;
+            End
+         End;
+  End;
+end;
+
+procedure TNotasExamenes.CancelaGrabacionClick(Sender: TObject);
+begin
+  NotasExamenes.Height := 345;
+  CargaNota.Enabled := True;
+  Salir.Enabled :=  True;
+  Grilla.Enabled := True;
+  Grilla.SetFocus;
+  Nota1.Text:='';
+  Nota2.Text:='';
+  Nota3.Text:='';
+  Fecha1.Text:='';
+  Fecha2.Text:='';
+  Fecha3.Text:='';
+end;
+
+procedure TNotasExamenes.salirClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TNotasExamenes.TxtLibroActa1KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then
+    GrabaNotaFinalClick(Sender);
+end;
+
+procedure TNotasExamenes.fecha1KeyPress(Sender: TObject; var Key: Char);
+begin
+ If Key = #13 Then begin
+    TxtLibroActa1.Enabled:=true;
+    TxtLibroActa1.SetFocus;
+ end;
+end;
+
+procedure TNotasExamenes.FormCreate(Sender: TObject);
+begin
+With Datamodule.CustomerData Do
+       Begin
+         IBDlVarios.Sql.Clear;
+         IBDlVarios.Sql.Text := 'DELETE FROM "$$$PERMEXA" WHERE USUARIO = :USUARIO;';
+         IBDlVarios.ParamByName('USUARIO').Value := funcionesConfiguracion.codusu;
+         TRDlVarios.Active := True;
+         IBDlVarios.ExecQuery;
+         TRDlVarios.Commit;
+         TRDlVarios.Active := False;
+
+         TRQrVarios.Active:=False;
+         IBQRVarios.SQL.Clear;
+         IBQrVarios.SQL.Text:=' INSERT INTO "$$$PERMEXA" (PERM_EXA,FINAL1,FECHA1,FINAL2,FECHA2,FINAL3,FECHA3,MATRIZ, '+
+                              '                            COD_ALU, MESA, CARRE, USUARIO, APELLIDO, NOM_APE, CONDICION, COD_MAT,CUA_ANIO,CUTUCO,CONDIANT, NUMFIN, FACTFIN1, FACTFIN2, FACTFIN3) '+
+                              ' SELECT P.PERM_EXA, C.FINAL1, C.FECHA1, C.FINAL2, C.FECHA2, C.FINAL3, C.FECHA3, A.MATRIZ, '+
+                              '        P.COD_ALU, P.MESA, P.CARRE,:USUARIO,A.APELLIDO, A.NOM_APE,C.CONDICION, P.COD_MAT, C.CUA_ANIO,C.CUTUCO,C.CONDICION, '+
+                              '        CASE WHEN COALESCE(C.FINAL1,0)=0 THEN 1 '+
+                              '             WHEN COALESCE(C.FINAL1,0)<>0 AND COALESCE(C.FINAL2,0)=0 THEN 2 '+
+                              '             WHEN COALESCE(C.FINAL1,0)<>0 AND COALESCE(C.FINAL2,0)<>0 AND COALESCE(C.FINAL3,0)=0 THEN 3 '+
+                              '             WHEN COALESCE(C.FINAL1,0)<>0 AND COALESCE(C.FINAL2,0)<>0 AND COALESCE(C.FINAL3,0)<>0 THEN 4 END, '+
+                              '        C.FACTFIN1, C.FACTFIN2, C.FACTFIN3 '+
+                              ' FROM PERMEXA P '+
+                              ' INNER JOIN CURSADA C ON C.COD_ALU = P.COD_ALU AND C.COD_MAT = P.COD_MAT AND P.CARRE=C.CARRE '+
+                              ' LEFT OUTER JOIN ALUMNOS A ON A.COD_ALU = P.COD_ALU AND P.CARRE=A.CARRE '+
+                              ' WHERE P.CARRE=:CARRE AND P.COD_ALU=:CODALU '+
+                              ' ORDER BY A.APELLIDO, A.NOM_APE';
+          IBQrVarios.ParamByName('CARRE').AsString:=VCarrera;
+          IBQrVarios.ParamByName('CODALU').AsString:=VCODALU;
+          IBQrVarios.ParamByName('USUARIO').value:=funcionesConfiguracion.codusu;
+          TRQrVarios.Active:=True;
+          IBQrVarios.ExecQuery;
+          TRQrVarios.Commit;
+          TRQrVarios.Active:=False;
+
+          if TrDsVarios.Active Then
+               TRdsVarios.Rollback;
+              
+          TRdsVarios.Active:=False;
+          IBdsVarios.SQLs.SelectSQL.Clear;
+          IBdsVarios.SQLs.SelectSQL.Text:='SELECT P.PERM_EXA,P.CUTUCO,P.CUA_ANIO,P.FINAL1,P.FECHA1,P.FINAL2,P.FECHA2,P.FINAL3,P.FECHA3,P.MATRIZ, '+
+                               '       P.COD_ALU, P.MESA, P.CARRE, P.USUARIO, P.APELLIDO, P.NOM_APE, P.CONDICION,P.CONDIANT, P.NUMFIN, M.SIGLA, P.COD_MAT, P.FACTFIN1, P.FACTFIN2, P.FACTFIN3 '+
+                               'FROM "$$$PERMEXA" P '+
+                               'LEFT OUTER JOIN MATERIAS M ON M.CODMATERI=P.COD_MAT AND P.CARRE=M.CODCARRE '+
+                               'WHERE P.USUARIO=:USUARIO';
+          IBdsVarios.ParamByName('USUARIO').value:=codusu;
+          TRdsVarios.Active:=True;
+          IBdsVarios.Active:=True;
+          if (IbDsVarios.RecordCount=0) then
+             CargaNota.Enabled:=False;
+       End
+end;
+
+procedure TNotasExamenes.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if (Datamodule.customerdata.IbDsVarios.RecordCount=0) then
+      Exit;
+  If MessageBox(NotasExamenes.Handle, Pchar(VNombreUsuario + ', pasa todas notas introducidas a los archivos correspondiantes?'),'Aviso', MB_YESNO+MB_ICONQUESTION+MB_APPLMODAL)
+     = IDYES Then
+  Begin
+   WITH DataModule.CustomerData do
+    begin
+      TRQrVarios.Active:=False;
+      IBQrVarios.SQL.Clear;
+      IBQrVarios.SQL.Text:='SELECT FERRCOD, FERRMSG FROM XXX_CARGA_FINAL(:USUARIO,:CODALU) ';
+      IBQrVarios.ParamByName('USUARIO').value:=codusu;
+      IBQrVarios.ParamByName('CODALU').AsString:=VCodalu;
+      TRQrVarios.Active:=True;
+      IBQrVarios.ExecQuery;
+      IF IBQrVarios.FieldByName('FERRCOD').AsInteger=1 Then
+        Begin
+          If MessageBox(NotasExamenes.Handle, Pchar(IBQrVarios.FieldByName('FERRMSG').AsString),'Aviso', MB_YESNO+MB_ICONQUESTION+MB_APPLMODAL)
+                = IDYES Then
+            TRQrVarios.Commit
+          else
+            TRQrVarios.Rollback;
+        End;
+      IF IBQrVarios.FieldByName('FERRCOD').AsInteger=2 Then
+        Begin
+         MessageBox(NotasExamenes.Handle, Pchar(IBQrVarios.FieldByName('FERRMSG').AsString),'Aviso', MB_OK+MB_ICONQUESTION+MB_APPLMODAL);
+         TRQrVarios.Rollback;
+        End;
+      IF IBQrVarios.FieldByName('FERRCOD').AsInteger=0 Then
+        Begin
+         TRQrVarios.Commit;
+        End;
+      TRQrVarios.Active:=False;
+      IBQrVarios.SQL.Clear;
+    end
+  End;
+end;
+
+procedure TNotasExamenes.GrabaNotaFinalClick(Sender: TObject);
+begin
+ If (VCarrera = 'ASC') Or (VCarrera = 'RRP') Or (VCarrera = 'RRH') Or (VCarrera = 'ADM') Or (VCarrera = 'TAE') Or (VCarrera = 'TRH')  or (VCarrera = 'DAE') or (VCarrera = 'DRH') or (VCarrera = 'DAS') or (VCarrera = '37414') or (VCarrera = '36514') or (VCarrera = '28712') Then
+   GraboNotaASC;
+ If (VCarrera = 'BAC') Or (Vcarrera = 'CNA') Or (vcarrera='333') or (vcarrera='650') or (VCarrera<>'197916') Then
+   GraboNotaBAC;
+ CancelaGrabacionClick(Sender);
+end;
+
+end.

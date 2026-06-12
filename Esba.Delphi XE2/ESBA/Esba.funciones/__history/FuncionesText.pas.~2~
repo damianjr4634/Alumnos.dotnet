@@ -1,0 +1,248 @@
+unit FuncionesText;
+
+interface
+
+Uses
+  SysUtils;
+
+function MesALetras(Mes:Word):String;
+function PonePuntos(Documento:String):String;
+function PoneBarras(LibroMatriz:string):String;
+function LetrasCuat(Cuat:Integer):String;
+function Turnos(Turno:Integer):String;
+function Division(Divi:Integer):String;
+function CuatriaLetras(Cuat:Integer):String;
+function EditoNumero(Numero:String):String;
+function Cuatrimestre(carre:string):String;
+function PasoAMayusculas(Texto : String): String;
+function EncriptoCadena2(Texto : String; signo:integer):String;
+function LPad(cadena : string;numero : integer; caracter : Char) : string;
+function CampoenLista(campo, Lista : string):Boolean;
+function Corto(Texto:string;pos:Integer):Integer;
+function position(Texto:string;pos:integer;char:String):Integer;
+function MBoolToStr(const valor:boolean):string;
+procedure Continas(Var mcondicion : String; Justificadas, SinJustificar, TotalHoras:String);
+procedure Corto_en_espacio(Texto:string;inic,pos:Integer; Var texto2:String; Var y:Integer);
+
+implementation
+
+Function PasoAMayusculas(Texto : String): String;
+Var
+  X:Integer;
+  Letra:String[1];
+  Texto2:String;
+Begin
+ Texto2 := '';
+ For x:= 1 To Length(Texto) Do
+  Begin
+    Letra := UpperCase(Copy(Texto,x,1));
+    If Letra = 'á' Then
+      Letra := 'Á';
+    If Letra = 'é' Then
+      Letra := 'É';
+    If Letra = 'í' Then
+      Letra := 'Í';
+    If Letra = 'ó' Then
+      Letra := 'Ó';
+    If Letra = 'ú' Then
+      Letra := 'Ú';
+    Texto2 := Texto2 + Letra;
+  End;
+  PasoAMayusculas := Texto2;
+End;
+
+Function MesALetras(Mes:Word):String;
+Var
+  S:String;
+Begin
+  Case Mes Of
+   01:s:='Enero     ';
+   02:s:='Febrero   ';
+   03:s:='Marzo     ';
+   04:s:='Abril     ';
+   05:s:='Mayo      ';
+   06:s:='Junio     ';
+   07:s:='Julio     ';
+   08:s:='Agosto    ';
+   09:s:='Septiembre';
+   10:s:='Octubre   ';
+   11:s:='Noviembre ';
+   12:s:='Diciembre ';
+  End;
+  MesALetras := S;
+End;
+
+Function PonePuntos(Documento:String):String;
+Begin
+  PonePuntos := Copy(Documento,1,3)+' '+Copy(Documento,4,2)+'.'+Copy(Documento,6,3)+'.'+Copy(Documento,9,3);
+End;
+
+Function PoneBarras(LibroMatriz:String):String;
+Begin
+  PoneBarras := Copy(LibroMatriz,1,2)+'/'+Copy(LibroMatriz,3,3);
+End;
+
+Function LetrasCuat(Cuat:Integer):String;
+Begin
+ Case Cuat Of
+  1:LetrasCuat:='Primer';
+  2:LetrasCuat:='Segundo';
+  3:LetrasCuat:='Tercer';
+  4:LetrasCuat:='Cuarto';
+  5:LetrasCuat:='Quinto';
+  6:LetrasCuat:='Sexto';
+  7:LetrasCuat:='septimo';
+ End;
+End;
+
+Function CuatriaLetras(Cuat:Integer):String;
+Begin
+ Case Cuat Of
+  1:CuatriaLetras:='Primero';
+  2:CuatriaLetras:='Segundo';
+  3:CuatriaLetras:='Tercero';
+  4:CuatriaLetras:='Cuarto';
+  5:CuatriaLetras:='Quinto';
+  6:CuatriaLetras:='Sexto';
+//  7:LetrasCuat:='septimo';
+ End;
+End;
+
+Function Turnos(Turno:Integer):String;
+Begin
+ Case Turno Of
+  1:Turnos:='Mañana';
+  2:Turnos:='Tarde';
+  3:Turnos:='Vespertino';
+  4:Turnos:='Noche';
+ End;
+End;
+
+Function Division(Divi:Integer):String;
+Begin
+ Division:=chr(64+divi);
+End;
+
+Function EditoNumero(Numero:String):String;
+ Begin
+  EditoNumero := Numero;
+  Case Length(Numero) Of
+   1..2: EditoNumero := Numero + ',00';
+   3: EditoNumero := Numero + '0';
+   4: EditoNumero := Numero;
+  End;
+ End;
+
+
+**************************************
+
+
+Function Pos(Str1, Str2 :String):Integer;
+var x,i:integer;
+    sw:boolean;
+    str3:string;
+begin
+   Sw:=False;
+   Pos:=0;
+   str3:='';
+   For i:=1 to Length(str1)-Length(str2) do
+    begin
+     for x:=0 to Length(str2)-1 do
+        str3:=str3+str1[i+x];
+     if (str3=str2) then
+       begin
+         Pos:=i;
+         Break;
+       end
+     else
+         str3:='';
+    end;
+end;
+
+
+Function Cuatrimestre(carre:string):String;
+var b:Variant;
+Begin
+  Consulta('SELECT FCUATRIM FROM XXX_NUMCUATANIO('''+carre+''')',b);
+
+  Cuatrimestre := vartostr(b[0]);
+End;
+
+
+Function Corto(Texto:string;pos:Integer):Integer;
+Var
+     x : Integer;
+Begin
+    corto := 0;
+    For x:= pos Downto 1 do
+     If  texto[x] in [' ',',',';'] Then
+       Begin
+         Corto:=x;
+         Break;
+       End;
+End;
+
+Procedure Corto_en_espacio(Texto:string;inic,pos:Integer; Var texto2:String; Var y:Integer);
+Var
+    x : Integer;
+Begin
+    if inic>pos then begin
+       texto2:='';
+       y:=-1;
+       exit;
+    end;
+    For x:=pos Downto inic do
+     If  (texto[x]='') or (texto[x]=' ') Then
+       Begin
+         y:=x;
+         Break;
+       End;
+    texto2:=copy(texto,inic,y);
+End;
+
+Function position(Texto:string;pos:integer;char:String):Integer;
+Var
+    x : Integer;
+Begin
+    position:=pos;
+    For x:=pos downto 1  do
+     If  (texto[x]=char) Then
+       Begin
+         position:=x;
+         Break;
+       End;
+End;
+
+
+Function EncriptoCadena2(Texto : String; signo:integer):String;
+var
+  Cont, x :Integer;
+  Resultado : AnsiString;
+begin
+  Result := '';
+  Cont:=1;
+  For x:=1 To Length(Texto) Do
+   Begin
+     If (Cont Mod 3) = 0 Then
+        Resultado := Resultado + chr(ord(texto[x])+ (5*signo));
+     If (Cont Mod 3) = 1 Then
+        Resultado := Resultado + chr(ord(texto[x])+ (1*signo));
+     If (Cont Mod 3) = 2 Then
+        Resultado := Resultado + chr(ord(texto[x])+ (3*signo));
+     Cont := Cont + 1;
+     If Cont = 15 Then
+       Cont := 1;
+   End;
+  EncriptoCadena2:=Resultado;
+End;
+
+function MBoolToStr(const valor:boolean):string;
+begin
+  if valor then
+    result:='S'
+  else
+    result:='N';
+end;
+
+
+end.

@@ -1,0 +1,138 @@
+object FrmPermisosUsuario: TFrmPermisosUsuario
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsDialog
+  Caption = 'Permisos por Usuario'
+  ClientHeight = 370
+  ClientWidth = 602
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 330
+    Width = 602
+    Height = 40
+    Align = alBottom
+    TabOrder = 0
+    ExplicitTop = 328
+    ExplicitWidth = 600
+    object BitBtn1: TBitBtn
+      Left = 436
+      Top = 6
+      Width = 75
+      Height = 25
+      Caption = '&Aceptar'
+      Kind = bkYes
+      NumGlyphs = 2
+      TabOrder = 0
+    end
+    object BitBtn2: TBitBtn
+      Left = 515
+      Top = 6
+      Width = 75
+      Height = 25
+      Caption = '&Salir'
+      Kind = bkClose
+      NumGlyphs = 2
+      TabOrder = 1
+    end
+  end
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 0
+    Width = 273
+    Height = 330
+    Align = alLeft
+    Caption = 'Opciones Disponibles'
+    TabOrder = 1
+    ExplicitHeight = 296
+    object LtsDisponibles: TListBox
+      Left = 2
+      Top = 15
+      Width = 269
+      Height = 313
+      Align = alClient
+      ItemHeight = 13
+      TabOrder = 0
+      ExplicitLeft = 40
+      ExplicitTop = 104
+      ExplicitWidth = 121
+      ExplicitHeight = 97
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 330
+    Top = 0
+    Width = 272
+    Height = 330
+    Align = alRight
+    Caption = 'Opciones habilitadas'
+    TabOrder = 2
+    ExplicitLeft = 328
+    ExplicitHeight = 296
+    object LstHabilitadas: TListBox
+      Left = 2
+      Top = 15
+      Width = 268
+      Height = 313
+      Align = alClient
+      ItemHeight = 13
+      TabOrder = 0
+      ExplicitLeft = 64
+      ExplicitTop = 80
+      ExplicitWidth = 121
+      ExplicitHeight = 97
+    end
+  end
+  object GroupBox3: TGroupBox
+    Left = 273
+    Top = 0
+    Width = 57
+    Height = 330
+    Align = alClient
+    TabOrder = 3
+    ExplicitLeft = 255
+    ExplicitWidth = 65
+    ExplicitHeight = 296
+    object BtnPuno: TButton
+      Left = 14
+      Top = 30
+      Width = 26
+      Height = 25
+      Caption = '>'
+      TabOrder = 0
+    end
+    object BtnPTodos: TButton
+      Left = 14
+      Top = 70
+      Width = 26
+      Height = 25
+      Caption = '>>'
+      TabOrder = 1
+    end
+    object BtnSUno: TButton
+      Left = 14
+      Top = 110
+      Width = 26
+      Height = 25
+      Caption = '<'
+      TabOrder = 2
+    end
+    object BtnStodos: TButton
+      Left = 14
+      Top = 150
+      Width = 26
+      Height = 25
+      Caption = '>>'
+      TabOrder = 3
+    end
+  end
+end

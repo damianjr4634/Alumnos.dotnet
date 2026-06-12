@@ -1,0 +1,2224 @@
+unit RegularizacionDeMaterias_nuevo;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, Grids, DBGrids, Buttons, ComCtrls, ExtCtrls,
+  FuncionesConfiguracion,FuncionesText,FuncionesDB,FuncionesSystem, Mask, RXToolEdit, DataModuleZeosLib,
+  Math, DB, RXCurrEdit, Variants, System.DateUtils;
+
+type
+  TregularizacionMaterias_nuevo = class(TForm)
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    DataSource1: TDataSource;
+    MateriasCursando: TDBGrid;
+    GroupBox3: TGroupBox;
+    Carreras: TPageControl;
+    ASC: TTabSheet;
+    ADM: TTabSheet;
+    RRP: TTabSheet;
+    RRH: TTabSheet;
+    BAC: TTabSheet;
+    CNA: TTabSheet;
+    GrabaMateriaAsc: TBitBtn;
+    CancelaGrabacionAsc: TBitBtn;
+    GrabaMateriaADM: TBitBtn;
+    CancelaGrabacionADM: TBitBtn;
+    GrabaMateriaBac: TBitBtn;
+    CancelaGrabacionBAC: TBitBtn;
+    GrabaMateriaRRP: TBitBtn;
+    CancelaGrabacionRRP: TBitBtn;
+    GrabaMateriaRRH: TBitBtn;
+    CancelaGrabacionRRH: TBitBtn;
+    GrabaMateriaCNA: TBitBtn;
+    CancelaGrabacionCNA: TBitBtn;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    Label9: TLabel;
+    Label10: TLabel;
+    NotaPrimerParcialASC: TEdit;
+    NotaSegundoParcialASC: TEdit;
+    TotalHorasASC: TEdit;
+    SinjustificarASC: TEdit;
+    RecuperatorioASC: TEdit;
+    JustificadasASC: TEdit;
+    Label11: TLabel;
+    NotaPrimerParcialADM: TEdit;
+    Label12: TLabel;
+    NotaSegundoParcialADM: TEdit;
+    Label13: TLabel;
+    RecuperatorioADM: TEdit;
+    Label14: TLabel;
+    TotalHorasADM: TEdit;
+    Label15: TLabel;
+    SinJustificarADM: TEdit;
+    Label16: TLabel;
+    JustificadasADM: TEdit;
+    Label17: TLabel;
+    NotaDefinitivaBAC: TEdit;
+    Label18: TLabel;
+    NotaRegularBAC: TEdit;
+    Label19: TLabel;
+    Label20: TLabel;
+    TotalHorasBAC: TEdit;
+    Label21: TLabel;
+    SinjustificarBAC: TEdit;
+    Label22: TLabel;
+    RecuperatorioBAC: TEdit;
+    Label23: TLabel;
+    NotaPrimerParcialRRP: TEdit;
+    Label24: TLabel;
+    NotaSegundoParcialRRP: TEdit;
+    Label25: TLabel;
+    TotalHorasRRP: TEdit;
+    Label26: TLabel;
+    SinJustificarRRP: TEdit;
+    Label27: TLabel;
+    RecuperatorioRRP: TEdit;
+    JustifIcadasRRP: TEdit;
+    Label28: TLabel;
+    Label29: TLabel;
+    NotaPrimerParcialRRH: TEdit;
+    Label30: TLabel;
+    NotaSegundoParcialRRH: TEdit;
+    Label31: TLabel;
+    TotalHorasRRH: TEdit;
+    Label32: TLabel;
+    SinJustificarRRH: TEdit;
+    Label33: TLabel;
+    RecuperatorioRRH: TEdit;
+    JustificadasRRH: TEdit;
+    Label34: TLabel;
+    Label35: TLabel;
+    Timer1: TTimer;
+    NomMate: TLabel;
+    Label42: TLabel;
+    Label43: TLabel;
+    Condicion: TLabel;
+    Label44: TLabel;
+    Label45: TLabel;
+    Bimestre1: TEdit;
+    Bimestre2: TEdit;
+    PromedioCuatrimestre: TEdit;
+    Label41: TLabel;
+    Label46: TLabel;
+    MateriasCodigoAlumno: TEdit;
+    Label1: TLabel;
+    Label3: TLabel;
+    MateriasApellidoyNombre: TEdit;
+    Label2: TLabel;
+    Label4: TLabel;
+    MateriasCarreraCursa: TEdit;
+    MateriasLibroMatriz: TEdit;
+    T333: TTabSheet;
+    Graba333: TBitBtn;
+    Cancela333: TBitBtn;
+    GroupBox4: TGroupBox;
+    Label36: TLabel;
+    GroupBox5: TGroupBox;
+    Label37: TLabel;
+    GroupBox6: TGroupBox;
+    Label38: TLabel;
+    GroupBox7: TGroupBox;
+    Label39: TLabel;
+    Label50: TLabel;
+    Label51: TLabel;
+    Label52: TLabel;
+    Label53: TLabel;
+    Label54: TLabel;
+    Label55: TLabel;
+    Label56: TLabel;
+    FechaPrimerTri: TDateEdit;
+    FechaSegundoTri: TDateEdit;
+    FechaTercerTri: TDateEdit;
+    FaltasPrimerTri: TCurrencyEdit;
+    FaltasSegundoTri: TCurrencyEdit;
+    FaltasTercerTri: TCurrencyEdit;
+    NotaPrimerTri: TCurrencyEdit;
+    NotaSegundoTri: TCurrencyEdit;
+    NotaTercerTri: TCurrencyEdit;
+    Promedio: TCurrencyEdit;
+    Faltas: TCurrencyEdit;
+    GroupBox8: TGroupBox;
+    Label40: TLabel;
+    Label47: TLabel;
+    Label48: TLabel;
+    FechaDic: TDateEdit;
+    Label49: TLabel;
+    FechaMar: TDateEdit;
+    NotaDic: TCurrencyEdit;
+    NotaMar: TCurrencyEdit;
+    FechaBac: TDateEdit;
+    Panel1: TPanel;
+    BtnAPrevia: TBitBtn;
+    Pasacursando: TBitBtn;
+    modificacursada: TBitBtn;
+    salir: TBitBtn;
+    BtnLibre: TBitBtn;
+    Label57: TLabel;
+    FechaCNA: TDateEdit;
+    NotaDefinitivaCNA: TCurrencyEdit;
+    procedure FormActivate(Sender: TObject);
+    procedure salirClick(Sender: TObject);
+    procedure CarrerasChange(Sender: TObject);
+    procedure modificacursadaClick(Sender: TObject);
+    procedure NotaSegundoParcialASCKeyPress(Sender: TObject;
+      var Key: Char);
+    procedure RecuperatorioASCKeyPress(Sender: TObject; var Key: Char);
+    procedure GrabaMateriaAscClick(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure GrabaMateriaBacClick(Sender: TObject);
+    procedure SinjustificarBACKeyPress(Sender: TObject; var Key: Char);
+    procedure TotalHorasBACKeyPress(Sender: TObject; var Key: Char);
+    procedure Bimestre1KeyPress(Sender: TObject; var Key: Char);
+    procedure Bimestre2KeyPress(Sender: TObject; var Key: Char);
+    procedure RecuperatorioBACKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaRegularBACKeyPress(Sender: TObject; var Key: Char);
+    procedure FechaBACKeyPress(Sender: TObject; var Key: Char);
+    procedure CancelaGrabacionBACClick(Sender: TObject);
+    procedure TotalHorasASCKeyPress(Sender: TObject; var Key: Char);
+    procedure SinjustificarASCKeyPress(Sender: TObject; var Key: Char);
+    procedure JustificadasASCKeyPress(Sender: TObject; var Key: Char);
+    procedure MateriasCursandoKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaPrimerParcialADMKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaSegundoParcialADMKeyPress(Sender: TObject;
+      var Key: Char);
+    procedure TotalHorasADMKeyPress(Sender: TObject; var Key: Char);
+    procedure RecuperatorioADMKeyPress(Sender: TObject; var Key: Char);
+    procedure SinJustificarADMKeyPress(Sender: TObject; var Key: Char);
+    procedure JustificadasADMKeyPress(Sender: TObject; var Key: Char);
+    procedure GrabaMateriaADMClick(Sender: TObject);
+    procedure NotaPrimerParcialRRHKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaSegundoParcialRRHKeyPress(Sender: TObject;
+      var Key: Char);
+    procedure TotalHorasRRHKeyPress(Sender: TObject; var Key: Char);
+    procedure SinJustificarRRHKeyPress(Sender: TObject; var Key: Char);
+    procedure RecuperatorioRRHKeyPress(Sender: TObject; var Key: Char);
+    procedure JustificadasRRHKeyPress(Sender: TObject; var Key: Char);
+    procedure GrabaMateriaRRHClick(Sender: TObject);
+    procedure NotaPrimerParcialRRPKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaSegundoParcialRRPKeyPress(Sender: TObject;
+      var Key: Char);
+    procedure TotalHorasRRPKeyPress(Sender: TObject; var Key: Char);
+    procedure SinJustificarRRPKeyPress(Sender: TObject; var Key: Char);
+    procedure RecuperatorioRRPKeyPress(Sender: TObject; var Key: Char);
+    procedure JustifIcadasRRPKeyPress(Sender: TObject; var Key: Char);
+    procedure GrabaMateriaRRPClick(Sender: TObject);
+    procedure NotaDefinitivaCNAKeyPress(Sender: TObject; var Key: Char);
+    procedure GrabaMateriaCNAClick(Sender: TObject);
+    procedure NotaPrimerTriKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaSegundoTriKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaTercertriKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaDicKeyPress(Sender: TObject; var Key: Char);
+    procedure NotaMarKeyPress(Sender: TObject; var Key: Char);
+    procedure Graba333Click(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure PasacursandoClick(Sender: TObject);
+    procedure NotaPrimerTriExit(Sender: TObject);
+    procedure NotaSegundoTriExit(Sender: TObject);
+    procedure FaltasPrimerTriExit(Sender: TObject);
+    procedure FaltasSegundoTriExit(Sender: TObject);
+    procedure FaltasTercerTriExit(Sender: TObject);
+    procedure NotaTercerTriExit(Sender: TObject);
+    procedure PromedioChange(Sender: TObject);
+    procedure Bimestre2Exit(Sender: TObject);
+    procedure RecuperatorioBACExit(Sender: TObject);
+    procedure NotaRegularBACExit(Sender: TObject);
+    procedure FechaPrimerTriExit(Sender: TObject);
+    procedure FechaSegundoTriExit(Sender: TObject);
+    procedure FechaTercerTriExit(Sender: TObject);
+    procedure NotaPrimerParcialASCKeyPress(Sender: TObject; var Key: Char);
+    procedure BtnAPreviaClick(Sender: TObject);
+    procedure BtnLibreClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    Function CalculaPromedio:Real;
+    Procedure ValidoGrabaciondeMateria;
+
+  end;
+  TMaterias = Record
+    Codigo :String;
+    Nombre :String;
+  End;
+var
+  regularizacionMaterias_nuevo: TregularizacionMaterias_nuevo;
+  LMaterias : Array[1..50] Of TMaterias;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VCODALU : String; //pasa el codigo de alumno con el cual se esta trabajando
+  VCondicion : String; // nose
+  VApellido : String; //Pasa el apellido del alumno activo
+  VNombre : String;  //Pasa el nombre del alumno activo
+  VLibroMatriz : String; //Pasa el libro matriz del alumno
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+
+Function BuscoMateria(CodigoMateria : String) : String;
+Procedure Valid(Var Key : Char; Texto :String);
+Procedure CambioSolapa(Carreras : TPageControl;ASC,ADM,RRP,RRH,BAC,CNA,T333: TTabSheet);
+
+implementation
+
+{$R *.DFM}
+uses
+  carreras;
+
+Procedure TregularizacionMaterias_nuevo.ValidoGrabaciondeMateria;
+var
+   codmat: string;
+
+  function PostVal:boolean;
+  var
+    a: TToArray;
+    paso: string;
+  begin
+  {
+    PASAR ZLIB
+    try
+      CustomerData.IBUpVarios.Sql.Text:='SELECT FERRCOD, FERRMSG, FBUTTONS FROM XXX_REGULARIZACION_MAT_POSTVAL('+#39+
+                                         VCARRERA+#39+','+#39+
+                                         CustomerData.IBdsVarios.FieldByName('COD_ALU').Value+#39+','+
+                                         #39+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+#39+','+
+                                         VarTosTr(FuncionesConfiguracion.CodUsu)+','''')';
+      CustomerData.TRUpVarios.Active:=true;
+      CustomerData.IBUpVarios.ExecQuery;
+      If (CustomerData.IBupVarios.FieldByName('FERRCOD').AsInteger=2) Then begin
+        MessageDlg(PChar(VNombreUsuario + ', '+CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+        CustomerData.TRUpVarios.Rollback;
+      end
+      else If (CustomerData.IBupVarios.FieldByName('FERRCOD').AsInteger=1) Then begin
+        if (MessageDlg(PChar(VNombreUsuario + ', '+CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes) then
+          CustomerData.TRUpVarios.Commit
+        else
+          CustomerData.TRUpVarios.Rollback;
+      end
+      else If (CustomerData.IBupVarios.FieldByName('FERRCOD').AsInteger=0) Then begin
+        if (CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString<>'') then
+          ShowMessage(CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString);
+        CustomerData.TRUpVarios.Commit;
+      end
+      else If (CustomerData.IBupVarios.FieldByName('FERRCOD').AsInteger=3) Then begin
+        a:= FuncionesText.TextToArray(CustomerData.IBUpVarios.FieldByName('FBUTTONS').AsString);
+
+        if Length(a)=1 then
+          Case FuncionesSystem.CustomMessageDialog(CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString, mtConfirmation,
+              [mbNo], a) of
+            mrNo:     paso:=a[0];
+            else exit;
+          end
+        else  if Length(a)=2 then
+          Case FuncionesSystem.CustomMessageDialog(CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString, mtConfirmation,
+              [mbYes, mbNo], a) of
+            mrYes:    paso := a[0];
+            mrNo:     paso := a[1];
+            else exit;
+          end
+        else  if Length(a)=3 then
+          Case FuncionesSystem.CustomMessageDialog(CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString, mtConfirmation,
+              [mbYes, mbNo, mbCancel], a) of
+            mrCancel: paso := a[2];
+            mrYes:    paso := a[0];
+            mrNo:     paso := a[1];
+            else exit;
+          end;
+        if FuncionesDB.ExecScriptMsg('SELECT FERRCOD AS ERRCOD, FERRMSG AS ERRMSG FROM XXX_REGULARIZACION_MAT_POSTVAL('+#39+
+                                    VCARRERA+#39+','+#39+
+                                    CustomerData.IBdsVarios.FieldByName('COD_ALU').Value+#39+','+
+                                    #39+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+#39+','+
+                                    VarTosTr(FuncionesConfiguracion.CodUsu)+','''+paso+''')') then
+          CustomerData.TRUpVarios.Commit
+        else
+          CustomerData.TRUpVarios.Rollback;
+      end;
+    except
+      on e:exception do begin
+        CustomerData.TRUpVarios.Rollback;
+        CustomerData.IbupVarios.Close;
+        ShowMessage(e.Message);
+      end;
+    end;
+    }
+  end;
+
+begin
+{
+    PASAR ZLIB
+  codmat:= CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.Sql.Text:='SELECT FERRCOD, FERRMSG FROM XXX_REGULARIZACION_MAT('+#39+VCARRERA+#39+','+#39+CustomerData.IBdsVarios.FieldByName('COD_ALU').Value+#39+','+#39+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+#39+','+#39+Datamodule.CustomerData.IBdsVarios.FieldbyName('CONDICION').Value+#39+','+VarTosTr(FuncionesConfiguracion.CodUsu)+')';
+  CustomerData.IBUpVarios.ExecQuery;
+  If (CustomerData.IBupVarios.FieldByName('FERRCOD').AsInteger=2) Then Begin
+    MessageDlg(PChar(VNombreUsuario + ', '+CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+    CustomerData.TRUpVarios.Rollback;
+    CustomerData.TRUpVarios.Active := False;
+    CustomerData.TRdsVarios.RollBack;
+    CustomerData.TRdsVarios.Active := False;
+    CustomerData.IBdsVarios.Active := False;
+    CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+    CustomerData.TRdsVarios.Active := True;
+    CustomerData.IBdsVarios.Active := True;
+    CustomerData.IbDsVarios.LocateNext('COD_MAT',codmat,[loPartialKey]);
+  End
+  ELSE If (CustomerData.IBUpVarios.FieldByName('FERRCOD').AsInteger=1) and
+         (MessageDlg(PChar(VNombreUsuario + ', '+CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes) then begin
+    CustomerData.TRUpVarios.Commit;
+    PostVal;
+    CustomerData.TRUpVarios.Active := False;
+    CustomerData.TRdsVarios.RollBack;
+    CustomerData.TRdsVarios.Active := False;
+    CustomerData.IBdsVarios.Active := False;
+    CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+    CustomerData.TRdsVarios.Active := True;
+    CustomerData.IBdsVarios.Active := True;
+    CancelaGrabacionBACClick(nil);
+  End
+  ELSE If (CustomerData.IBUpVarios.FieldByName('FERRCOD').AsInteger=0) then begin
+    if (CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString<>'') then
+      ShowMessage(CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString);
+    CustomerData.TRUpVarios.Commit;
+    PostVal;
+    CustomerData.TRUpVarios.Active := False;
+    CustomerData.TRdsVarios.RollBack;
+    CustomerData.TRdsVarios.Active := False;
+    CustomerData.IBdsVarios.Active := False;
+    CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+    CustomerData.TRdsVarios.Active := True;
+    CustomerData.IBdsVarios.Active := True;
+    CancelaGrabacionBACClick(nil);
+  End
+  else begin
+    CustomerData.TRUpVarios.Rollback;
+    CustomerData.TRUpVarios.Active := False;
+    CustomerData.TRdsVarios.RollBack;
+    CustomerData.TRdsVarios.Active := False;
+    CustomerData.IBdsVarios.Active := False;
+    CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+    CustomerData.TRdsVarios.Active := True;
+    CustomerData.IBdsVarios.Active := True;
+    CustomerData.IbDsVarios.LocateNext('COD_MAT',codmat,[loPartialKey]);
+  end;
+  }
+end;
+
+Function TregularizacionMaterias_nuevo.CalculaPromedio:Real;
+Var Prom:Real;
+begin
+     Prom:=0;
+     If ((NotaPrimerTri.Value = 99) and (NotaSegundoTri.value = 99) and (NotaTercerTri.Value = 99)) then
+        Prom := 0;
+     If ((NotaPrimerTri.value = 99) and (NotaSegundoTri.value<>99) and (NotaSegundoTri.value<>0) and (NotaTercerTri.value<>99) and (NotaTercerTri.value<>0)) then
+        Prom := (NotaSegundoTri.value+NotaTercerTri.value)/2;
+     If ((NotaPrimerTri.value<>99) and (NotaPrimerTri.value<>0) and (NotaSegundoTri.value=99) and (NotaTercerTri.value<>99) and (NotaTercerTri.value<>0)) then
+        Prom := (NotaTercerTri.value+NotaPrimerTri.value)/2;
+     If ((NotaPrimerTri.value<>99) and (NotaPrimerTri.value<>0) and (NotaSegundoTri.value<>99) and (NotaSegundoTri.value<>0) and (NotaTercerTri.value<>99) and (NotaTercerTri.value<>0)) then
+        Prom := (NotaSegundoTri.value+NotaPrimerTri.value)/2;
+     If ((NotaPrimerTri.value=99) and (NotaSegundoTri.value<>99) and (NotaSegundoTri.value<>0) and (NotaTercerTri.value=99)) then
+        Prom := 0; //StrToFloat(NotaSegundoTri.Text);
+     If ((NotaPrimerTri.value=99) and (NotaTercerTri.value<>99) and (NotaTercerTri.value<>0) and (NotaSegundoTri.value=99)) then
+        Prom := 0; //StrToFloat(NotaTercerTri.Text);
+     If ((NotaPrimerTri.value<>99) and (NotaPrimerTri.value<>0) and (NotaSegundoTri.value=99) and (NotaTercerTri.value=99)) then
+        Prom := 0; //StrToFloat(NotaPrimerTri.Text);
+     If ((NotaPrimerTri.value <> 99) and (NotaPrimerTri.value <> 0) and (NotaSegundoTri.value <> 99) and (NotaSegundoTri.value <> 0) and (NotaTercerTri.value <> 99) and (NotaTercerTri.value <> 0)) then
+        Prom := (NotaPrimerTri.value+NotaSegundoTri.value+NotaTercerTri.value)/3;
+     If ((NotaPrimerTri.value = 0) or (NotaSegundoTri.value = 0) or (NotaTercerTri.value = 0)) then
+        Prom := -1;
+     Result:=Prom;
+end;
+
+Procedure CambioSolapa(Carreras : TPageControl;ASC,ADM,RRP,RRH,BAC,CNA,T333: TTabSheet);
+Begin
+ If CarreIndexOf(VCarrera).regsolapa=0 Then Begin
+   Carreras.ActivePageIndex := 0;
+   Asc.Enabled := True;
+ End
+ else If CarreIndexOf(VCarrera).regsolapa=1 Then Begin
+   Carreras.ActivePageIndex := 1;
+   ADM.Enabled := True;
+ End
+ else If CarreIndexOf(VCarrera).regsolapa=2 Then Begin
+   Carreras.ActivePageIndex := 2;
+   Bac.Enabled := True;
+ End
+ else If CarreIndexOf(VCarrera).regsolapa=3 Then Begin
+   Carreras.ActivePageIndex := 3;
+   RRP.Enabled := True;
+ End
+ else If CarreIndexOf(VCarrera).regsolapa=4 Then Begin
+   Carreras.ActivePageIndex := 4;
+   RRH.Enabled := True;
+ End
+ else If CarreIndexOf(VCarrera).regsolapa=5 Then Begin
+   Carreras.ActivePageIndex := 5;
+   CNA.Enabled := True;
+ End
+ else If CarreIndexOf(VCarrera).regsolapa=6 Then Begin
+   Carreras.ActivePageIndex := 6;
+   T333.Enabled := True;
+ End
+End;
+
+Procedure Valid(Var Key : Char; Texto:String);
+Begin
+ If Not (charinset(key,['0'..'9',Chr(8), Chr(7), Chr(13), chr(9)])) Then
+    Key := #0;
+ If (Key = '.') And (Length(Texto) = 0)Then
+    Key := #0;
+End;
+
+Function BuscoMateria(CodigoMateria : String) : String;
+Var x:Integer;
+Begin
+ For x:=1 to 50 Do
+  If LMaterias[x].Codigo = CodigoMateria Then
+     BuscoMateria := LMaterias[x].Nombre;
+End;
+
+procedure TregularizacionMaterias_nuevo.Timer1Timer(Sender: TObject);
+begin
+ If NomMate.Font.Color = ClRed Then
+    NomMate.Font.Color := ClBlack
+ Else
+    NomMate.Font.Color := ClRed;
+ If Condicion.Font.Color = ClRed Then
+    Condicion.Font.Color := ClBlack
+ Else
+    Condicion.Font.Color := ClRed;
+end;
+
+
+procedure TregularizacionMaterias_nuevo.FormActivate(Sender: TObject);
+Var
+  Cont : Integer;
+begin
+{
+    PASAR ZLIB
+ if not ((Vcarrera='333') or (VCarrera='650')) then begin
+   BtnAPrevia.Visible:=false;
+   BtnLibre.Visible:=true;
+ end
+ else begin
+   BtnAPrevia.Visible:=true;
+   BtnLibre.Visible:=false;
+ end;
+
+ Modificacion := False;
+ if CustomerData.TRDlVarios.Active then
+    CustomerData.TRDlVarios.Rollback;
+ CustomerData.IBDlVarios.Sql.Clear;
+ CustomerData.IBDlVarios.Sql.Text := 'DELETE FROM "$$$CURSADA" WHERE USUARIO = :USUARIO;';
+ CustomerData.IBDlVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+ CustomerData.TRDlVarios.Active := True;
+ CustomerData.IBDlVarios.ExecQuery;
+ CustomerData.TRDlVarios.Commit;
+ CustomerData.TRDlVarios.Active := False;
+ ModificaCursada.Enabled := True;
+ if CustomerData.TRQrVarios.Active then
+    CustomerData.TRQrVarios.Rollback;
+ CustomerData.IBQrVarios.SQL.Clear;
+ CustomerData.IBQrVarios.Sql.Text := ' INSERT INTO "$$$CURSADA" (COD_ALU,CUTUCO,COD_MAT,CUA_ANIO,CONDICION,TP_EVA, '+
+                                         ' RECUP,TP_EVA2,RECUP2,REGULAR,TOT_HORAS,INASIST,JUSTIF,FINAL1,FECHA1,FINAL2,FECHA2, '+
+                                          ' APELLIDO,MATRIZ,USUARIO,NOM_APE, TP_EVA3, PROM, FEC_EVA1, FEC_EVA2,FEC_EVA3, FAL_EVA1, '+
+                                          ' FAL_EVA2, FAL_EVA3, NOTADIC, NOTAMAR, FECHDIC, FECHMAR) '+
+                                          ' SELECT C.COD_ALU, C.CUTUCO, C.COD_MAT, C.CUA_ANIO, C.CONDICION, '+
+                                          ' C.TP_EVA, C.RECUP , C.TP_EVA2, C.RECUP2, C.REGULAR, C.TOT_HORAS, '+
+                                          ' C.INASIST, C.JUSTIF, C.FINAL1, C.FECHA1, C.FINAL2, '+
+                                          ' C.FECHA2, A.APELLIDO, C.MATRIZ, :USUARIO,A.NOM_APE, C.TP_EVA3, C.PROM, C.FEC_EVA1, C.FEC_EVA2, C.FEC_EVA3, '+
+                                          ' COALESCE(C.FAL_EVA1, X.FAL_EVA1) AS FAL_EVA1, COALESCE(C.FAL_EVA2,X.FAL_EVA2) AS FAL_EVA2, COALESCE(C.FAL_EVA3,X.FAL_EVA3) AS FAL_EVA3, '+
+                                          ' NOTADIC, NOTAMAR, FECHDIC, FECHMAR '+
+                                          ' FROM  CURSADA C '+
+                                          ' LEFT OUTER JOIN ALUMNOS A ON C.COD_ALU = A.COD_ALU AND C.CARRE=A.CARRE'+
+                                          ' LEFT OUTER JOIN YYY_FALTAS_REGULA(C.COD_ALU,C.CARRE,C.COD_MAT,C.CUA_ANIO, C.CUTUCO) X ON X.COD_ALU=C.COD_ALU AND X.CARRE=A.CARRE '+
+                                          ' WHERE C.CARRE=:CARRE AND /*TRIM(C.CONDICION) <> ''REGULAR'' AND*/ C.COD_ALU=:CODALU '+
+                                          ' ORDER BY C.CONDICION,A.APELLIDO,A.NOM_APE ;';
+ CustomerData.IBQrVarios.ParamByName('CARRE').Value := VCarrera;
+ CustomerData.IBQrVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+ CustomerData.IBQrVarios.ParamByName('CODALU').Value := VCodAlu;
+ CustomerData.TrQrVarios.Active := True;
+ CustomerData.IBQrVarios.ExecQuery;
+ CustomerData.TrQrVarios.Commit;
+ CustomerData.TrQrVarios.Active := False;
+ if (CustomerData.TRdsVarios.Active) then
+     CustomerData.TRdsVarios.Rollback;
+ CustomerData.TRdsVarios.Active:=False;
+ CustomerData.IBdsVarios.Active:=False;
+ CustomerData.IBdsVarios.Sqls.SelectSQL.Clear;
+ CustomerData.IBdsVarios.Sqls.SelectSQL.Text := ' SELECT COD_ALU, CUTUCO, COD_MAT, CUA_ANIO, CONDICION, '+
+                                           ' TP_EVA, RECUP , TP_EVA2, RECUP2, REGULAR, TOT_HORAS, '+
+                                           ' INASIST, JUSTIF, FINAL1, FECHA1, FINAL2, '+
+                                           ' FECHA2, APELLIDO, MATRIZ, NOM_APE, TP_EVA3, PROM, M.SIGLA, FEC_EVA1, FEC_EVA2,FEC_EVA3, '+
+                                           ' FAL_EVA1, FAL_EVA2, FAL_EVA3, NOTADIC, NOTAMAR, FECHDIC, FECHMAR '+
+                                           ' FROM  "$$$CURSADA" X'+
+                                           ' LEFT OUTER JOIN MATERIAS M ON M.CODMATERI=X.COD_MAT AND M.CODCARRE=:CARRE '+
+                                           ' WHERE X.USUARIO = :USUARIO; ';
+ CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+ CustomerData.IBdsVarios.ParamByName('CARRE').Value := VCarrera;
+ CustomerData.TRdsVarios.Active := True;
+ CustomerData.IBdsVarios.Active := True;
+ If CustomerData.IBdsVarios.RecordCount = 0 then
+     ModificaCursada.enabled := False;
+ //CARGO DATOS PRINCIPALES DEL ALUMNO EN LA CABACERA DEL FORMULARIO
+ MateriasCodigoAlumno.Text    := VCodAlu;
+ MateriasApellidoyNombre.Text := VApellido + ' ' + VNombre;
+ MateriasCarreraCursa.Text    := VCarrera;
+ MateriasLibroMatriz.Text := copy(vlibromatriz,1,2)+'/'+copy(vlibromatriz,3,3);
+ //CARGO MATERIAS
+ With Datamodule.CustomerData do
+  Begin
+    If TrMaterias.Active Then
+      TrMaterias.Rollback;
+    TRMaterias.Active:=False;
+    IBMaterias.ParamByName('CODCARRE').AsString:=VCarrera;
+    TrMaterias.Active:=True;
+    IBMaterias.ExecQuery;
+    Cont := 1;
+    While Not(IBMaterias.Eof) Do
+      Begin
+        LMaterias[Cont].Codigo := IBMaterias.FieldByName('CODMATERI').AsString;
+        LMaterias[Cont].Nombre := IBMaterias.FieldByName('DESCRIPCI').AsString;
+        IBMaterias.Next;
+        Cont := Cont + 1;
+      End;
+    TrMaterias.Rollback;
+    TRMaterias.Active:=False;
+  end;
+ If VCarrera = 'BAC' Then
+     MateriasCursando.Columns[8].Visible := True
+ Else
+     MateriasCursando.Columns[8].Visible := False;
+ CambioSolapa(Carreras,ASC,ADM,RRP,RRH,BAC,CNA,T333);
+ NomMate.Caption := '';
+ Condicion.Caption := '';
+ GroupBox3.Visible := False;
+ regularizacionMaterias_nuevo.Height := 355;
+ MateriasCursando.SetFocus;
+ }
+end;
+
+
+procedure TregularizacionMaterias_nuevo.salirClick(Sender: TObject);
+begin
+  regularizacionMaterias_nuevo.Close;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaPrimerParcialASCKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+  Valid(Key,NotaPrimerParcialASC.Text);
+  If Key = #13 Then
+   Begin
+     If (NotaPrimerParcialASC.Text = '') or ((NotaPrimerParcialASC.Text = '0')) Then
+        NotaPrimerParcialASC.Text :='0'
+     Else If ( (StrToFloat(NotaPrimerParcialASC.Text) >= 1) And (StrToFloat(NotaPrimerParcialASC.Text) <= 10) ) or (StrToFloat(NotaPrimerParcialASC.Text)=99) Then
+       Begin
+//        NotaSegundoParcialASC.Enabled := True;
+        NotaSegundoParcialASC.SetFocus;
+       End
+     Else
+       MessageDlg(Pchar(Vnombreusuario+', la nota tiene que estar comprendida entre 1 y 10.'),mtInformation, [mbok],0,mbok);
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.CarrerasChange(Sender: TObject);
+begin
+    MessageDlg(Pchar(VNombreUsuario +', no estas trabajando con esta carrera'),mtError,[mbok],0,mbok);
+    CambioSolapa(Carreras,ASC,ADM,RRP,RRH,BAC,CNA,T333);
+end;
+
+procedure TregularizacionMaterias_nuevo.modificacursadaClick(Sender: TObject);
+Var
+   Datos, totfaltas:Variant;
+   Cantfal:Real;
+begin
+{
+    PASAR ZLIB
+ Modificacion:=true;
+ GroupBox3.Visible := True;
+ regularizacionMaterias_nuevo.Height := 630;
+ ModificaCursada.Enabled := False;
+ Salir.Enabled := False;
+ GroupBox2.Enabled := False;
+ PasaCursando.Enabled:=False;
+ BtnAPrevia.Enabled:=false;
+ BtnLibre.Enabled:=False;
+ If CarreIndexOf(VCarrera).regsolapa=0 Then
+  Begin
+   totfaltas:=null;
+   FuncionesDB.Consulta('SELECT FALTAS, JUSTI FROM XXX_CONT_FALTAS('''+Vcodalu+''', '''+Vcarrera+''', '''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''','+CustomerData.IBdsVarios.FieldByName('CUA_ANIO').Value+')',totfaltas);
+   NotaPrimerParcialASC.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').AsFloat);
+   NotaSegundoParcialASC.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').AsFloat);
+   RecuperatorioASC.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value);
+   TotalHorasASC.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TOT_HORAS').Value);
+   if not VarIsNull(totfaltas)  then begin
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value=0 then
+        SinJustificarASC.Text := VarToStr(totfaltas[0])
+      else
+        SinJustificarASC.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value);
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value=0 then
+        JustificadasASC.Text := VarToStr(totfaltas[1])
+      else
+        JustificadasASC.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value);
+   end;
+   CancelaGrabacionASC.Enabled := True;
+   GrabaMateriaASC.Enabled := True;
+   NomMate.Caption := BuscoMateria(DataModule.CustomerData.IBDsVarios.FieldbyName('COD_MAT').Value);
+   Condicion.Caption := 'CONDICION: ' + DataModule.CustomerData.IBDsVarios.FieldbyName('Condicion').Value;
+   NotaPrimerParcialASC.SetFocus;
+  End;
+ If CarreIndexOf(VCarrera).regsolapa=1 Then
+  Begin
+   totfaltas:=null;
+   FuncionesDB.Consulta('SELECT FALTAS, JUSTI FROM XXX_CONT_FALTAS('''+Vcodalu+''', '''+Vcarrera+''', '''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''','+CustomerData.IBdsVarios.FieldByName('CUA_ANIO').Value+')',totfaltas);
+   NotaPrimerParcialADM.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value);
+   NotaSegundoParcialADM.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value);
+   RecuperatorioADM.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value);
+   TotalHorasADM.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TOT_HORAS').Value);
+   if not VarIsNull(totfaltas)  then begin
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value=0 then
+        SinJustificarADM.Text := VarToStr(totfaltas[0])
+      else
+        SinJustificarADM.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value);
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value=0 then
+        JustificadasADM.Text := VarToStr(totfaltas[1])
+      else
+        JustificadasADM.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value);
+   end;
+   GrabaMateriaADM.Enabled := True;
+   CancelaGrabacionADM.Enabled := True;
+   NomMate.Caption := BuscoMateria(DataModule.CustomerData.IBDsVarios.FieldbyName('COD_MAT').Value);
+   Condicion.Caption := 'CONDICION: ' + DataModule.CustomerData.IBDsVarios.FieldbyName('Condicion').Value;
+   NotaPrimerParcialADM.SetFocus;
+  End;
+ If CarreIndexOf(VCarrera).regsolapa=2 Then
+  Begin
+   try
+       funcionesDB.Consulta('SELECT FFECHA FROM XXX_FECHA_REGULARIZACION('+#13+CustomerData.IBdsVarios.FieldByName('CUA_ANIO').value+')',datos);
+   except
+       datos := 0;
+   end;
+   totfaltas:=null;
+   FuncionesDB.Consulta('SELECT FALTAS, JUSTI FROM XXX_CONT_FALTAS('''+Vcodalu+''', '''+Vcarrera+''', '''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''','+CustomerData.IBdsVarios.FieldByName('CUA_ANIO').Value+')',totfaltas);
+   Bimestre1.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value);
+   Bimestre2.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value);
+   RecuperatorioBAC.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value);
+   NotaRegularBAC.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('Regular').Value);
+   If DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value = 99 Then
+      PromedioCuatrimestre.Text := FloatToStr((1 + DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value) / 2);
+   If DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value = 99 Then
+      PromedioCuatrimestre.Text := FloatToStr((DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value + 2) / 2);
+   If (DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value <> 99) And (DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value <> 99) Then
+      PromedioCuatrimestre.Text := FloatToStr((DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value + DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value) / 2);
+   If (DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value >= 1) And (DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value <= 10)  Then
+      NotaDefinitivaBAC.Text := FloatToStr((StrToFloat(PromedioCuatrimestre.Text) + DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value) / 2)
+   Else
+      Begin
+        If DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value = 0 Then
+           NotaDefinitivaBAC.Text := '0';
+        If DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value = 99 Then
+           NotaDefinitivaBAC.Text := PromedioCuatrimestre.Text;
+      End;
+   FechaBac.Date := Date;
+   If (DataModule.CustomerData.IBDsVarios.FieldbyName('Fecha1').Value <> 0) and Not (DataModule.CustomerData.IBDsVarios.FieldbyName('Fecha1').IsNull) Then
+      FechaBac.Date := DataModule.CustomerData.IBDsVarios.FieldbyName('Fecha1').Value
+   else
+      FechaBac.Date := datos[0];
+   TotalHorasBAC.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TOT_HORAS').Value);
+   if not VarIsNull(totfaltas)  then begin
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value=0 then
+        SinJustificarbac.Text := VarToStr(totfaltas[0])
+      else
+        SinJustificarBAC.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value);
+   end;
+   //FechaBAC.Date  := DATE;
+   GrabaMateriaBAC.Enabled := True;
+   CancelaGrabacionBAC.Enabled := True;
+   NomMate.Caption := BuscoMateria(DataModule.CustomerData.IBDsVarios.FieldbyName('COD_MAT').Value);
+   Condicion.Caption := 'CONDICION: ' + DataModule.CustomerData.IBDsVarios.FieldbyName('Condicion').Value;
+   Bimestre1.SetFocus;
+  End;
+ If CarreIndexOf(VCarrera).regsolapa=3 Then
+  Begin
+   totfaltas:=null;
+   FuncionesDB.Consulta('SELECT FALTAS, JUSTI FROM XXX_CONT_FALTAS('''+Vcodalu+''', '''+Vcarrera+''', '''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''','+CustomerData.IBdsVarios.FieldByName('CUA_ANIO').Value+')',totfaltas);
+   NotaPrimerParcialRRP.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value);
+   NotaSegundoParcialRRP.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value);
+   RecuperatorioRRP.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value);
+   TotalHorasRRP.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TOT_HORAS').Value);
+   if not VarIsNull(totfaltas)  then begin
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value=0 then
+        SinJustificarRRP.Text := VarToStr(totfaltas[0])
+      else
+        SinJustificarRRP.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value);
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value=0 then
+        JustificadasRRP.Text := VarToStr(totfaltas[1])
+      else
+        JustificadasRRP.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value);
+   end;
+   GrabaMateriaRRP.Enabled := True;
+   CancelaGrabacionRRP.Enabled := True;
+   NomMate.Caption := BuscoMateria(DataModule.CustomerData.IBDsVarios.FieldbyName('COD_MAT').Value);
+   Condicion.Caption := 'CONDICION: ' + DataModule.CustomerData.IBDsVarios.FieldbyName('Condicion').Value;
+   NotaPrimerParcialRRP.SetFocus;
+  End;
+ If CarreIndexOf(VCarrera).regsolapa=4 Then
+  Begin
+   totfaltas:=null;
+   FuncionesDB.Consulta('SELECT FALTAS, JUSTI FROM XXX_CONT_FALTAS('''+Vcodalu+''', '''+Vcarrera+''', '''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''','+CustomerData.IBdsVarios.FieldByName('CUA_ANIO').Value+')',totfaltas);
+   NotaPrimerParcialRRH.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA').Value);
+   NotaSegundoParcialRRH.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TP_EVA2').Value);
+   RecuperatorioRRH.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('RECUP').Value);
+   TotalHorasRRH.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('TOT_HORAS').Value);
+   if not VarIsNull(totfaltas)  then begin
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value=0 then
+        SinJustificarRRH.Text := VarToStr(totfaltas[0])
+      else
+        SinJustificarRRH.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('INASIST').Value);
+      if DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value=0 then
+        JustificadasRRH.Text := VarToStr(totfaltas[1])
+      else
+        JustificadasRRH.Text := IntToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('JUSTIF').Value);
+   end;
+   GrabaMateriaRRH.Enabled := True;
+   CancelaGrabacionRRH.Enabled := True;
+   NomMate.Caption := BuscoMateria(DataModule.CustomerData.IBDsVarios.FieldbyName('COD_MAT').Value);
+   Condicion.Caption := 'CONDICION: ' + DataModule.CustomerData.IBDsVarios.FieldbyName('Condicion').Value;
+   NotaPrimerParcialRRH.SetFocus;
+  End;
+ If CarreIndexOf(VCarrera).regsolapa=5 Then
+  Begin
+   NotaDefinitivaCNA.Text := FloatToStr(DataModule.CustomerData.IBDsVarios.FieldbyName('FINAL1').Value);
+   if DataModule.CustomerData.IBDsVarios.FieldbyName('FECHA1').IsNull then
+      FechaCNA.Date  := Date
+   else
+      FechaCNA.Date  := DataModule.CustomerData.IBDsVarios.FieldbyName('FECHA1').Value;
+   GrabaMateriaCNA.Enabled := True;
+   CancelaGrabacionCNA.Enabled := True;
+   NomMate.Caption := BuscoMateria(DataModule.CustomerData.IBDsVarios.FieldbyName('COD_MAT').Value);
+   Condicion.Caption := 'CONDICION: ' + DataModule.CustomerData.IBDsVarios.FieldbyName('Condicion').Value;
+   NotaDefinitivaCNA.SetFocus;
+  End;
+ If CarreIndexOf(VCarrera).regsolapa=6 Then
+  Begin
+    try
+       funcionesDB.Consulta('SELECT FHTAPRI, FHTASEG,FHTATER FROM TBL_TRIM WHERE FANIO=EXTRACT(YEAR FROM CURRENT_DATE)',datos);
+    except
+       datos := 0;
+    end;
+    NotaPrimerTri.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('TP_EVA').AsFloat);
+    if (Not CustomerData.IBDsVarios.FieldByName('FEC_EVA1').IsNull) then
+        FechaPrimerTri.Date := CustomerData.IBDsVarios.FieldByName('FEC_EVA1').AsDateTime
+    else
+        FechaPrimerTri.Date:=datos[0];
+    FaltasPrimerTri.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('FAL_EVA1').Asfloat);
+
+    NotaSegundoTri.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('TP_EVA2').AsFloat);
+    if (Not CustomerData.IBDsVarios.FieldByName('FEC_EVA2').Isnull) then
+        FechaSegundoTri.Date := CustomerData.IBDsVarios.FieldByName('FEC_EVA2').AsDateTime
+    else
+        FechaSegundoTri.Date := datos[1];
+    FaltasSegundoTri.Text := floatToStr(CustomerData.IBDsVarios.FieldByName('FAL_EVA2').Asfloat);
+
+    NotaTercerTri.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('TP_EVA3').AsFloat);
+    if (Not CustomerData.IBDsVarios.FieldByName('FEC_EVA3').Isnull) then
+        FechaTercerTri.Date := CustomerData.IBDsVarios.FieldByName('FEC_EVA3').AsDateTime
+    else
+        FechaTercerTri.Date := datos[2];
+
+    FaltasTercerTri.Text := floatToStr(CustomerData.IBDsVarios.FieldByName('FAL_EVA3').Asfloat);
+
+    Promedio.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('PROM').AsFloat);
+
+    NotaDic.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('NOTADIC').AsFloat);
+    FechaDic.Date := CustomerData.IBDsVarios.FieldByName('FECHDIC').AsDateTime;
+    NotaMar.Text := FloatToStr(CustomerData.IBDsVarios.FieldByName('NOTAMAR').AsFloat);
+    FechaMar.Date := CustomerData.IBDsVarios.FieldByName('FECHMAR').AsDateTime;
+
+    Promedio.Text := '0';
+
+    If FaltasPrimerTri.Text = '' Then
+        FaltasPrimerTri.Text :='0';
+    If FaltasSegundoTri.Text = '' Then
+        FaltasSegundoTri.Text :='0';
+    If FaltasTercerTri.Text = '' Then
+        FaltasTercerTri.Text :='0';
+
+    If NotaPrimerTri.Text = '' Then
+        NotaPrimerTri.Text :='0';
+    If NotaSegundoTri.Text = '' Then
+        NotaSegundoTri.Text :='0';
+    If NotaTercerTri.Text = '' Then
+        NotaTercerTri.Text :='0';
+    If Promedio.Text = '' Then
+        Promedio.Text :='0';
+    If NotaDic.Text = '' Then
+        NotaDic.Text :='0';
+    If NotaMar.Text = '' Then
+        NotaMar.Text :='0';
+    try
+       Cantfal:=FaltasPrimerTri.Value+FaltasSegundoTri.value+FaltasTercerTri.value;
+       Faltas.value:=cantfal;
+    except
+       Faltas.Text:='0';
+    end;
+    Promedio.Value:=CalculaPromedio;
+    NotaPrimerTri.SetFocus;
+    Graba333.Enabled := True;
+    Cancela333.Enabled := True;
+  End;
+  }
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaSegundoParcialASCKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+  Valid(Key,NotaSegundoParcialASC.Text);
+  If Key = #13 Then
+   Begin
+    If NotaPrimerParcialASC.Text = '' Then
+       NotaPrimerParcialASC.Text :='0';
+    If (NotaSegundoParcialASC.Text = '') or (NotaSegundoParcialASC.Text = '0') Then
+       NotaSegundoParcialASC.Text := '0'
+    Else begin
+      If (((StrToFloat(NotaSegundoParcialASC.Text) >= 1) And (StrToFloat(NotaSegundoParcialASC.Text) <= 10)) or (StrToFloat(NotaSegundoParcialASC.Text) = 99))  Then
+       Begin
+        If (((StrToFloat(NotaPrimerParcialASC.Text) >= 1) And (StrToFloat(NotaPrimerParcialASC.Text) < 4)) or
+           ((StrToFloat(NotaSegundoParcialASC.Text) >= 1) And (StrToFloat(NotaSegundoParcialASC.Text) < 4))) Or
+           ((StrToFloat(NotaPrimerParcialASC.Text) = 99) Or (StrToFloat(NotaSegundoParcialASC.Text) = 99)) Then
+          Begin
+//           RecuperatorioASC.Enabled := True;
+           RecuperatorioASC.SetFocus;
+          End
+        Else
+          Begin
+//            TotalHorasASC.Enabled := True;
+            TotalHorasASC.SetFocus;
+          End;
+       End
+    Else
+      MessageDlg(Pchar(Vnombreusuario+', la nota tiene que estar comprendida entre 1 y 10.'),mtInformation, [mbok],0,mbok);
+   end
+  end
+end;
+
+procedure TregularizacionMaterias_nuevo.RecuperatorioASCKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+   Valid(Key,RecuperatorioASC.Text);
+   If Key = #13 Then
+    Begin
+
+     If RecuperatorioASC.Text = '' Then
+       RecuperatorioASC.Text := '0';
+//     TotalHorasAsc.Enabled := True;
+     TotalHorasAsc.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.GrabaMateriaAscClick(Sender: TObject);
+Var
+  nota1, nota2, recuperatorio : Real;
+begin
+{
+    PASAR ZLIB
+   If NotaSegundoParcialASC.Text = '' Then
+       NotaSegundoParcialASC.Text := '0';
+   If NotaPrimerParcialASC.Text = '' Then
+       NotaPrimerParcialASC.Text :='0';
+   If RecuperatorioASC.Text = '' Then
+       RecuperatorioASC.Text :='0';
+   If TotalHorasASC.Text = '' Then
+       TotalHorasASC.Text := '0';
+   If SinJustificarASC.Text = '' Then
+       SinJustificarASC.Text :='0';
+   If JustificadasASC.Text = '' Then
+       JustificadasASC.Text :='0';
+   nota1  := StrToFloat(NotaPrimerParcialASC.Text);
+   nota2 := StrToFloat(NotaSegundoParcialASC.Text);
+   recuperatorio   := StrToFloat(RecuperatorioASC.Text);
+  //** GRABACION **//
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, RECUP=:RECUP, CONDICION=:CONDICION, '+
+                                      'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF                                        '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := Nota1;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := Nota2;
+  CustomerData.IBUpVarios.ParamByName('RECUP').Value := Recuperatorio;
+  CustomerData.IBUpVarios.ParamByName('TOT_HORAS').Value := StrToInt(TotalHorasASC.Text);
+  CustomerData.IBUpVarios.ParamByName('INASIST').Value :=  StrToInt(SinJustificarASC.Text);
+  CustomerData.IBUpVarios.ParamByName('JUSTIF').Value := StrToInt(JustificadasASC.Text);
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.IbupVArios.Close;
+  ValidoGrabaciondemateria;
+  }
+end;
+
+procedure TregularizacionMaterias_nuevo.GrabaMateriaBacClick(Sender: TObject);
+Var
+  Nota1,Nota2, Recuperatorio, ARegular, Promdef, Promcuat :Real;
+begin
+{
+    PASAR ZLIB
+   If Bimestre1.text = '' Then
+      Nota1:= 0
+   Else
+      Nota1:=StrToInt(Bimestre1.text);
+   If Bimestre2.Text = '' Then
+      Nota2 := 0
+   Else
+      Nota2:=StrToInt(Bimestre2.text);
+   If NotaDefinitivaBAC.Text = '' Then
+      PromDef := 0
+   Else
+      PromDef := StrToFloat(NotaDefinitivaBAC.Text);
+   If PromedioCuatrimestre.Text = '' Then
+      PromCuat := 0
+   Else
+      PromCuat := StrToFloat(PromedioCuatrimestre.Text);
+   If RecuperatorioBAC.Text = '' Then
+     Recuperatorio := 0
+   Else
+     Recuperatorio := StrToInt(RecuperatorioBAC.Text);
+   If NotaRegularBac.Text = '' Then
+     ARegular  := 0
+   Else
+     ARegular  := StrToInt(NotaRegularBAC.Text);
+
+   //** GRABACION **//
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, TP_EVA3=:TP_EVA3, RECUP=:RECUP, CONDICION=:CONDICION, '+
+                                      'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF, REGULAR=:REGULAR, FECHA1=:FECHA1, FINAL1=:FINAL1 '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := Nota1;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := Nota2;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA3').Value := promcuat;
+  CustomerData.IBUpVarios.ParamByName('RECUP').Value := Recuperatorio;
+  CustomerData.IBUpVarios.ParamByName('TOT_HORAS').Value := StrToInt(TotalHorasBAC.Text);
+  CustomerData.IBUpVarios.ParamByName('INASIST').Value :=  StrToInt(SinJustificarBAC.Text);
+  CustomerData.IBUpVarios.ParamByName('REGULAR').Value :=  ARegular;
+  CustomerData.IBUpVarios.ParamByName('FECHA1').AsDate :=  FechaBac.Date;
+  CustomerData.IBUpVarios.ParamByName('FINAL1').Value := PromDef;
+
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+
+  ValidoGrabaciondeMateria;
+  }
+end;
+
+
+procedure TregularizacionMaterias_nuevo.SinjustificarBACKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ Valid(Key,SinJustificarBAC.Text);
+ If Key = #13 Then
+  GrabaMateriaBACClick(Sender);
+end;
+
+procedure TregularizacionMaterias_nuevo.TotalHorasBACKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  If Key = #13 Then
+    SinJustificarBAC.Setfocus;
+  Valid(Key,TotalHorasBAC.Text);
+End;
+
+procedure TregularizacionMaterias_nuevo.Bimestre1KeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,Bimestre1.Text);
+  {If Length(Bimestre1.text + Key)<> 0 then
+    Bimestre2.enabled:=True
+  else
+    Bimestre2.Enabled:=False;}
+  If Key = #13 Then
+    Bimestre2.SetFocus;
+end;
+
+procedure TregularizacionMaterias_nuevo.Bimestre2KeyPress(Sender: TObject;
+  var Key: Char);
+Var
+ Nota1,Nota2 :Integer;
+ Prom        :Real;
+begin
+  Valid(Key,Bimestre2.Text);
+  If (Bimestre1.Text = '99') And (Bimestre2.Text = '99') Then
+   Begin
+    GrabaMateriaBACClick(Sender);
+    Key := #0;
+   End;
+  If Key = #13 then
+    Begin
+      If Bimestre1.text = '' Then
+        Nota1:= 0
+      Else
+        Nota1:=StrToInt(Bimestre1.text);
+      If Bimestre2.Text = '' Then
+        Nota2 := 0
+      Else
+        Nota2:=StrToInt(Bimestre2.text);
+      If (Nota1=99) or (Nota2=99) then
+        Begin
+         If Nota1 = 99 Then
+            Nota1 := 1;
+         If Nota2 = 99 Then
+            Nota2 := 1;
+         Prom:=(Nota1 + Nota2)/2;
+         If (Prom >= 1) And (Prom < 4) then
+            Begin
+//             NotaRegularBAC.Enabled :=True;
+//             SinJustificarBAC.Enabled :=True;
+             NotaRegularBAC.SetFocus ;
+//             TotalHorasBAC.Enabled :=True ;
+            End
+          Else
+            Begin
+//              RecuperatorioBAC.Enabled :=True;
+              RecuperatorioBAC.SetFocus;
+            End;
+          PromedioCuatrimestre.text:=FloatToStr(Prom);
+        end
+      Else
+        Begin
+           Prom:=(Nota1 + Nota2)/2;
+           PromedioCuatrimestre.text:=FloatToStr(Prom);
+           If (Nota1 = 0) AND (Nota2 = 0) then
+            Begin
+              TotalHorasBAC.SetFocus ;
+//              SinJustificarBAC.Enabled :=True;
+            End;
+           If (Nota1>=6) AND (Nota2>=6) then
+            Begin
+              TotalHorasBAC.SetFocus ;
+//              SinJustificarBAC.Enabled :=True;
+            End;
+           If (Nota2>=4) AND (Prom>=6) then
+             Begin
+              TotalHorasBAC.SetFocus ;
+//              SinJustificarBAC.Enabled :=True;
+             End;
+           If (Nota1>=6) AND (Nota2<4) then
+             Begin
+//              RecuperatorioBAC.Enabled :=True;
+              RecuperatorioBAC.SetFocus ;
+             End;
+           If (Prom>=4) AND (Prom<6) then
+             Begin
+//              RecuperatorioBAC.Enabled :=True;
+              RecuperatorioBAC.SetFocus ;
+             End;
+           If (Prom >= 1) And (Prom < 4) then
+             Begin
+//              NotaRegularBAC.Enabled :=True;
+//              SinJustificarBAC.Enabled :=True;
+              NotaRegularBAC.SetFocus ;
+//              TotalHorasBAC.Enabled :=True ;
+             End;
+
+        End;//Find del falso de la pregunta por 99
+    End //viene del key=#13
+
+end;
+
+procedure TregularizacionMaterias_nuevo.BtnAPreviaClick(Sender: TObject);
+var
+  datos: variant;
+begin
+{
+    PASAR ZLIB
+if MessageDlg(Pchar(VNombreUsuario + ', pasas esta materia a previa?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+  Modificacion:=true;
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, TP_EVA3=:TP_EVA3, RECUP=:RECUP, CONDICION=:CONDICION, '+
+                                      'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF, '+
+                                      'FAL_EVA1=:FAL_EVA1,FAL_EVA2=:FAL_EVA2,FAL_EVA3=:FAL_EVA3, '+
+                                      'FEC_EVA1=:FEC_EVA1,FEC_EVA2=:FEC_EVA2,FEC_EVA3=:FEC_EVA3, PROM=:PROM, '+
+                                      'NOTADIC=:NOTADIC, NOTAMAR=:NOTAMAR, FECHDIC=:FECHDIC, FECHMAR=:FECHMAR '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+
+
+  try
+    funcionesDB.Consulta('SELECT FHTAPRI, FHTASEG,FHTATER FROM TBL_TRIM WHERE FANIO=EXTRACT(YEAR FROM CURRENT_DATE)',datos);
+  except
+    datos := 0;
+  end;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := 99;
+  CustomerData.IBUpVarios.ParamByName('FAL_EVA1').Value := 0;
+  CustomerData.IBUpVarios.ParamByName('FEC_EVA1').Value := datos[0];
+
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := 99;
+  CustomerData.IBUpVarios.ParamByName('FAL_EVA2').Value := 0;
+  CustomerData.IBUpVarios.ParamByName('FEC_EVA2').Value := datos[1];
+
+  CustomerData.IBUpVarios.ParamByName('TP_EVA3').Value := 99;
+  CustomerData.IBUpVarios.ParamByName('FAL_EVA3').Value := 0;
+  CustomerData.IBUpVarios.ParamByName('FEC_EVA3').Value := datos[2];
+
+  CustomerData.IBUpVarios.ParamByName('NOTADIC').Value := 0;
+
+  CustomerData.IBUpVarios.ParamByName('FECHDIC').Clear;
+
+  CustomerData.IBUpVarios.ParamByName('NOTAMAR').Value := 99;
+  CustomerData.IBUpVarios.ParamByName('FECHMAR').Value := StrToDate('01/03/'+IntToStr(Yearof(datos[0])+1));
+  CustomerData.IBUpVarios.ParamByName('PROM').Value := 0;
+
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('CONDICION').Value := 'PREVIA';
+
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.TRUpVarios.Commit;
+  CustomerData.TRUpVarios.Active := False;
+  CustomerData.TRdsVarios.RollBack;
+  CustomerData.TRdsVarios.Active := False;
+  CustomerData.IBdsVarios.Active := False;
+  CustomerData.TRdsVarios.Active := True;
+  CustomerData.IBdsVarios.Active := True;
+ end
+ }
+end;
+
+procedure TregularizacionMaterias_nuevo.BtnLibreClick(Sender: TObject);
+var
+  datos: variant;
+begin
+{
+    PASAR ZLIB
+  if (CustomerData.IbDsVarios.FieldByName('CONDICION').AsString<>'CURSANDO') and (CustomerData.IbDsVarios.FieldByName('CONDICION').AsString<>'RECURSANDO') then
+    ShowMessage('Esta opción solo es aplicable para las condiciones CURSANDO o  RECURSANDO')
+  else
+    if MessageDlg(Pchar(VNombreUsuario + ', pasas esta materia a libre?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+      Begin
+        Modificacion:=true;
+        CustomerData.IBUpVarios.SQL.Clear;
+        CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, TP_EVA3=:TP_EVA3, RECUP=:RECUP, '+
+                                            'CONDICION=:CONDICION, '+
+                                            'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF, '+
+                                            'FAL_EVA1=:FAL_EVA1,FAL_EVA2=:FAL_EVA2,FAL_EVA3=:FAL_EVA3, '+
+                                            'FEC_EVA1=:FEC_EVA1,FEC_EVA2=:FEC_EVA2,FEC_EVA3=:FEC_EVA3, PROM=:PROM, '+
+                                            'NOTADIC=:NOTADIC, NOTAMAR=:NOTAMAR, FECHDIC=:FECHDIC, FECHMAR=:FECHMAR, REGULAR=:REGULAR, FECHA1=:FECHA1, FINAL1=:FINAL1 '+
+                                            'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+
+
+        try
+          funcionesDB.Consulta('SELECT FHTAPRI, FHTASEG FROM TBL_CUAT WHERE FANIO=EXTRACT(YEAR FROM CURRENT_DATE)',datos);
+        except
+          datos := 0;
+        end;
+        CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := 99;
+        CustomerData.IBUpVarios.ParamByName('FAL_EVA1').Value := 0;
+        CustomerData.IBUpVarios.ParamByName('FEC_EVA1').Value := datos[0];
+
+        CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := 99;
+        CustomerData.IBUpVarios.ParamByName('FAL_EVA2').Value := 0;
+        CustomerData.IBUpVarios.ParamByName('FEC_EVA2').Value := datos[1];
+
+        CustomerData.IBUpVarios.ParamByName('RECUP').Value := 99;
+        CustomerData.IBUpVarios.ParamByName('TOT_HORAS').Value := 99;
+        CustomerData.IBUpVarios.ParamByName('INASIST').Value :=  99;
+        CustomerData.IBUpVarios.ParamByName('JUSTIF').Value := 0;
+
+        CustomerData.IBUpVarios.ParamByName('TP_EVA3').Value := 0;
+        CustomerData.IBUpVarios.ParamByName('RECUP').Value := 99;
+        CustomerData.IBUpVarios.ParamByName('REGULAR').Value :=  99;
+        CustomerData.IBUpVarios.ParamByName('FECHA1').AsDate :=  datos[1];
+        CustomerData.IBUpVarios.ParamByName('FINAL1').Value := 0;
+
+        CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+        CustomerData.IBUpVarios.ParamByName('CONDICION').Value := 'LIBRE';
+
+        CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+        CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+        CustomerData.TRUpVarios.Active := True;
+        CustomerData.IBUpVarios.ExecQuery;
+        CustomerData.TRUpVarios.Commit;
+        CustomerData.TRUpVarios.Active := False;
+        CustomerData.TRdsVarios.RollBack;
+        CustomerData.TRdsVarios.Active := False;
+        CustomerData.IBdsVarios.Active := False;
+        CustomerData.TRdsVarios.Active := True;
+        CustomerData.IBdsVarios.Active := True;
+    end;
+    }
+end;
+
+procedure TregularizacionMaterias_nuevo.RecuperatorioBACKeyPress(Sender: TObject;
+  var Key: Char);
+Var
+  Prom : Real;
+begin
+ Prom := 0;
+ Valid(Key,RecuperatorioBAC.Text);
+ If (Key =#13) Then
+  Begin
+    If RecuperatorioBAC.Text = '' Then
+       RecuperatorioBAC.Text := '0';
+    If ((StrToInt(RecuperatorioBAC.Text) >= 6) And (StrToInt(RecuperatorioBAC.Text) <= 10)) Or (StrToInt(RecuperatorioBAC.Text) = 0) Then
+     Begin
+      TotalHorasBAC.SetFocus ;
+//      SinJustificarBAC.Enabled :=True;
+      //*** NUEVA NOTA DEFINITIVA ***//
+      If StrToInt(RecuperatorioBAC.Text) <> 0 Then
+       Begin
+         If  Bimestre1.Text = '99' Then
+            Prom := (1+StrToInt(Bimestre2.Text)) / 2;
+         If  Bimestre2.Text = '99' Then
+            Prom := (StrToInt(Bimestre1.Text)+1) / 2;
+         If  (Bimestre1.Text <> '99') And  (Bimestre1.Text <> '99') Then
+            Prom := (StrToInt(Bimestre1.Text)+StrToInt(Bimestre2.Text)) / 2;
+         NotadefinitivaBAC.Text := FloatToStr((Prom + StrToInt(RecuperatorioBAC.Text)) / 2);
+       End;
+     End;
+    If ((StrToInt(RecuperatorioBAC.Text) >= 1) And (StrToInt(RecuperatorioBAC.Text) < 6)) Or (StrToInt(RecuperatorioBAC.Text) = 99) Then
+     Begin
+       If (StrToInt(RecuperatorioBAC.Text) <> 99) Then
+         Begin
+           If  Bimestre1.Text = '99' Then
+              Prom := (1+StrToInt(Bimestre2.Text)) / 2;
+           If  Bimestre2.Text = '99' Then
+              Prom := (StrToInt(Bimestre1.Text)+1) / 2;
+           If  (Bimestre1.Text <> '99') And  (Bimestre1.Text <> '99') Then
+              Prom := (StrToInt(Bimestre1.Text)+StrToInt(Bimestre2.Text)) / 2;
+          NotadefinitivaBAC.Text := FloatToStr((Prom + StrToInt(RecuperatorioBAC.Text)) / 2);
+         End
+       Else
+          NotadefinitivaBAC.Text := FloatToStr(Prom);
+//       NotaRegularBAC.Enabled := True;
+//       SinJustificarBAC.Enabled := True;
+       NotaRegularBAC.SetFocus;
+//       TotalHorasBAC.Enabled := True ;
+       //** LOS QUE RINDEN COMO A/REGULAR, ESA NOTA SI ES >= 6 NO SE PROMEDIA CON NADA Y QUEDA ESA NOTA
+       //** LO ANTERIOR NO EXISTE.**//
+     End;
+  End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaRegularBACKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ Valid(Key,NotaRegularBAC.Text);
+ If Key = #13 Then
+  Begin
+    if (notaregularbac.Text='') then
+       notaregularbac.Text:='0'
+    else if (notaregularbac.Text<>'0') then begin
+       FechaBac.Enabled := True;
+       FechaBac.SetFocus;
+    end
+    else
+       TotalHorasBac.SetFocus;
+  End;
+end;
+
+procedure TregularizacionMaterias_nuevo.FechaBACKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+  Begin
+//    TotalHorasBAC.Enabled := True;
+    TotalHorasBAC.SetFocus ;
+//    SinJustificarBAC.Enabled :=True;
+  End;
+end;
+
+procedure TregularizacionMaterias_nuevo.FechaPrimerTriExit(Sender: TObject);
+var b:Variant;
+begin
+{
+    PASAR ZLIB
+  funcionesDB.Consulta('SELECT FALTAS FROM XXX_CONT_FALTAS('''+VCodalu+''','''+VCarrera+''','''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''',1)',b);
+  Faltasprimertri.Value:=b[0];
+  Faltas.Value:=FaltasPrimerTri.Value+FaltasSegundoTri.Value+FaltasTercerTri.Value;
+}
+end;
+
+procedure TregularizacionMaterias_nuevo.FechaSegundoTriExit(Sender: TObject);
+var b:Variant;
+begin
+ {
+    PASAR ZLIB
+  funcionesDB.Consulta('SELECT FALTAS FROM XXX_CONT_FALTAS('''+VCodalu+''','''+VCarrera+''','''+CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''',2)',b);
+  FaltasSegundoTri.Value:=b[0];
+  Faltas.Value:=FaltasPrimerTri.Value+FaltasSegundoTri.Value+FaltasTercerTri.Value;
+  }
+end;
+
+
+procedure TregularizacionMaterias_nuevo.FechaTercerTriExit(Sender: TObject);
+var b:Variant;
+begin
+{
+    PASAR ZLIB
+  funcionesDB.Consulta('SELECT FALTAS FROM XXX_CONT_FALTAS('''+VCodalu+''','''+VCarrera+''','''++CustomerData.IBdsVarios.FieldByName('COD_MAT').Value+''',3)',b);
+  FaltasTercertri.Value:=b[0];
+  Faltas.Value:=FaltasPrimerTri.Value+FaltasSegundoTri.Value+FaltasTercerTri.Value;
+  }
+end;
+
+
+procedure TregularizacionMaterias_nuevo.CancelaGrabacionBACClick(
+  Sender: TObject);
+begin
+ GroupBox3.Visible := False;
+ regularizacionMaterias_nuevo.Height := 355;
+ ModificaCursada.Enabled := True;
+ Salir.Enabled := True;
+ GroupBox2.Enabled := True;
+ MateriasCursando.SetFocus;
+ PasaCursando.Enabled:=True;
+ BtnAPrevia.Enabled:=true;
+ BtnLibre.Enabled:=True;
+end;
+
+procedure TregularizacionMaterias_nuevo.TotalHorasASCKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,TotalHorasASC.Text);
+  If (Key = #13) And (TotalHorasASC.Text <> '') Then
+   Begin
+     If StrToInt(TotalHorasASC.Text) > 0 Then
+      Begin
+//         TotalHorasASC.Enabled := False;
+//         SinjustificarASC.Enabled := True;
+//         JustificadasASC.Enabled := True;
+         GrabaMateriaASC.Enabled := True;
+         SinJustificarASC.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.SinjustificarASCKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,SinJustificarASC.Text);
+  If Key = #13 Then
+     JustificadasASC.SetFocus;
+end;
+
+procedure TregularizacionMaterias_nuevo.JustificadasASCKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,JustificadasASC.Text);
+  If Key = #13 Then
+     GrabaMateriaASCClick(Sender);
+end;
+
+procedure TregularizacionMaterias_nuevo.MateriasCursandoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+ If Key = #13 Then
+   ModificaCursadaClick(Sender);
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaPrimerParcialADMKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+  Valid(Key,NotaPrimerParcialADM.Text);
+  If Key = #13 Then
+   Begin
+     If NotaPrimerParcialADM.Text = '' Then
+        NotaPrimerParcialADM.Text :='0';
+//     NotaSegundoParcialADM.Enabled := True;
+     NotaSegundoParcialADM.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaSegundoParcialADMKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+ Valid(Key,NotaSegundoParcialADM.Text);
+  If Key = #13 Then
+   Begin
+    If NotaSegundoParcialADM.Text = '' Then
+       NotaSegundoParcialADM.Text := '0';
+    If NotaPrimerParcialADM.Text = '' Then
+       NotaPrimerParcialADM.Text :='0';
+    If (((StrToFloat(NotaPrimerParcialADM.Text) >= 1) And (StrToFloat(NotaPrimerParcialADM.Text) < 4)) or
+       ((StrToFloat(NotaSegundoParcialADM.Text) >= 1) And (StrToFloat(NotaSegundoParcialADM.Text) < 4))) Or
+       ((StrToFloat(NotaPrimerParcialADM.Text) = 99) Or (StrToFloat(NotaSegundoParcialADM.Text) = 99)) Then
+      Begin
+//       RecuperatorioADM.Enabled := True;
+       RecuperatorioADM.SetFocus;
+      End
+    Else
+      Begin
+//       TotalHorasADM.Enabled := True;
+       TotalHorasADM.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.TotalHorasADMKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,TotalHorasADM.Text);
+  If (Key = #13) And (TotalHorasADM.Text <> '') Then
+   Begin
+     If StrToInt(TotalHorasADM.Text) > 0 Then
+      Begin
+//         TotalHorasADM.Enabled := False;
+//         SinjustificarADM.Enabled := True;
+//         JustificadasADM.Enabled := True;
+         GrabaMateriaADM.Enabled := True;
+         SinJustificarADM.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.RecuperatorioADMKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,RecuperatorioADM.Text);
+   If Key = #13 Then
+    Begin
+     If RecuperatorioADM.Text = '' Then
+       RecuperatorioADM.Text := '0';
+//     TotalHorasADM.Enabled := True;
+     TotalHorasADM.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.SinJustificarADMKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,SinJustificarADM.Text);
+  If Key = #13 Then
+     JustificadasADM.SetFocus;
+end;
+
+procedure TregularizacionMaterias_nuevo.JustificadasADMKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,JustificadasADM.Text);
+  If Key = #13 Then
+     GrabaMateriaADMClick(Sender);
+end;
+
+procedure TregularizacionMaterias_nuevo.GrabaMateriaADMClick(Sender: TObject);
+Var
+  nota1, nota2, recuperatorio : Real;
+begin
+{
+    PASAR ZLIB
+   If NotaSegundoParcialADM.Text = '' Then
+       NotaSegundoParcialADM.Text := '0';
+   If NotaPrimerParcialADM.Text = '' Then
+       NotaPrimerParcialADM.Text :='0';
+   If RecuperatorioADM.Text = '' Then
+       RecuperatorioADM.Text :='0';
+   If TotalHorasADM.Text = '' Then
+       TotalHorasADM.Text := '0';
+   If SinJustificarADM.Text = '' Then
+       SinJustificarADM.Text :='0';
+   If JustificadasADM.Text = '' Then
+       JustificadasADM.Text :='0';
+   nota1  := StrToFloat(NotaPrimerParcialADM.Text);
+   nota2 := StrToFloat(NotaSegundoParcialADM.Text);
+   recuperatorio   := StrToFloat(RecuperatorioADM.Text);
+  //** GRABACION **//
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, RECUP=:RECUP, CONDICION=:CONDICION, '+
+                                      'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF                                        '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := Nota1;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := Nota2;
+  CustomerData.IBUpVarios.ParamByName('RECUP').Value := Recuperatorio;
+  CustomerData.IBUpVarios.ParamByName('TOT_HORAS').Value := StrToInt(TotalHorasADM.Text);
+  CustomerData.IBUpVarios.ParamByName('INASIST').Value :=  StrToInt(SinJustificarADM.Text);
+  CustomerData.IBUpVarios.ParamByName('JUSTIF').Value := StrToInt(JustificadasADM.Text);
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.IbupVArios.Close;
+  ValidoGrabaciondemateria;
+  }
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaPrimerParcialRRHKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+  Valid(Key,NotaPrimerParcialRRH.Text);
+  If Key = #13 Then
+   Begin
+     If NotaPrimerParcialRRH.Text = '' Then
+        NotaPrimerParcialRRH.Text :='0';
+//     NotaSegundoParcialRRH.Enabled := True;
+     NotaSegundoParcialRRH.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaSegundoParcialRRHKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+ Valid(Key,NotaSegundoParcialRRH.Text);
+  If Key = #13 Then
+   Begin
+    If NotaSegundoParcialRRH.Text = '' Then
+       NotaSegundoParcialRRH.Text := '0';
+    If NotaPrimerParcialRRH.Text = '' Then
+       NotaPrimerParcialRRH.Text :='0';
+    If (((StrToFloat(NotaPrimerParcialRRH.Text) >= 1) And (StrToFloat(NotaPrimerParcialRRH.Text) < 4)) or
+       ((StrToFloat(NotaSegundoParcialRRH.Text) >= 1) And (StrToFloat(NotaSegundoParcialRRH.Text) < 4))) Or
+       ((StrToFloat(NotaPrimerParcialRRH.Text) = 99) Or (StrToFloat(NotaSegundoParcialRRH.Text) = 99)) Then
+      Begin
+//       RecuperatorioRRH.Enabled := True;
+       RecuperatorioRRH.SetFocus;
+      End
+    Else
+      Begin
+//       TotalHorasRRH.Enabled := True;
+       TotalHorasRRH.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.TotalHorasRRHKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,TotalHorasRRH.Text);
+  If (Key = #13) And (TotalHorasRRH.Text <> '') Then
+   Begin
+     If StrToInt(TotalHorasRRH.Text) > 0 Then
+      Begin
+//         TotalHorasRRH.Enabled := False;
+//         SinjustificarRRH.Enabled := True;
+//         JustificadasRRH.Enabled := True;
+         GrabaMateriaRRH.Enabled := True;
+         SinJustificarRRH.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.SinJustificarRRHKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,SinJustificarRRH.Text);
+  If Key = #13 Then
+     JustificadasRRH.SetFocus;
+end;
+
+procedure TregularizacionMaterias_nuevo.RecuperatorioRRHKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,RecuperatorioRRH.Text);
+   If Key = #13 Then
+    Begin
+     If RecuperatorioRRH.Text = '' Then
+       RecuperatorioRRH.Text := '0';
+//     TotalHorasRRH.Enabled := True;
+     TotalHorasRRH.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.JustificadasRRHKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,JustificadasRRH.Text);
+  If Key = #13 Then
+     GrabaMateriaRRHClick(Sender);
+end;
+
+procedure TregularizacionMaterias_nuevo.GrabaMateriaRRHClick(Sender: TObject);
+Var
+  nota1, nota2, recuperatorio : Real;
+begin
+{
+    PASAR ZLIB
+   If NotaSegundoParcialRRH.Text = '' Then
+       NotaSegundoParcialRRH.Text := '0';
+   If NotaPrimerParcialRRH.Text = '' Then
+       NotaPrimerParcialRRH.Text :='0';
+   If RecuperatorioRRH.Text = '' Then
+       RecuperatorioRRH.Text :='0';
+   If TotalHorasRRH.Text = '' Then
+       TotalHorasRRH.Text := '0';
+   If SinJustificarRRH.Text = '' Then
+       SinJustificarRRH.Text :='0';
+   If JustificadasRRH.Text = '' Then
+       JustificadasRRH.Text :='0';
+   nota1  := StrToFloat(NotaPrimerParcialRRH.Text);
+   nota2 := StrToFloat(NotaSegundoParcialRRH.Text);
+   recuperatorio   := StrToFloat(RecuperatorioRRH.Text);
+  //** GRABACION **//
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, RECUP=:RECUP, CONDICION=:CONDICION, '+
+                                      'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF                                        '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := Nota1;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := Nota2;
+  CustomerData.IBUpVarios.ParamByName('RECUP').Value := Recuperatorio;
+  CustomerData.IBUpVarios.ParamByName('TOT_HORAS').Value := StrToInt(TotalHorasRRH.Text);
+  CustomerData.IBUpVarios.ParamByName('INASIST').Value :=  StrToInt(SinJustificarRRH.Text);
+  CustomerData.IBUpVarios.ParamByName('JUSTIF').Value := StrToInt(JustificadasRRH.Text);
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.IbupVArios.Close;
+  ValidoGrabaciondemateria;
+  }
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaPrimerParcialRRPKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+  Valid(Key,NotaPrimerParcialRRP.Text);
+  If Key = #13 Then
+   Begin
+     If NotaPrimerParcialRRP.Text = '' Then
+        NotaPrimerParcialRRP.Text :='0';
+//     NotaSegundoParcialRRP.Enabled := True;
+     NotaSegundoParcialRRP.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaSegundoParcialRRPKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+ Valid(Key,NotaSegundoParcialRRP.Text);
+  If Key = #13 Then
+   Begin
+    If NotaSegundoParcialRRP.Text = '' Then
+       NotaSegundoParcialRRP.Text := '0';
+    If NotaPrimerParcialRRP.Text = '' Then
+       NotaPrimerParcialRRP.Text :='0';
+    If (((StrToFloat(NotaPrimerParcialRRP.Text) >= 1) And (StrToFloat(NotaPrimerParcialRRP.Text) < 4)) or
+       ((StrToFloat(NotaSegundoParcialRRP.Text) >= 1) And (StrToFloat(NotaSegundoParcialRRP.Text) < 4))) Or
+       ((StrToFloat(NotaPrimerParcialRRP.Text) = 99) Or (StrToFloat(NotaSegundoParcialRRP.Text) = 99)) Then
+      Begin
+//       RecuperatorioRRP.Enabled := True;
+       RecuperatorioRRP.SetFocus;
+      End
+    Else
+      Begin
+//       TotalHorasRRP.Enabled := True;
+       TotalHorasRRP.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.TotalHorasRRPKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,TotalHorasRRP.Text);
+  If (Key = #13) And (TotalHorasRRP.Text <> '') Then
+   Begin
+     If StrToInt(TotalHorasRRP.Text) > 0 Then
+      Begin
+//         TotalHorasRRP.Enabled := False;
+//         SinjustificarRRP.Enabled := True;
+//         JustificadasRRP.Enabled := True;
+         GrabaMateriaRRP.Enabled := True;
+         SinJustificarRRP.SetFocus;
+      End;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.SinJustificarRRPKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,SinJustificarRRP.Text);
+  If Key = #13 Then
+     JustificadasRRP.SetFocus;
+end;
+
+procedure TregularizacionMaterias_nuevo.RecuperatorioRRPKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,RecuperatorioRRP.Text);
+   If Key = #13 Then
+    Begin
+     If RecuperatorioRRP.Text = '' Then
+       RecuperatorioRRP.Text := '0';
+//     TotalHorasRRP.Enabled := True;
+     TotalHorasRRP.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.JustificadasRRPKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,JustificadasRRP.Text);
+  If Key = #13 Then
+     GrabaMateriaRRPClick(Sender);
+end;
+
+procedure TregularizacionMaterias_nuevo.GrabaMateriaRRPClick(Sender: TObject);
+Var
+  nota1, nota2, recuperatorio : Real;
+begin
+{
+    PASAR ZLIB
+   If NotaSegundoParcialRRP.Text = '' Then
+       NotaSegundoParcialRRP.Text := '0';
+   If NotaPrimerParcialRRP.Text = '' Then
+       NotaPrimerParcialRRP.Text :='0';
+   If RecuperatorioRRP.Text = '' Then
+       RecuperatorioRRP.Text :='0';
+   If TotalHorasRRP.Text = '' Then
+       TotalHorasRRP.Text := '0';
+   If SinJustificarRRP.Text = '' Then
+       SinJustificarRRP.Text :='0';
+   If JustificadasRRP.Text = '' Then
+       JustificadasRRP.Text :='0';
+   nota1  := StrToFloat(NotaPrimerParcialRRP.Text);
+   nota2 := StrToFloat(NotaSegundoParcialRRP.Text);
+   recuperatorio   := StrToFloat(RecuperatorioRRP.Text);
+  //** GRABACION **//
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, RECUP=:RECUP, CONDICION=:CONDICION, '+
+                                      'TOT_HORAS=:TOT_HORAS, INASIST=:INASIST, JUSTIF=:JUSTIF                                        '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := Nota1;
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := Nota2;
+  CustomerData.IBUpVarios.ParamByName('RECUP').Value := Recuperatorio;
+  CustomerData.IBUpVarios.ParamByName('TOT_HORAS').Value := StrToInt(TotalHorasRRP.Text);
+  CustomerData.IBUpVarios.ParamByName('INASIST').Value :=  StrToInt(SinJustificarRRP.Text);
+  CustomerData.IBUpVarios.ParamByName('JUSTIF').Value := StrToInt(JustificadasRRP.Text);
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.IbupVArios.Close;
+  ValidoGrabaciondemateria;
+  }
+ end;
+
+procedure TregularizacionMaterias_nuevo.NotaDefinitivaCNAKeyPress(
+  Sender: TObject; var Key: Char);
+begin
+ Valid(Key,NotaDefinitivaCNA.Text);
+  If Key = #13 Then
+   Begin
+     If NotaPrimerParcialASC.Text = '' Then
+        NotaPrimerParcialASC.Text :='0';
+     GrabaMateriaCNAClick(Sender);
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.GrabaMateriaCNAClick(Sender: TObject);
+Var
+  Nota : Real;
+  Cod_mat, Condicion : String;
+begin
+{
+    PASAR ZLIB
+  Condicion := DataModule.CustomerData.IBdsVarios.FieldByName('Condicion').Value;
+  Nota := NotaDefinitivaCNA.Value;
+  if FechaCNA.Date=0 then
+    raise Exception.Create('Debe cargar una fecha');
+  If Nota >= 7 Then
+    Condicion := 'REGULAR'
+  else If Nota >= 1 Then
+    Condicion := 'RECURSA'
+  else
+    Condicion := 'CURSANDO';
+
+  MessageDlg(Pchar(VnombreUsuario+', la materia quedó en condición de: ' + condicion),mtInformation, [mbok],0,mbok);
+  //** GRABACION **//
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET FINAL1=:FINAL1, FECHA1=:FECHA1, CONDICION=:CONDICION '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('FINAL1').Value := Nota;
+  CustomerData.IBUpVarios.ParamByName('FECHA1').Value := FechaCNA.Date;
+  CustomerData.IBUpVarios.ParamByName('CONDICION').Value := Condicion;
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.TRUpVarios.Commit;
+  CustomerData.TRUpVarios.Active := False;
+
+  CustomerData.TRdsVarios.RollBack;
+  CustomerData.TRdsVarios.Active := False;
+  CustomerData.IBdsVarios.Active := False;
+  CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRdsVarios.Active := True;
+  CustomerData.IBdsVarios.Active := True;
+  CancelaGrabacionBACClick(Sender);
+  }
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaPrimerTriKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,NotaPrimerTri.Text);
+  If Key = #13 Then
+   Begin
+     If NotaPrimerTri.Text = '' Then
+        NotaPrimerTri.Text :='0';
+//     NotaSegundoTri.Enabled := True;
+     NotaSegundoTri.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaSegundoTriKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  Valid(Key,NotaSegundoTri.Text);
+  If Key = #13 Then
+   Begin
+     If NotaSegundoTri.Text = '' Then
+        NotaSegundoTri.Text :='0';
+//     NotaTercerTri.Enabled := True;
+     NotaTercerTri.SetFocus;
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaTercertriKeyPress(Sender: TObject;
+  var Key: Char);
+Var
+  Prom :Real;
+begin
+  Valid(Key,NotaTercerTri.Text);
+  If Key = #13 Then
+   Begin
+     If NotaTercerTri.Text = '' Then
+        NotaTercerTri.Text :='0';
+     If ((NotaPrimerTri.Text = '99') and (NotaSegundoTri.Text = '99') and (NotaTercerTri.Text = '99')) then
+        Prom := 0;
+     If ((NotaPrimerTri.Text = '99') and (NotaSegundoTri.Text<>'99') and (NotaSegundoTri.Text<>'0') and (NotaTercerTri.Text<>'99') and (NotaTercerTri.Text<>'0')) then
+        Prom := (StrtoFloat(NotaSegundoTri.Text)+StrtoFloat(NotaTercerTri.Text))/2;
+     If ((NotaPrimerTri.Text<>'99') and (NotaPrimerTri.Text<>'0') and (NotaSegundoTri.Text='99') and (NotaTercerTri.Text<>'99') and (NotaTercerTri.Text<>'0')) then
+        Prom := (StrtoFloat(NotaTercerTri.Text)+StrtoFloat(NotaPrimerTri.Text))/2;
+     If ((NotaPrimerTri.Text<>'99') and (NotaPrimerTri.Text<>'0') and (NotaSegundoTri.Text<>'99') and (NotaSegundoTri.Text<>'0') and (NotaTercerTri.Text<>'99') and (NotaTercerTri.Text<>'0')) then
+        Prom := (StrtoFloat(NotaSegundoTri.Text)+StrtoFloat(NotaPrimerTri.Text))/2;
+     If ((NotaPrimerTri.Text='99') and (NotaSegundoTri.Text<>'99') and (NotaSegundoTri.Text<>'0') and (NotaTercerTri.Text='99')) then
+        Prom := StrToFloat(NotaSegundoTri.Text);
+     If ((NotaPrimerTri.Text='99') and (NotaTercerTri.Text<>'99') and (NotaTercerTri.Text<>'0') and (NotaSegundoTri.Text='99')) then
+        Prom := StrToFloat(NotaTercerTri.Text);
+     If ((NotaPrimerTri.Text<>'99') and (NotaPrimerTri.Text<>'0') and (NotaSegundoTri.Text='99') and (NotaTercerTri.Text='99')) then
+        Prom := StrToFloat(NotaPrimerTri.Text);
+     If ((NotaPrimerTri.Text <> '99') and (NotaPrimerTri.Text <> '0') and (NotaSegundoTri.Text <> '99') and (NotaSegundoTri.Text <> '0') and (NotaTercerTri.Text <> '99') and (NotaTercerTri.Text <> '0')) then
+        Prom := (StrtoFloat(NotaPrimerTri.Text)+StrtoFloat(NotaSegundoTri.Text)+StrtoFloat(NotaTercerTri.Text))/3;
+     If Prom = 0 Then Begin
+//       NotaDic.Enabled := False;
+//       NotaMar.Enabled := True;
+       NotaMar.SetFocus;
+     End
+     Else Begin
+          If ((Prom >= 4) and (Prom < 6)) Then Begin
+            NotaDic.Enabled := True;
+            NotaMar.Enabled := True;
+            NotaDic.SetFocus;
+          End;
+          If (Prom < 4) Then Begin
+            NotaMar.Enabled := True;
+            NotaDic.Enabled := true;
+            NotaMar.SetFocus;
+          End;
+          If (Prom >= 6) Then Begin
+              If ((NotaPrimerTri.Text = '99') or (NotaSegundoTri.Text = '99') or (NotaTercerTri.Text = '99')) then Begin
+                  NotaMar.Enabled := True;
+                  NotaDic.Enabled := true;
+                  Notadic.SetFocus;
+              End
+              Else
+                Graba333Click(Sender);
+          End;
+      End;
+      Promedio.Text := FloatTostr(RoundTo(Prom,-2));
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaDicKeyPress(Sender: TObject;
+  var Key: Char);
+Var
+  Nota:Real;
+begin
+  Valid(Key,NotaDic.Text);
+  If Key = #13 Then
+   Begin
+     If NotaDic.Text = '' Then
+        NotaDic.Text :='0';
+     Nota := Roundto(StrToFloat(NotaDic.Text),-2);
+     If Nota = 0 Then
+        Graba333Click(Sender)
+     Else Begin
+        If ((Nota = 99) or (Nota < 6)) Then Begin
+//           NotaMar.Enabled := True;
+           NotaMar.SetFocus;
+        End
+        Else
+          Graba333Click(Sender);
+     End
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaMarKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+    Valid(Key,NotaMar.Text);
+  If Key = #13 Then
+   Begin
+     If NotaDic.Text = '' Then
+        NotaDic.Text :='0';
+     Graba333Click(Sender)
+   End;
+end;
+
+procedure TregularizacionMaterias_nuevo.Graba333Click(Sender: TObject);
+Var
+  Nota1, Nota2, Nota3, Dic, Mar, Prom: Real;
+begin
+{
+    PASAR ZLIB
+  If (NotaPrimerTri.Text = '') Then
+       NotaPrimerTri.Text := '0';
+  If (NotaSegundoTri.Text = '') Then
+       NotaSegundoTri.Text := '0';
+  If (NotaTercerTri.Text = '') Then
+       NotaTercerTri.Text := '0';
+  If (NotaDic.Text = '') Then
+       NotaDic.Text := '0';
+  If (NotaMar.Text = '') Then
+       NotaMar.Text := '0';
+  Prom := RoundTo(CalculaPromedio,-2);
+  Promedio.Text := FloatTostr(RoundTo(Prom,-2));
+  Nota1 := RoundTo(NotaPrimerTri.value,-2);
+  Nota2 := RoundTo(NotaSegundoTri.value,-2);
+  Nota3 := RoundTo(NotaTercerTri.value,-2);
+  Dic   := RoundTo(NotaDic.value,-2);
+  Mar   := RoundTo(NotaMar.value,-2);
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=:TP_EVA, TP_EVA2=:TP_EVA2, TP_EVA3=:TP_EVA3, CONDICION=:CONDICION, '+
+                                      'FINAL1=:FINAL1, FINAL2=:FINAL2, PROM=:PROM, FEC_EVA1=:FEC_EVA1, FEC_EVA2=:FEC_EVA2, FEC_EVA3=:FEC_EVA3, '+
+                                      'FAL_EVA1=:FAL_EVA1,FAL_EVA2=:FAL_EVA2,FAL_EVA3=:FAL_EVA3, NOTAMAR=:NOTAMAR, NOTADIC=:NOTADIC, FECHMAR=:FECHMAR, FECHDIC=:FECHDIC ' +
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('TP_EVA').Value := Nota1;
+  CustomerData.IBUpVarios.ParamByName('FAL_EVA1').Value := FaltasPrimerTri.Value;
+  if (FechaPrimerTri.date<>0) then
+     CustomerData.IBUpVarios.ParamByName('FEC_EVA1').Value := FechaPrimerTri.Date
+  else
+     CustomerData.IBUpVarios.ParamByName('FEC_EVA1').Clear;
+
+  CustomerData.IBUpVarios.ParamByName('TP_EVA2').Value := Nota2;
+  CustomerData.IBUpVarios.ParamByName('FAL_EVA2').Value := FaltasSegundoTri.Value;
+  if (FechaSegundoTri.date<>0) then
+      CustomerData.IBUpVarios.ParamByName('FEC_EVA2').Value := FechaSegundoTri.Date
+  else
+      CustomerData.IBUpVarios.ParamByName('FEC_EVA2').clear;
+
+
+  CustomerData.IBUpVarios.ParamByName('TP_EVA3').Value := Nota3;
+  CustomerData.IBUpVarios.ParamByName('FAL_EVA3').Value := FaltasTercerTri.Value;
+  if (FechaTercerTri.date<>0) then
+      CustomerData.IBUpVarios.ParamByName('FEC_EVA3').Value := FechaTercerTri.Date
+  else
+      CustomerData.IBUpVarios.ParamByName('FEC_EVA3').clear;
+
+  CustomerData.IBUpVarios.ParamByName('NOTADIC').Value := Dic;
+  if (FechaDic.date<>0) then
+     CustomerData.IBUpVarios.ParamByName('FECHDIC').Value := FechaDic.Date
+  else
+     CustomerData.IBUpVarios.ParamByName('FECHDIC').clear;
+
+  CustomerData.IBUpVarios.ParamByName('NOTAMAR').Value := Mar;
+  if (FechaMar.date<>0) then
+     CustomerData.IBUpVarios.ParamByName('FECHMAR').Value := FechaMar.Date
+  else
+     CustomerData.IBUpVarios.ParamByName('FECHMAR').clear;
+  CustomerData.IBUpVarios.ParamByName('PROM').Value := Prom;
+
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+
+  ValidoGrabaciondeMateria;
+  }
+end;
+
+procedure TregularizacionMaterias_nuevo.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  if not modificacion then
+    exit;
+  if MessageDlg(Pchar(VNombreUsuario + ', pasa todas notas introducidas a los archivos correspondiantes?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+    CustomerData.TRUpVarios.Active := False;
+    CustomerData.IBUpVarios.SQL.Clear;
+    CustomerData.IBUpVarios.SQL.Text := 'SELECT FERRCOD, FERRMSG FROM XXX_REGULARIZACION(:CARRE,:USUARIO)';
+    CustomerData.IBUpVarios.ParamByName('CARRE').Value := Vcarrera;
+    CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+    CustomerData.TRUpVarios.Active := True;
+    CustomerData.IBUpVarios.ExecQuery;
+    If (CustomerData.IBUpVarios.FieldByName('FERRCOD').Value=0) then
+         CustomerData.TRUpVarios.Commit
+    Else If (CustomerData.IBUpVarios.FieldByName('FERRCOD').Value=1) then
+           begin
+              if MessageDlg(Pchar(VNombreUsuario + CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+                CustomerData.TRUpVarios.Commit
+              Else
+                CustomerData.TRUpVarios.Rollback;
+           end
+    Else If (CustomerData.IBUpVarios.FieldByName('FERRCOD').Value=2) then
+           begin
+              MessageDlg(Pchar(VNombreUsuario + CustomerData.IBUpVarios.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+              CustomerData.TRUpVarios.Rollback;
+           end;
+    CustomerData.TRUpVarios.Active := False;
+  End;
+  CustomerData.TRDlVarios.Active := False;
+  CustomerData.IBDlVarios.Sql.Clear;
+  CustomerData.IBDlVarios.Sql.Text := 'DELETE FROM "$$$CURSADA" WHERE USUARIO = :USUARIO;';
+  CustomerData.IBDlVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRDlVarios.Active := True;
+  CustomerData.IBDlVarios.ExecQuery;
+  CustomerData.TRDlVarios.Commit;
+  If (CustomerData.TrdsVarios.Active) Then
+     CustomerData.TRdsVarios.Rollback;
+  CustomerData.TRdsVarios.Active:=False;
+  CustomerData.IBdsVarios.SQLs.SelectSQL.Clear;
+end;
+
+procedure TregularizacionMaterias_nuevo.PasacursandoClick(Sender: TObject);
+begin
+if MessageDlg(Pchar(VNombreUsuario + ', pasas esta materia a cursando?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+  Begin
+  Modificacion:=true;
+  CustomerData.IBUpVarios.SQL.Clear;
+  CustomerData.IBUpVarios.SQL.Text := 'UPDATE "$$$CURSADA" SET TP_EVA=NULL, TP_EVA2=NULL, RECUP=NULL, CONDICION=''CURSANDO'', '+
+                                      'TOT_HORAS=NULL, INASIST=NULL, JUSTIF=NULL, RECUP2=NULL, REGULAR=NULL, FINAL1=NULL, FINAL2=NULL, '+
+                                      'FECHA1=NULL, FECHA2=NULL, TP_EVA3=NULL, PROM=NULL, FEC_EVA1=NULL, FEC_EVA2=NULL, FEC_EVA3=NULL, '+
+                                      'FAL_EVA1=NULL, FAL_EVA2=NULL, FAL_EVA3=NULL, NOTADIC=NULL, NOTAMAR=NULL, FECHDIC=NULL, FECHMAR=NULL '+
+                                      'WHERE COD_ALU = :COD_ALU AND USUARIO = :USUARIO AND COD_MAT=:CODMAT; ';
+  CustomerData.IBUpVarios.ParamByName('CODMAT').Value := CustomerData.IBdsVarios.FieldByName('COD_MAT').Value;
+  CustomerData.IBUpVarios.ParamByName('COD_ALU').Value := CustomerData.IBdsVarios.FieldByName('COD_ALU').Value;
+  CustomerData.IBUpVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRUpVarios.Active := True;
+  CustomerData.IBUpVarios.ExecQuery;
+  CustomerData.TRUpVarios.Commit;
+  CustomerData.TRUpVarios.Active := False;
+  CustomerData.TRdsVarios.RollBack;
+  CustomerData.TRdsVarios.Active := False;
+  CustomerData.IBdsVarios.Active := False;
+  CustomerData.IBdsVarios.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+  CustomerData.TRdsVarios.Active := True;
+  CustomerData.IBdsVarios.Active := True;
+ end
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaPrimerTriExit(Sender: TObject);
+begin
+  Promedio.Value:=CalculaPromedio;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaSegundoTriExit(Sender: TObject);
+begin
+    Promedio.Value:=CalculaPromedio;
+end;
+
+procedure TregularizacionMaterias_nuevo.FaltasPrimerTriExit(Sender: TObject);
+begin
+  Faltas.Value:=FaltasPrimerTri.Value+FaltasSegundoTri.Value+FaltasTercerTri.Value;
+end;
+
+procedure TregularizacionMaterias_nuevo.FaltasSegundoTriExit(Sender: TObject);
+begin
+  Faltas.Value:=FaltasPrimerTri.Value+FaltasSegundoTri.Value+FaltasTercerTri.Value;
+end;
+
+procedure TregularizacionMaterias_nuevo.FaltasTercerTriExit(Sender: TObject);
+begin
+  Faltas.Value:=FaltasPrimerTri.Value+FaltasSegundoTri.Value+FaltasTercerTri.Value;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaTercerTriExit(Sender: TObject);
+begin
+  Promedio.Value:=CalculaPromedio;
+end;
+
+procedure TregularizacionMaterias_nuevo.PromedioChange(Sender: TObject);
+begin
+  if (Promedio.Value>0) and (Promedio.Value<6) then
+    GroupBox8.Enabled:=True
+  else if (notatercertri.Value<6) then
+    GroupBox8.Enabled:=True
+  else
+    GroupBox8.Enabled:=False;
+end;
+
+procedure TregularizacionMaterias_nuevo.Bimestre2Exit(Sender: TObject);
+var nota1,nota2,prom:real;
+begin
+ prom:=0;
+ if Bimestre1.text = '' Then
+    Nota1:= 0
+ Else
+    Nota1:=StrToFloat(Bimestre1.text);
+ If Bimestre2.Text = '' Then
+    Nota2 := 0
+ Else
+    Nota2:=StrToFloat(Bimestre2.text);
+ If (Nota1=99) or (Nota2=99) then Begin
+     If Nota1 = 99 Then
+         Nota1 := 1;
+     If Nota2 = 99 Then
+         Nota2 := 1;
+ end Else
+     Prom:=(Nota1 + Nota2)/2;
+ Promediocuatrimestre.Text:=floattoStr(prom);
+end;
+
+procedure TregularizacionMaterias_nuevo.RecuperatorioBACExit(Sender: TObject);
+var
+   prom:real;
+begin
+   If StrToInt(RecuperatorioBAC.Text) <> 0 Then  Begin
+       If  Bimestre1.Text = '99' Then
+            Prom := (1+StrToInt(Bimestre2.Text)) / 2;
+       If  Bimestre2.Text = '99' Then
+            Prom := (StrToInt(Bimestre1.Text)+1) / 2;
+       If  (Bimestre1.Text <> '99') And  (Bimestre1.Text <> '99') Then
+            Prom := (StrToInt(Bimestre1.Text)+StrToInt(Bimestre2.Text)) / 2;
+       NotadefinitivaBAC.Text := FloatToStr((Prom + StrToInt(RecuperatorioBAC.Text)) / 2);
+   End;
+   If ((StrToInt(RecuperatorioBAC.Text) >= 1) And (StrToInt(RecuperatorioBAC.Text) < 6)) Or (StrToInt(RecuperatorioBAC.Text) = 99) Then  Begin
+       If (StrToInt(RecuperatorioBAC.Text) <> 99) Then  Begin
+           If  Bimestre1.Text = '99' Then
+              Prom := (1+StrToInt(Bimestre2.Text)) / 2;
+           If  Bimestre2.Text = '99' Then
+              Prom := (StrToInt(Bimestre1.Text)+1) / 2;
+           If  (Bimestre1.Text <> '99') And  (Bimestre1.Text <> '99') Then
+              Prom := (StrToInt(Bimestre1.Text)+StrToInt(Bimestre2.Text)) / 2;
+           NotadefinitivaBAC.Text := FloatToStr((Prom + StrToInt(RecuperatorioBAC.Text)) / 2);
+       End
+       Else
+          NotadefinitivaBAC.Text := FloatToStr(Prom);
+   end;
+end;
+
+procedure TregularizacionMaterias_nuevo.NotaRegularBACExit(Sender: TObject);
+begin
+    if (notaregularbac.Text='') then
+       notaregularbac.Text:='0'
+    else if (notaregularbac.Text<>'0') then begin
+       FechaBac.Enabled := True;
+       FechaBac.SetFocus;
+    end;
+end;
+
+end.

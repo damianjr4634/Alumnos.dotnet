@@ -1,0 +1,92 @@
+unit BajaUsuarios;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Funciones, Db, DBTables, StdCtrls, Buttons;
+
+type
+  TFrmBajaUsuarios = class(TForm)
+    Label1: TLabel;
+    ComboUsuarios: TComboBox;
+    Eliminar: TBitBtn;
+    Salir: TBitBtn;
+    TablaUsuarios: TTable;
+    procedure FormActivate(Sender: TObject);
+    procedure ComboUsuariosChange(Sender: TObject);
+    procedure EliminarClick(Sender: TObject);
+    procedure SalirClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmBajaUsuarios: TFrmBajaUsuarios;
+  Vunidad : String;
+
+implementation
+
+{$R *.DFM}
+
+procedure TFrmBajaUsuarios.FormActivate(Sender: TObject);
+begin
+  Vunidad := 'G:\';
+
+  EncriptoBase(Vunidad, 'Usuarios.dbf');
+  TablaUsuarios.DatabaseName := Vunidad + 'New Pailot\Dbfgral\';
+  TablaUsuarios.TableName := 'Usuarios.Dbf';
+  Try
+    TablaUsuarios.Active := True;
+  Except
+    EncriptoBase(Vunidad, 'Usuarios.dbf');
+    TablaUsuarios.Active := True;
+  End;
+  TablaUsuarios.IndexFieldNames := 'NOM_USU';
+  TablaUsuarios.First;
+  While Not TablaUsuarios.Eof Do
+   Begin
+    If TablaUsuarios.FieldByName('NOM_USU').AsString <> 'Administrador' Then
+       ComboUsuarios.Items.Add(TablaUsuarios.FieldByName('NOM_USU').AsString);
+    TablaUsuarios.Next;
+   End;
+  TablaUsuarios.Active := False;
+  EncriptoBase(Vunidad, 'Usuarios.dbf');
+  Eliminar.Enabled := ComboUsuarios.ItemIndex <> -1;
+end;
+
+procedure TFrmBajaUsuarios.ComboUsuariosChange(Sender: TObject);
+begin
+ Eliminar.Enabled := ComboUsuarios.ItemIndex <> -1;
+end;
+
+procedure TFrmBajaUsuarios.EliminarClick(Sender: TObject);
+begin
+ If MessageBox(FrmBajaUsuarios.Handle,'Administrador, estas seguro de borrar al usuario?','Aviso',MB_OKCANCEL+MB_ICONQUESTION+MB_APPLMODAL)
+    = IDOK Then;
+    Begin
+        EncriptoBase(Vunidad, 'Usuarios.dbf');
+        Try
+         TablaUsuarios.Active := True;
+        Except
+          EncriptoBase(Vunidad, 'Usuarios.dbf');
+          TablaUsuarios.Active := True;
+        End;
+        TablaUsuarios.IndexFieldNames := 'NOM_USU';
+        TablaUsuarios.FindKey([ComboUsuarios.Text]);
+        TablaUsuarios.Delete;
+        TablaUsuarios.Active := False;
+        EncriptoBase(Vunidad, 'Usuarios.dbf');
+        ComboUsuarios.Items.Delete(ComboUsuarios.ItemIndex);
+        MessageBox(FrmBajaUsuarios.Handle,'Administrador, el usuario fue eliminado.','Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL)
+    End;
+end;
+
+procedure TFrmBajaUsuarios.SalirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+end.

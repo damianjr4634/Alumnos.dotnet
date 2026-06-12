@@ -1,0 +1,730 @@
+unit cargacomisiones;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Grids, ExtCtrls, StdCtrls, Buttons, DBGrids, Db, FuncionesText,FuncionesDB, FuncionesConfiguracion,
+  inifiles, DataModuleZeosLib, Mask, RXToolEdit, IBCustomDataSet, FIBQuery,
+  pFIBQuery, Variants, kbmMemTable,
+  ZAbstractConnection, ZConnection,
+  ZAbstractRODataset, ZDataset, ZAbstractDataset;
+
+type
+  TFrmComArmadas = class(TForm)
+    Image1: TImage;
+    GroupBox1: TGroupBox;
+    DataSource1: TDataSource;
+    GrillaComi: TDBGrid;
+    Nueva: TBitBtn;
+    Modificar: TBitBtn;
+    Eliminar: TBitBtn;
+    Salir: TBitBtn;
+    GroupBox2: TGroupBox;
+    horario: TStringGrid;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Comision: TEdit;
+    Cuatrimestre: TEdit;
+    GrabaMateria: TBitBtn;
+    CancelaGrabacion: TBitBtn;
+    Timer1: TTimer;
+    Label7: TLabel;
+    RadioGroup1: TRadioGroup;
+    titular: TRadioButton;
+    suplente: TRadioButton;
+    CertServ: TBitBtn;
+    ComboMaterias: TComboEdit;
+    ComboDocente: TComboEdit;
+    NombreMat: TLabel;
+    Labeltitular: TLabel;
+    MT: TkbmMemTable;
+    procedure FormActivate(Sender: TObject);
+    procedure FormPaint(Sender: TObject);
+    procedure horarioMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure horarioKeyPress(Sender: TObject; var Key: Char);
+    procedure horarioKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure horarioKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure CancelaGrabacionClick(Sender: TObject);
+    procedure NuevaClick(Sender: TObject);
+    procedure ModificarClick(Sender: TObject);
+    procedure SalirClick(Sender: TObject);
+    procedure ComisionKeyPress(Sender: TObject; var Key: Char);
+    procedure GrabaMateriaClick(Sender: TObject);
+    procedure EliminarClick(Sender: TObject);
+    procedure CertServClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ComboMateriasButtonClick(Sender: TObject);
+    procedure ComboDocenteButtonClick(Sender: TObject);
+    procedure ComboDocenteExit(Sender: TObject);
+    procedure ComboMateriasExit(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    { Private declarations }
+    procedure LoadTable;
+  public
+    { Public declarations }
+    Procedure CargoDibujos(Sender: TObject);
+    procedure Excepciones(Sender: TObject; E: Exception);
+  end;
+  TGrilla = Record
+    Dibujo : Boolean;
+  End;
+
+var
+  FrmComArmadas: TFrmComArmadas;
+  Grilla : Array [1..5,1..10] Of TGrilla;
+  VCarrera : String; //sirve para saber la carrera activa
+  VUnidad : String; //sirve para saber la unidad en la cual se corre el sistema
+  VInstituto  : String; //Pasa el nomnbre del instituto
+  VCaracteristica : String; //Pasa la caracteristica del colegio
+  VCuatrimestreAnio : String; //guarda el año cuatrimestre actual
+  VNombreUsuario : String; //Trae el usuario que esta trabajando
+  Modificacion : Boolean; //sirve para saber si estoy modificando una materia o no
+  EnabledCertServ : Boolean;
+  Filas : Integer;
+  Function VerificoSiEsta(Combo:TComboBox;Codigo:String;princi, cont:Integer):Boolean;
+
+implementation
+uses IBExternals, uMensajesError;
+{$R *.DFM}
+
+
+Function VerificoSiEsta(Combo:TComboBox;Codigo:String;princi, cont:Integer):Boolean;
+Var
+  x : Integer;
+Begin
+  VerificoSiEsta := False;
+  For x:=0 To (Combo.Items.Count - 1) Do
+   Begin
+     If Princi = 0 Then
+       Begin
+         If codigo = Copy(Combo.Items.Strings[x],Length(Combo.Items.Strings[x])-2,cont) Then
+           Begin
+             VerificoSiEsta := True;
+             Combo.ItemIndex := x;
+           End
+       End
+     Else
+       Begin
+         If codigo = Copy(Combo.Items.Strings[x],1,cont) Then
+          Begin
+            VerificoSiEsta := True;
+            Combo.ItemIndex := x;
+          End
+       End;
+   End;
+End;
+
+procedure TFrmComArmadas.FormActivate(Sender: TObject);
+Var
+  i, x : Integer;
+  IniFile : TiniFile;
+  Codigo : String;
+begin
+
+   IniFile := TIniFile.Create(Vunidad+'\Esba_prg.ini');
+   CertServ.Enabled := IniFile.ReadBool('configuracion','CertServ'+VCarrera,False);
+   EnabledCertServ := CertServ.Enabled;
+   IniFile.Free;
+   FrmComArmadas.Height := 245;
+   Horario.RowCount := Filas+1;
+   For x := 1 to Filas Do
+     horario.Cells[0,X] :=  UpperCase(FuncionesText.LetrasCuat(X))+' BLOQUE';
+   horario.Cells[1,0] := 'LUNES';
+   horario.Cells[2,0] := 'MARTES';
+   horario.Cells[3,0] := 'MIERCOLES';
+   horario.Cells[4,0] := 'JUEVES';
+   horario.Cells[5,0] := 'VIERNES';
+   horario.ColWidths[0] := 120;
+   For i := 1 to 5 do begin
+     horario.ColWidths[i] := 90;
+     For x:= 1 to filas do begin
+         Grilla[i,x].dibujo := False;
+     end;
+   end;
+   LoadTable;
+   Timer1.Enabled := False;
+   //TablaCertServ.DatabaseName := VUnidad + ':\new Pailot\Dbfgral\CertServ\';
+end;
+
+procedure TFrmConArmadas.LoadTable;
+begin
+  funcionesdb.Carga_MemTable('SELECT C.CUTUCO, C.COD_MAT,M.SIGLA,C.CUA_ANIO,C.CODPROFES,D.DOCENTE,C.TIT_SUP,C.DIA1, '+
+                              ' C.BLOQUE1,C.DIA2,C.BLOQUE2,C.DIA3,C.BLOQUE3 '+
+                              'FROM COMARM C                               '+
+                              'LEFT OUTER JOIN DOCENTES D ON C.CODPROFES=D.CODPROFES  '+
+                              'LEFT OUTER JOIN MATERIAS M ON M.CODMATERI=C.COD_MAT AND M.CODCARRE=C.CARRE '+
+                              'WHERE C.CARRE = '#39+vcarrera+#39' AND C.CUA_ANIO='#39+FuncionesText.Cuatrimestre(vcarrera)+#39,mt,true);
+
+
+end;
+
+Procedure TFrmComArmadas.CargoDibujos(Sender : TObject);
+Var
+  ii, xx : Integer;
+  Rect : TRect;
+Begin
+ For ii := 1 to 5 do
+   For xx:= 1 to Filas do
+     If Grilla[ii,xx].Dibujo Then
+       Begin
+         Rect := Horario.CellRect(ii,xx);
+         horario.Canvas.Draw(((Rect.Left + Rect.Right) - 16) Div 2 ,
+                             ((Rect.Top + Rect.Bottom) - 16) Div 2 ,
+                             Image1.Picture.Graphic);
+       End;
+End;
+
+procedure TFrmComArmadas.FormPaint(Sender: TObject);
+begin
+ CargoDibujos(Sender);
+end;
+
+procedure TFrmComArmadas.horarioMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+ If Button = mbLeft Then
+  Begin
+   Grilla[Horario.Col, Horario.Row].Dibujo := Not Grilla[Horario.Col, Horario.Row].Dibujo;
+   CargoDibujos(Sender);
+  End;
+end;
+
+procedure TFrmComArmadas.horarioKeyPress(Sender: TObject; var Key: Char);
+begin
+ CargoDibujos(Sender);
+end;
+
+procedure TFrmComArmadas.horarioKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+ CargoDibujos(Sender);
+end;
+
+procedure TFrmComArmadas.horarioKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+ CargoDibujos(Sender);
+end;
+
+procedure TFrmComArmadas.CancelaGrabacionClick(Sender: TObject);
+Var
+  i, x : Integer;
+begin
+ ComboMaterias.text := '';
+ NombreMat.Caption:='';
+ LabelTitular.Caption:='';
+ Comision.Text := '';
+ Cuatrimestre.Text := '';
+ ComboDocente.Text := '';
+ Titular.Checked := False;
+ Suplente.Checked := False;
+ FrmComArmadas.Height := 245;
+ Nueva.Enabled := True;
+ Modificar.Enabled := True;
+ Eliminar.Enabled := True;
+ Salir.Enabled := True;
+ GrillaComi.Enabled := True;
+ Timer1.Enabled := False;
+ CertServ.Enabled := EnabledCertServ;
+ For i := 1 to 5 do
+    For x:= 1 to Filas do
+         Grilla[i,x].dibujo := False;
+ Modificacion := False;
+end;
+
+procedure TFrmComArmadas.NuevaClick(Sender: TObject);
+begin
+ FrmComArmadas.Height := 380+((Filas+1)*28);
+ Horario.Height := 27 * (filas+1);
+ GroupBox2.Height := 134 +(filas+1)*27;
+ Nueva.Enabled := False;
+ Modificar.Enabled := False;
+ Eliminar.Enabled := False;
+ Salir.Enabled := False;
+ GrillaComi.Enabled := False;
+ ComboMaterias.Enabled := True;
+ ComboMaterias.SetFocus;
+ Timer1.Enabled := True;
+ Modificacion := False;
+ CertServ.Enabled := False;
+ Cuatrimestre.Text := FuncionesText.Cuatrimestre(vcarrera);
+end;
+
+procedure TFrmComArmadas.ModificarClick(Sender: TObject);
+ Function BuscoColumna(Dia : String):Integer;
+  Begin
+    BuscoColumna := 0;
+    If Dia = 'BLANCO' Then BuscoColumna := 0;
+    If Dia = 'LUNES' Then BuscoColumna := 1;
+    If Dia = 'MARTES' Then BuscoColumna := 2;
+    If Dia = 'MIERCOLES' Then BuscoColumna := 3;
+    If Dia = 'JUEVES' Then BuscoColumna := 4;
+    If Dia = 'VIERNES' Then BuscoColumna := 5;
+  End;
+ Function BuscoFila(Bloque : String):Integer;
+  Begin
+    BuscoFila := 0;
+    If Bloque = 'BLANCO' Then BuscoFila := 0;
+    If Bloque = 'PRIMERO' Then BuscoFila := 1;
+    If Bloque = 'SEGUNDO' Then BuscoFila := 2;
+    If Bloque = 'TERCERO' Then BuscoFila := 3;
+    If Bloque = 'PRISEG' Then BuscoFila := 4;
+    If Bloque = 'PRITER' Then BuscoFila := 5;
+    If Bloque = 'SEGTER' Then BuscoFila := 6;
+    If Bloque = 'UNICO' Then BuscoFila := 7;
+  End;
+ Procedure PasoAGrillaLosDias(Poscol, PosRow : Integer);
+  Var x:integer;
+  Begin
+    If PosCol In [1..5] Then
+     Begin
+       If PosRow In [1..3] Then
+           Grilla[PosCol,PosRow].Dibujo := True;
+       If PosRow=4 Then
+         Begin
+           Grilla[PosCol,1].Dibujo := True;
+           Grilla[PosCol,2].Dibujo := True;
+         End;
+       If PosRow=5 Then
+         Begin
+           Grilla[PosCol,1].Dibujo := True;
+           Grilla[PosCol,3].Dibujo := True;
+         End;
+       If PosRow=6 Then
+         Begin
+           Grilla[PosCol,3].Dibujo := True;
+           Grilla[PosCol,2].Dibujo := True;
+         End;
+       If PosRow = 7 Then
+         For x:=1 to filas do
+           Grilla[PosCol,x].Dibujo := True;
+     End;
+  End;
+Var
+  Key : Char;
+begin
+
+ FrmComArmadas.Height := 380+((Filas+1)*28);
+ Horario.Height := 27 * (filas+1);
+ GroupBox2.Height := 134 +(filas+1)*27;
+ Timer1.Enabled := True;
+ Nueva.Enabled := False;
+ Modificar.Enabled := False;
+ Eliminar.Enabled := False;
+ Salir.Enabled := False;
+ comboMaterias.Enabled := True;
+ GrillaComi.Enabled := False;
+ Comision.Enabled := True;
+ Cuatrimestre.Enabled := True;
+ ComboDocente.Enabled := True;
+ ComboDocente.SetFocus;
+ Modificacion := True;
+ CertServ.Enabled := False;
+ ComboMaterias.Text := mt.FieldByName('COD_MAT').AsString;
+ Comision.Text :=  IntToStr(mt.FieldByName('CUTUCO').AsInteger);
+ Cuatrimestre.Text := mt.FieldByName('CUA_ANIO').AsString;
+ combodocente.Text := mt.FieldByName('CODPROFES').AsString;
+ If Trim(mt.FieldByName('TIT_SUP').AsString) = 'T' Then
+   Titular.Checked := True;
+ If Trim(mt.FieldByName('TIT_SUP').AsString) = 'S' Then
+   Suplente.Checked := True;
+ Key := #13;
+ PasoAGrillaLosDias(BuscoColumna(TRIM(mt.FieldByName('DIA1').AsString)),
+                    BuscoFila(TRIM(mt.FieldByName('BLOQUE1').AsString)));
+ PasoAGrillaLosDias(BuscoColumna(TRIM(mt.FieldByName('DIA2').AsString)),
+                    BuscoFila(TRIM(mt.FieldByName('BLOQUE2').AsString)));
+ PasoAGrillaLosDias(BuscoColumna(TRIM(mt.FieldByName('DIA3').AsString)),
+                    BuscoFila(TRIM(mt.FieldByName('BLOQUE3').AsString)));
+ CargoDibujos(Sender);
+
+end;
+
+procedure TFrmComArmadas.SalirClick(Sender: TObject);
+begin
+ Close;
+end;
+
+
+procedure TFrmComArmadas.ComisionKeyPress(Sender: TObject; var Key: Char);
+Var
+  sw : Boolean;
+  datos: variant;
+begin
+
+ If (Key = #13) And (Not Modificacion) Then
+   Begin
+     Sw := True;
+
+     funcionesDb.Consulta('SELECT ERRCOD, ERRMSG FROM XXX_VALIDO_COMISION('#39+FuncionesText.Cuatrimestre(vcarrera)+#39','#39+
+                                                                               ComboMaterias.Text+#39','#39+
+                                                                               Comision.Text+#39','#39+
+                                                                               vCarrera+#39')',datos);
+
+     If (datos[0] <> 0) Then
+        Begin
+           MessageDlg(Pchar(VNombreUsuario+', '+VarToStr(datos[1])),mtInformation, [mbok],0,mbok);
+           Sw := False;
+        End;
+    If Sw Then
+       Begin
+         Cuatrimestre.Enabled := True;
+         Cuatrimestre.SetFocus;
+         Cuatrimestre.Text := FuncionesText.Cuatrimestre(vcarrera);
+       End;
+   End;
+   If (Key = #13) And (Modificacion) Then
+     Begin
+        Cuatrimestre.Enabled := True;
+        Cuatrimestre.SetFocus;
+        Cuatrimestre.Text := FuncionesText.Cuatrimestre(vcarrera);
+     End;
+end;
+
+procedure TFrmComArmadas.GrabaMateriaClick(Sender: TObject);
+Var
+  i,  Cont : Integer;
+  Sw : Boolean;
+  ZConn: TZConnection;
+  ZQuery: TZQuery;
+begin
+
+ ZQuery:= TZQuery.Create(nil);
+ try
+    zconn:= DataModuleZlib.GetConnection();
+    ZQuery.Connection:= zconn;
+
+   if MessageDlg(Pchar(VNombreUsuario + ', grabás la comisión?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+     Begin
+      Cont := 1;
+
+      If Modificacion Then Begin
+        ZQuery.Sql.Text := 'UPDATE COMARM SET CARRE=:CARRE,CUTUCO=:CUTUCO,COD_MAT=:COD_MAT,CUA_ANIO=:CUA_ANIO, '+
+                                           'CODPROFES=:CODPROFES,DIA1=:DIA1,BLOQUE1=:BLOQUE1, '+
+                                           'DIA2=:DIA2,BLOQUE2=:BLOQUE2,DIA3=:DIA3,BLOQUE3=:BLOQUE3, '+
+                                           'USUARIO=:USUARIO,TIT_SUP=:TIT_SUP '+
+                                           'WHERE CARRE=:FCARRE AND CUTUCO=:FCUTUCO AND COD_MAT=:FCOD_MAT AND CUA_ANIO=:FCUA_ANIO;';
+        ZQuery.ParamByName('FCARRE').Value := VCarrera;
+        ZQuery.ParamByName('FCUTUCO').Value := mt.FieldByName('CUTUCO').Value;
+        ZQuery.ParamByName('FCOD_MAT').Value := mt.FieldByName('COD_MAT').Value;
+        ZQuery.ParamByName('FCUA_ANIO').Value := mt.FieldByName('CUA_ANIO').Value;
+      End
+      Else
+          ZQuery.Sql.Text:= 'INSERT INTO COMARM (CARRE,CUTUCO,COD_MAT,CUA_ANIO,CODPROFES,DIA1,BLOQUE1, '+
+                                              '                    DIA2,BLOQUE2,DIA3,BLOQUE3,USUARIO,TIT_SUP) '+
+                                              'VALUES(:CARRE,:CUTUCO,:COD_MAT,:CUA_ANIO,:CODPROFES,:DIA1,:BLOQUE1,:DIA2,:BLOQUE2,:DIA3, '+
+                                              ':BLOQUE3,:USUARIO,:TIT_SUP);';
+
+      ZQuery.ParamByName('CARRE').Value := VCarrera;
+      ZQuery.ParamByName('CUTUCO').Value := StrToInt(Comision.Text);
+      ZQuery.ParamByName('COD_MAT').Value := ComboMaterias.Text;
+      ZQuery.ParamByName('CUA_ANIO').Value := Cuatrimestre.Text;
+      ZQuery.ParamByName('CODPROFES').Value := ComboDocente.Text;
+      ZQuery.ParamByName('USUARIO').Value := FuncionesConfiguracion.CodUsu;
+      If titular.Checked Then
+        ZQuery.ParamByName('TIT_SUP').Value := 'T';
+      If Suplente.Checked Then
+        ZQuery.ParamByName('TIT_SUP').Value := 'S';
+
+      For i := 1 To 5 do Begin
+        If Cont <= 3 Then
+          Begin
+             If Grilla[i,1].Dibujo Then
+               Begin
+                 If Grilla[i,2].Dibujo Then
+                   Begin
+                     If Grilla[i,3].Dibujo Then
+                      Begin
+                        ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                        ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'UNICO';
+                        Cont := Cont + 1;
+                      End
+                     Else
+                      Begin
+                        ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                        ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'PRISEG';
+                        Cont := Cont + 1;
+                      End
+                   End
+                 Else
+                   Begin
+                     If Grilla[i,3].Dibujo Then
+                      Begin
+                        ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                        ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'PRITER';
+                        Cont := Cont + 1;
+                      End
+                     Else
+                      Begin
+                        ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                        ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'PRIMERO';
+                        Cont := Cont + 1;
+                      End
+                   End
+               End
+             Else
+                Begin
+                  If Grilla[i,2].Dibujo Then
+                    Begin
+                      If Grilla[i,3].Dibujo Then
+                        Begin
+                          ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                          ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'SEGTER';
+                          Cont := Cont + 1;
+                        End
+                      Else
+                        Begin
+                          ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                          ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'SEGUNDO';
+                          Cont := Cont + 1;
+                        End
+                    End
+                  Else
+                    Begin
+                      If Grilla[i,3].Dibujo Then
+                        Begin
+                          ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := Horario.Cells[i,0];
+                          ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'TERCERO';
+                          Cont := Cont + 1;
+                        End
+                    End
+                End
+          End;
+      End;
+      While Cont <= 3 Do Begin
+          ZQuery.ParamByName('DIA'+IntToStr(Cont)).Value := 'BLANCO';
+          ZQuery.ParamByName('BLOQUE'+IntToStr(Cont)).AsString := 'BLANCO';
+          Cont := Cont + 1;
+      End;
+
+      zconn.StartTransaction;
+      ZQuery.ExecSql;
+
+      ZQuery.SQL.Text:='SELECT FERRCOD,FERRMSG FROM XXX_VAL_COMISION(:FCARRE,:FCUTUCO,:FCOD_MAT,:FCUA_ANIO)';
+      ZQuery.ParamByName('FCARRE').Value := VCarrera;
+      ZQuery.ParamByName('FCUTUCO').Value := StrToInt(Comision.Text);
+      ZQuery.ParamByName('FCOD_MAT').Value := ComboMaterias.Text;
+      ZQuery.ParamByName('FCUA_ANIO').Value := Cuatrimestre.Text;
+      ZQuery.Open;
+      If (ZQuery.FieldByName('FERRCOD').Value=0) then begin
+        Zconn.Commit;
+        zConn.Disconnect;
+        CancelaGrabacionClick(Sender);
+      end
+      Else If (ZQuery.FieldByName('FERRCOD').Value=1) then begin
+        if MessageDlg(Pchar(ZQuery.FieldByName('FERRMSG').AsString),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then begin
+           zconn.Commit;
+           CancelaGrabacionClick(Sender);
+        end
+        Else
+           zconn.Rollback;
+        zConn.Disconnect;
+      end
+      Else If (ZQuery.FieldByName('FERRCOD').Value=2) then
+      begin
+          MessageDlg(Pchar(ZQuery.FieldByName('FERRMSG').AsString),mtError,[mbok],0,mbok);
+          zconn.Rollback;
+          zConn.Disconnect;
+      end;
+    End;
+  finally
+    if zConn.Connected then begin
+      zconn.rollback;
+      zQuery.Close;
+      zConn.Disconnect;
+    end;
+    LoadTable;
+    ZQuery.Free;
+    zconn.Free;
+ end;
+end;
+
+procedure TFrmComArmadas.EliminarClick(Sender: TObject);
+Var
+ SW:Boolean;
+begin
+  if MessageDlg(Pchar(VNombreUsuario + ', estas seguro de borrar la comisión?'),mtConfirmation,[mbyes,mbno],0,mbyes)=mryes  Then
+   Begin
+        funcionesdb.ExecQuery_Params('DELETE FROM COMARM WHERE CARRE=:FCARRE AND CUTUCO=:FCUTUCO AND COD_MAT=:FCOD_MAT AND CUA_ANIO=:FCUA_ANIO;',
+        ['FCARRE','FCUTUCO','FCOD_MAT','FCUA_ANIO'],[VCarrera,MT.FieldByName('CUTUCO').Value,MT.FieldByName('COD_MAT').Value, MT.FieldByName('CUA_ANIO').Value]);
+
+   End;
+end;
+
+procedure TFrmComArmadas.CertServClick(Sender: TObject);
+ Function CuentoHoras( Bloque : String) : Integer;
+  Begin
+    CuentoHoras := 0;
+    If (Bloque = 'PRIMERO') Or (Bloque = 'SEGUNDO') Then CuentoHoras := 2;
+    If Bloque = 'UNICO' Then CuentoHoras := 4;
+    If Bloque = 'BLANCO' Then CuentoHoras := 0;
+  End;
+
+Var
+  Copiar : Boolean;
+  Origen, Destino : String;
+  Cont : Integer;
+  IniFile : TiniFile;
+begin
+ {If MessageBox(FrmComArmadas.Handle, Pchar(VNombreUsuario+', estas por pasar al historial de cada docente '+
+               'toda la información de las comisiones que anteriormente cargaste. Si por casualidad la '+
+               'información es incorrecta, tendrás que modificar o borrar a mano '+
+               'la información que se grabó de cada docente. Después de todo esto estas realmente segura/o de hacerlo?'),
+               'Aviso sin vuelta atrás hasta el próximo cuatrimestre',MB_YESNO+MB_ICONQUESTION+MB_APPLMODAL)
+              = IDYES Then
+  Begin
+    VideoEspera := TVideoEspera.Create(Self);
+    VideoEspera.Caption := VNombreUsuario + ', ' + VideoEspera.Caption;
+    VideoEspera.Show;
+    SQLComisiones.First;
+    Cont := 0;
+    While Not SQLComisiones.Eof Do
+       Begin
+         Copiar := True;
+         If Not (FileExists(VUnidad + ':\new Pailot\Dbfgral\CertServ\'+
+                 SQLComisiones.FieldByName('CODPROFES').AsString +'.Dbf')) Then
+             Begin
+                Origen := Vunidad+':\new pailot\dbfgral\CertServ.dbf';
+                Destino :=Vunidad+':\new pailot\dbfgral\certserv\CertServ.dbf';
+                CopyFile(Pchar(Origen),Pchar(Destino),Copiar);
+                If Copiar Then
+                   Begin
+                     Origen  := Vunidad+':\new pailot\dbfgral\certserv\CertServ.dbf';
+                     Destino :=Vunidad+':\new pailot\dbfgral\CertServ\' + SQLComisiones.FieldByName('CODPROFES').AsString + '.dbf';
+                     RenameFile(Pchar(Origen),Pchar(Destino));
+                     //MessageBox(FrmComArmadas.Handle,Pchar(VNombreUsuario+', se creo la base correspodiente al docente, '+ SQLComisiones.FieldByName('DOCENTE').AsString +', para su certificacion de servisios'),'Aviso',MB_OK+MB_ICONINFORMATION+MB_APPLMODAL);
+                     VideoEspera.Show;
+                   End
+               Else
+                  Begin
+                    MessageBox(FrmComArmadas.Handle,Pchar(VNombreUsuario+', hubo un error al crear el archivo de , '+ SQLComisiones.FieldByName('DOCENTE').AsString + ', para su certificacion de servicios. Llame al administrador o hagalo manualmente'),'Error',MB_OK+MB_ICONERROR+MB_APPLMODAL);
+                    VideoEspera.Show;
+                  End;
+             End;
+         If Copiar Then
+           Begin
+             TablaCertServ.TableName := SQLComisiones.FieldByName('CODPROFES').AsString +'.Dbf';
+             TablaCertServ.Active := True;
+             TablaCertServ.Append;
+             TablaCertServ.FieldByName('COD_PROFES').AsString := SQLComisiones.FieldByName('CODPROFES').AsString;
+             TablaCertServ.FieldByName('COD_CARRE').AsString  := SQLComisiones.FieldByName('CARRE').AsString;
+             TablaCertServ.FieldByName('COD_MAT').AsString    := SQLComisiones.FieldByName('COD_MAT').AsString;
+             If SQLComisiones.FieldByName('DIA1').AsString <> 'BLANCO' Then
+                Cont := Cont + CuentoHoras(SQLComisiones.FieldByName('BLOQUE1').AsString);
+             If SQLComisiones.FieldByName('DIA2').AsString <> 'BLANCO' Then
+                Cont := Cont + CuentoHoras(SQLComisiones.FieldByName('BLOQUE2').AsString);
+             If SQLComisiones.FieldByName('DIA3').AsString <> 'BLANCO' Then
+                Cont := Cont + CuentoHoras(SQLComisiones.FieldByName('BLOQUE3').AsString);
+             TablaCertServ.FieldByName('HORAS').AsInteger     := Cont;
+             TablaCertServ.FieldByName('COMISION').AsInteger     := SQLComisiones.FieldByName('CUTUCO').AsInteger;
+             TablaCertServ.FieldByName('CUA_ANIO').AsString      := SQLComisiones.FieldByName('CUA_ANIO').AsString;
+             TablaCertServ.FieldByName('TIT_SUP').AsString       := SQLComisiones.FieldByName('TIT_SUP').AsString;
+             TablaCertServ.Post;
+             TablaCertServ.Active := False;
+             Cont := 0;
+           End;
+         SQLComisiones.Next;
+       End;
+    IniFile := TIniFile.Create(Vunidad+':\New pailot\dbfgral\Esba.ini');
+    CertServ.Enabled := False;
+    IniFile.WriteBool('configuracion','CertServ'+VCarrera,False);
+    IniFile.Free;
+    VideoEspera.Close;
+    VideoEspera.Free;
+  End;}
+end;
+
+procedure TFrmComArmadas.FormCreate(Sender: TObject);
+begin
+  Application.OnException:= Excepciones;
+end;
+
+procedure TFrmComArmadas.Excepciones(Sender: TObject; E: Exception);
+begin
+  if not MostrarMensajeIB(E,'') then
+       Application.ShowException(E);
+end;
+procedure TFrmComArmadas.ComboMateriasButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+VCARRERA+#39' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,True);
+  ComboMaterias.Text:=b[0];
+  NombreMat.Caption:=b[1];
+end;
+
+procedure TFrmComArmadas.ComboDocenteButtonClick(Sender: TObject);
+Var b:Variant;
+begin
+  FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL ORDER BY 1',['Codigo','Nombre'],b,True);
+  Combodocente.Text:=b[0];
+  LabelTitular.Caption:=b[1];
+end;
+
+procedure TFrmComArmadas.ComboDocenteExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (Combodocente.Text<>'') Then Begin
+      ComBodocente.Text:=Lpad(ComboDocente.Text,3,'0');
+      FuncionesDB.combobusqueda('SELECT CODPROFES, DOCENTE FROM DOCENTES WHERE FECHA_BAJ IS NULL AND CODPROFES='''+comboDocente.Text+''' ORDER BY 1',['Codigo','Nombre'],b,False);
+      If (VarTostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboDocente.SetFocus;
+      end
+      else begin
+         Combodocente.Text:=b[0];
+         LabelTitular.Caption:=b[1];
+      end
+  end
+end;
+
+procedure TFrmComArmadas.ComboMateriasExit(Sender: TObject);
+Var b:Variant;
+begin
+  if (ComboMaterias.Text<>'') Then Begin
+      ComBoMaterias.Text:=Lpad(ComboMaterias.Text,2,'0');
+      FuncionesDB.combobusqueda('SELECT CODMATERI, DESCRIPCI FROM MATERIAS WHERE CODCARRE='+#39+VCARRERA+#39+' AND CODMATERI='+#39+ComboMaterias.Text+#39+' AND ESTADO<>'+#39+'B'+#39+' ORDER BY CODMATERI',['Codigo','Nombre'],b,False);
+      If (vartostr(b[0])='') then begin
+         MessageDlg('Código incorrecto',mtError,[mbok],0,mbok);
+         ComboMaterias.SetFocus;
+      end
+      else begin
+         ComboMaterias.Text:=b[0];
+         NombreMat.Caption:=b[1];
+      end
+  end
+end;
+
+procedure TFrmComArmadas.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  If Key=#13 Then
+     If not (ActiveControl is TDBGrid) then begin
+        Key:=#0;
+        Perform(WM_NEXTDLGCTL,0,0);
+     end
+     else if (activecontrol is TDbgrid) then
+            With TDBGRID(ActiveControl) do
+               If Selectedindex < (Fieldcount-1) then
+                  SelectedIndex := SelectedIndex+1
+               else
+                  SelectedIndex :=0;
+end;
+
+procedure TFrmComArmadas.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+{
+    PASAR ZLIB
+  if Datamodule.CustomerData.TrDsVarios.Active then
+     Datamodule.CustomerData.TrdsVarios.rollback;
+  Datamodule.CustomerData.TrdsVarios.Active := True;
+  Datamodule.CustomerData.IBdsVarios.Active := True;
+  }
+end;
+
+end.
