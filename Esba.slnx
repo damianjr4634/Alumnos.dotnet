@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Esba.Application/Esba.Application.csproj" />
+    <Project Path="src/Esba.Domain/Esba.Domain.csproj" />
+    <Project Path="src/Esba.Infrastructure/Esba.Infrastructure.csproj" />
+    <Project Path="src/Esba.Web/Esba.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Esba.Application.Tests/Esba.Application.Tests.csproj" />
+    <Project Path="tests/Esba.Domain.Tests/Esba.Domain.Tests.csproj" />
+    <Project Path="tests/Esba.IntegrationTests/Esba.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
