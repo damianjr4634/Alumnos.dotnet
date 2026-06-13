@@ -1,0 +1,134 @@
+@using Esba.Application.Abstractions
+@using Esba.Domain.Common
+@using Esba.Domain.ValueObjects
+@inject ICambioDniLibroMatrizProcedure CambioDniLm
+@inject ISnackbar Snackbar
+
+@* Sucesor de CambioCodAlu_LM.pas: cambia el código de alumno (documento) o el
+   libro matriz vía el wrapper de XXX_CAMBIA_DNI_LM, que valida duplicados y
+   propaga el cambio a ALUMNOS/ANALITIC/CURSADA/RECURSA. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+
+        <MudRadioGroup T="char" @bind-Value="_tipo">
+            <MudRadio T="char" Value="@('L')">Libro matriz</MudRadio>
+            <MudRadio T="char" Value="@('D')">Documento (código de alumno)</MudRadio>
+        </MudRadioGroup>
+
+        @if (_tipo == 'L')
+        {
+            <MudTextField @bind-Value="_nuevaMatriz" Label="Nuevo libro matriz (libro 2 + folio 3)"
+                          MaxLength="5" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-3"
+                          HelperText="@($"Actual: {MatrizActual ?? "sin asignar"}")" />
+        }
+        else
+        {
+            <MudGrid Spacing="2" Class="mt-1">
+                <MudItem xs="5">
+                    <MudSelect T="string" @bind-Value="_tipoDocumento" Label="Tipo doc."
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var t in new[] { "DNI", "CI", "LE", "PAS" })
+                        {
+                            <MudSelectItem Value="@t">@t</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="7">
+                    <MudTextField @bind-Value="_numeroDocumento" Label="Nuevo número" MaxLength="8"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  HelperText="@($"Actual: {CodigoAlumno}")" />
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_procesando" OnClick="Aplicar">
+            Aplicar cambio
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string CodigoAlumno { get; set; } = string.Empty;
+
+    [Parameter] public string? MatrizActual { get; set; }
+
+    private char _tipo = 'L';
+    private string? _nuevaMatriz;
+    private string _tipoDocumento = "DNI";
+    private string? _numeroDocumento;
+    private bool _procesando;
+    private string? _error;
+
+    private async Task Aplicar()
+    {
+        _error = null;
+        _procesando = true;
+        try
+        {
+            string? nuevoCodAlu = null;
+            CambioDniLibroMatrizParametros parametros;
+            if (_tipo == 'L')
+            {
+                if (string.IsNullOrWhiteSpace(_nuevaMatriz) || _nuevaMatriz.Trim().Length != 5)
+                {
+                    _error = "El libro matriz debe tener 5 caracteres (libro 2 + folio 3).";
+                    return;
+                }
+
+                parametros = new CambioDniLibroMatrizParametros
+                {
+                    CodigoAlumno = CodigoAlumno,
+                    CodigoCarrera = Carre,
+                    Tipo = 'L',
+                    NuevoLibroMatriz = _nuevaMatriz.Trim(),
+                };
+            }
+            else
+            {
+                try
+                {
+                    nuevoCodAlu = Domain.ValueObjects.CodigoAlumno.Crear(_tipoDocumento, _numeroDocumento ?? "").Valor;
+                }
+                catch (DomainException ex)
+                {
+                    _error = ex.Message;
+                    return;
+                }
+
+                parametros = new CambioDniLibroMatrizParametros
+                {
+                    CodigoAlumno = CodigoAlumno,
+                    CodigoCarrera = Carre,
+                    Tipo = 'D',
+                    NuevoCodigoAlumno = nuevoCodAlu,
+                };
+            }
+
+            var resultado = await CambioDniLm.EjecutarAsync(parametros, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(resultado.Message ?? "Cambio aplicado.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(_tipo == 'D' ? nuevoCodAlu : null));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}

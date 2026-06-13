@@ -13,6 +13,7 @@
 @inject IValidator<ActualizarAlumnoCommand> ValidadorActualizar
 @inject ISnackbar Snackbar
 @inject NavigationManager Navegacion
+@inject IDialogService DialogService
 
 <PageTitle>ESBA — Ficha del Alumno</PageTitle>
 
@@ -64,6 +65,8 @@ else
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
                              Color="@ColorEstado(estado)">@FichaAlumnoModel.Etiqueta(estado)</MudChip>
                 }
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.SwapHoriz"
+                           OnClick="AbrirCambioDniLm">Cambiar DNI/LM</MudButton>
             }
         </div>
     </MudPaper>
@@ -480,6 +483,26 @@ else
         finally
         {
             _guardando = false;
+        }
+    }
+
+    private async Task AbrirCambioDniLm()
+    {
+        var parametros = new DialogParameters<CambioDniLmDialog>
+        {
+            { d => d.Carre, Carre },
+            { d => d.CodigoAlumno, Codigo! },
+            { d => d.MatrizActual, _detalle?.Matriz },
+        };
+
+        var dialogo = await DialogService.ShowAsync<CambioDniLmDialog>("Cambiar DNI / Libro matriz", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+        {
+            // Si cambió el documento, la ficha vive en otra ruta; si cambió la
+            // matriz, recarga para mostrar el valor nuevo.
+            var codigoDestino = resultado.Data as string ?? Codigo;
+            Navegacion.NavigateTo($"/alumnos/{Carre}/{codigoDestino}/ficha", forceLoad: true);
         }
     }
 }

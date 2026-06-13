@@ -99,7 +99,7 @@
                FrmEsba): se habilitan a medida que se migran sus pantallas. *@
             <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
                 <MudButton OnClick="AbrirFicha" StartIcon="@Icons.Material.Filled.Badge">Ficha</MudButton>
-                <MudButton Disabled="true">Inscripción de materias</MudButton>
+                <MudButton OnClick="AbrirCursada" StartIcon="@Icons.Material.Filled.MenuBook">Inscripción de materias</MudButton>
                 <MudButton Disabled="true">Constancias</MudButton>
             </MudButtonGroup>
         </div>
@@ -172,6 +172,14 @@
         if (_seleccionado is not null)
         {
             Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/ficha");
+        }
+    }
+
+    private void AbrirCursada()
+    {
+        if (_seleccionado is not null)
+        {
+            Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/cursada");
         }
     }
 

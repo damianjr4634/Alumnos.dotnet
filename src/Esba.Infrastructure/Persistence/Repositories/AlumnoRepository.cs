@@ -15,6 +15,7 @@ public sealed class AlumnoRepository : IAlumnoRepository
 
     public Task<Alumno?> ObtenerAsync(string codigoCarrera, string codigo, CancellationToken ct) =>
         _contexto.Alumnos
+            .Include(a => a.Carrera)
             .FirstOrDefaultAsync(a => a.CodigoCarrera == codigoCarrera && a.Codigo == codigo, ct);
 
     public void Agregar(Alumno alumno) => _contexto.Alumnos.Add(alumno);

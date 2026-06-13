@@ -1,5 +1,7 @@
 using Esba.Application.Abstractions;
+using Esba.Application.DTOs.Academica;
 using Esba.Application.DTOs.Alumnos;
+using Esba.Application.Features.Academica;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
 using Esba.Application.Validators;
@@ -54,6 +56,18 @@ public static class DependencyInjection
 
         // Wrappers de SP legacy (§1.3: única vía de invocación de los XXX_*).
         services.AddScoped<ICambioDniLibroMatrizProcedure, CambioDniLibroMatrizProcedure>();
+        services.AddScoped<ICuatrimestreVigenteProcedure, CuatrimestreVigenteProcedure>();
+
+        // Académica: inscripción de materias.
+        services.AddScoped<ICursadaQuery, CursadaQuery>();
+        services.AddScoped<IMateriasQuery, MateriasQuery>();
+        services.AddScoped<ICursadaRepository, CursadaRepository>();
+        services.AddScoped<IMateriaRepository, MateriaRepository>();
+        services.AddScoped<IValidator<InscribirEnMateriaCommand>, InscribirEnMateriaValidator>();
+        services.AddScoped<IValidator<ModificarInscripcionCommand>, ModificarInscripcionValidator>();
+        services.AddScoped<InscribirEnMateriaHandler>();
+        services.AddScoped<ModificarInscripcionHandler>();
+        services.AddScoped<EliminarInscripcionHandler>();
 
         return services;
     }

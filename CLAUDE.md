@@ -92,7 +92,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 1 | **Fundaciones**: solución .NET 10, DDL versionado, `Result<T>`, login con re-hash gradual (`$E1$`), cookie+claims, shell MudBlazor con buscador central y tema (`EsbaTheme`) | ✅ 2026-06-12 |
 | 2 | **Vertical slice Alumnos**: buscador global (query padrón 1.B) + ficha alta/edición + wrapper `XXX_CAMBIA_DNI_LM` (patrón 2.B canónico) | ✅ 2026-06-12 |
 | 3 | **Académica — modelo de datos** (Etapa 1): `MATERIAS`, `COMARM`, `CURSADA`, `TBL_CUAT/TRIM` | ✅ 2026-06-12 |
-| 4 | **Inscripción de materias** (Académica Etapas 2+3): caso de uso sobre `CURSADA` (sucesor de `InscripcionDeMaterias.pas`), pantalla de cursada del alumno, acción real en el panel del buscador | ⬜ siguiente |
+| 4 | **Inscripción de materias** (Académica Etapas 2+3): casos de uso sobre `CURSADA`, pantalla de cursada del alumno, acción en el buscador, wrapper `XXX_NUMCUATANIO`, diálogo Cambiar DNI/LM | ✅ 2026-06-12 |
 | 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ⬜ |
 | 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ⬜ |
 | 7 | **Asistencias**: `TBL_FERIADOS`, carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas | ⬜ |
@@ -104,7 +104,8 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 13 | **Fase 5 — retiro de SPs `XXX_*`**: portar PSQL a C# con tests de equivalencia, un SP por vez (empezar por los de mayor riesgo/uso) | ⬜ |
 
 **Deuda transversal registrada** (resolver dentro del hito que la toque, no dejar crecer):
-subida/cambio de foto del alumno (hito 4 o 5) · descripciones de grupos de menú `CARRE_GRP`
-(hito 12) · botón "Cambiar DNI/LM" en la ficha usando el wrapper ya hecho (hito 4) ·
-normalización de `CURSADA.CONDICION` (hito 13, con el usuario) · preferencia de modo
-claro/oscuro persistida en BD (hito 10).
+**inscripción masiva por cuatrimestre** (`ConjuntoClick` → SP `XXX_INSC_CUAT_16032023`, hito 6:
+requiere el patrón de dos fases para FERRCOD=1 — preview con rollback + re-ejecución confirmada)
+· subida/cambio de foto del alumno (hito 5) · descripciones de grupos de menú `CARRE_GRP`
+(hito 12) · normalización de `CURSADA.CONDICION` (hito 13, con el usuario) · preferencia de
+modo claro/oscuro persistida en BD (hito 10).

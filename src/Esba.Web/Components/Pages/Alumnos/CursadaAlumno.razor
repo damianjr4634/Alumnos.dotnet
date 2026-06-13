@@ -1,0 +1,192 @@
+@page "/alumnos/{Carre}/{Codigo}/cursada"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.Features.Academica
+@inject IAlumnosQuery AlumnosQuery
+@inject ICursadaQuery CursadaQuery
+@inject IMateriasQuery MateriasQuery
+@inject ICuatrimestreVigenteProcedure CuatrimestreVigente
+@inject EliminarInscripcionHandler EliminarInscripcion
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Inscripción de Materias</PageTitle>
+
+@* Sucesora de InscripcionDeMaterias.pas: cursada del alumno + alta/modif/baja
+   de inscripciones. Solo binding y llamadas a Application (§2.1). *@
+
+@if (_noEncontrado)
+{
+    <MudAlert Severity="MudBlazor.Severity.Warning">El alumno no existe.</MudAlert>
+}
+else if (_alumno is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" aria-label="Volver a la búsqueda" />
+            <div>
+                <MudText Typo="Typo.h5">@_alumno.Apellido, @_alumno.Nombre</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Inscripción de materias — Carrera @Carre — @Codigo
+                </MudText>
+            </div>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="NuevaInscripcion">Nueva inscripción</MudButton>
+        </div>
+    </MudPaper>
+
+    <MudPaper Outlined="true">
+        <MudTable T="CursadaListItemDto" Items="_cursada" Dense="true" Hover="true" Striped="true"
+                  Loading="@_cargando" RowClass="cursor-pointer">
+            <HeaderContent>
+                <MudTh>Materia</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Cuat/Año</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Turno</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Comisión</MudTh>
+                <MudTh>Condición</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Eval. 1</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Eval. 2</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Regular</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Final</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Faltas</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Materia">@context.CodigoMateria — @context.SiglaMateria</MudTd>
+                <MudTd DataLabel="Cuat/Año" Class="d-none d-md-table-cell">@FormatearCuaAnio(context.CuatrimestreAnio)</MudTd>
+                <MudTd DataLabel="Turno" Class="d-none d-md-table-cell">@Turno(context.Cutuco)</MudTd>
+                <MudTd DataLabel="Comisión" Class="d-none d-md-table-cell">@NumeroComision(context.Cutuco)</MudTd>
+                <MudTd DataLabel="Condición">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@ColorCondicion(context.Condicion)">@context.Condicion</MudChip>
+                </MudTd>
+                <MudTd Class="d-none d-lg-table-cell">@context.Evaluacion1</MudTd>
+                <MudTd Class="d-none d-lg-table-cell">@context.Evaluacion2</MudTd>
+                <MudTd Class="d-none d-lg-table-cell">@context.NotaRegular</MudTd>
+                <MudTd Class="d-none d-lg-table-cell">
+                    @context.NotaFinal1 @(context.FechaFinal1 is { } f ? $"({f:dd/MM/yy})" : "")
+                </MudTd>
+                <MudTd Class="d-none d-lg-table-cell">@context.Inasistencias</MudTd>
+                <MudTd Style="white-space: nowrap;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   aria-label="Modificar inscripción" OnClick="@(() => Editar(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   aria-label="Eliminar inscripción" OnClick="@(() => Eliminar(context))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">El alumno no tiene materias inscriptas.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string Codigo { get; set; } = string.Empty;
+
+    private AlumnoDetailDto? _alumno;
+    private IReadOnlyList<CursadaListItemDto> _cursada = [];
+    private IReadOnlyList<MateriaListItemDto> _materias = [];
+    private string? _cuatrimestreDefault;
+    private bool _noEncontrado;
+    private bool _cargando;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _alumno = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo, CancellationToken.None);
+        if (_alumno is null)
+        {
+            _noEncontrado = true;
+            return;
+        }
+
+        _materias = await MateriasQuery.ListarPorCarreraAsync(Carre, CancellationToken.None);
+        _cuatrimestreDefault = await CuatrimestreVigente.ObtenerAsync(Carre, CancellationToken.None);
+        await RecargarCursada();
+    }
+
+    private async Task RecargarCursada()
+    {
+        _cargando = true;
+        _cursada = await CursadaQuery.ListarPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+        _cargando = false;
+    }
+
+    private static int? Turno(short? cutuco) => cutuco is { } c ? (c / 10) % 10 : null;
+
+    private static int? NumeroComision(short? cutuco) => cutuco is { } c ? c % 10 : null;
+
+    private static string FormatearCuaAnio(string? cuaAnio) =>
+        cuaAnio is { Length: 3 } ? $"{cuaAnio[0]}/{cuaAnio[1..]}" : cuaAnio ?? "";
+
+    private static Color ColorCondicion(string condicion) => condicion.Trim() switch
+    {
+        "CURSANDO" => Color.Success,
+        "REGULAR" => Color.Info,
+        "RECURSANDO" or "RECURSA" => Color.Warning,
+        "LIBRE" => Color.Error,
+        _ => Color.Default,
+    };
+
+    private async Task NuevaInscripcion() => await AbrirDialogo(null);
+
+    private async Task Editar(CursadaListItemDto item) => await AbrirDialogo(item);
+
+    private async Task AbrirDialogo(CursadaListItemDto? aEditar)
+    {
+        var parametros = new DialogParameters<InscripcionCursadaDialog>
+        {
+            { d => d.Carre, Carre },
+            { d => d.CodigoAlumno, Codigo },
+            { d => d.Materias, _materias },
+            { d => d.CuatrimestreAnioDefault, _cuatrimestreDefault },
+            { d => d.InscripcionAEditar, aEditar },
+        };
+
+        var dialogo = await DialogService.ShowAsync<InscripcionCursadaDialog>(
+            aEditar is null ? "Nueva inscripción" : "Modificar inscripción", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+        {
+            await RecargarCursada();
+        }
+    }
+
+    private async Task Eliminar(CursadaListItemDto item)
+    {
+        // Misma confirmación que el legacy (eliminacursadaClick).
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Eliminar inscripción",
+            $"¿Eliminar la cursada de {item.SiglaMateria} ({item.CodigoMateria})?",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var resultado = await EliminarInscripcion.HandleAsync(new EliminarInscripcionCommand
+        {
+            CodigoCarrera = Carre,
+            CodigoAlumno = Codigo,
+            CodigoMateria = item.CodigoMateria,
+        }, CancellationToken.None);
+
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Inscripción eliminada.", MudBlazor.Severity.Success);
+            await RecargarCursada();
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo eliminar.", MudBlazor.Severity.Error);
+        }
+    }
+}
