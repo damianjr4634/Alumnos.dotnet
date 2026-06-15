@@ -8,6 +8,7 @@
 @inject IMateriasQuery MateriasQuery
 @inject ICuatrimestreVigenteProcedure CuatrimestreVigente
 @inject EliminarInscripcionHandler EliminarInscripcion
+@inject Esba.Application.Features.Asistencias.PasarMateriasALibreHandler PaseLibre
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -36,6 +37,8 @@ else
                 </MudText>
             </div>
             <MudSpacer />
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.RemoveDone"
+                       Class="mr-2" OnClick="PasarALibre">Pasar a LIBRE</MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PlaylistAddCheck"
                        Class="mr-2" OnClick="InscribirCuatrimestre">Inscribir cuatrimestre</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
@@ -152,6 +155,30 @@ else
         if (resultado is { Canceled: false })
         {
             await RecargarCursada();
+        }
+    }
+
+    private async Task PasarALibre()
+    {
+        // Previsualiza (rollback) para traer el mensaje de confirmación del SP.
+        var preview = await PaseLibre.PrevisualizarAsync(Codigo, Carre, CancellationToken.None);
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Pasar a LIBRE", preview.Message ?? "¿Pasar todas las materias del alumno a LIBRE?",
+            yesText: "Sí, pasar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var resultado = await PaseLibre.ConfirmarAsync(Codigo, Carre, CancellationToken.None);
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Materias pasadas a LIBRE.", MudBlazor.Severity.Success);
+            await RecargarCursada();
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo realizar el pase.", MudBlazor.Severity.Error);
         }
     }
 

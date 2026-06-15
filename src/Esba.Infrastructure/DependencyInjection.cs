@@ -105,6 +105,11 @@ public static class DependencyInjection
         services.AddScoped<IValidator<GuardarInasistenciasComisionCommand>, GuardarInasistenciasComisionValidator>();
         services.AddScoped<GuardarInasistenciasComisionHandler>();
 
+        // Asistencias: planillas + pase a libre (hito 7, increment 3).
+        services.AddScoped<IPlanillaInasistenciasProcedure, PlanillaInasistenciasProcedure>();
+        services.AddScoped<IPaseLibreProcedure, PaseLibreProcedure>();
+        services.AddScoped<PasarMateriasALibreHandler>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();

@@ -1,0 +1,117 @@
+@page "/asistencias/planillas"
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Asistencias
+@using Esba.Web.Components.Shared
+@using Esba.Web.Seguridad
+@inject IPlanillaInasistenciasProcedure Planilla
+@inject ICarrerasQuery Carreras
+
+<PageTitle>ESBA — Planillas de Asistencia</PageTitle>
+
+@* Planilla de reincorporaciones/libres (sucesora de XXX_FALTAS_IMPRESI). Reusa
+   EsbaListView (grilla + export Excel/PDF, hito 5); los umbrales se cargan como
+   filtros. Sin SQL ni lógica de negocio. *@
+
+<EsbaListView T="PlanillaReincorporacionDto" @ref="_listado"
+              Titulo="Planilla de inasistencias"
+              Subtitulo="Reincorporaciones y libres por umbral de faltas"
+              Columnas="_columnas"
+              DataProvider="Cargar"
+              NombreArchivo="Planilla-inasistencias">
+    <Filtros>
+        <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+    </Filtros>
+</EsbaListView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private EsbaListView<PlanillaReincorporacionDto>? _listado;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+
+    private static readonly PagedResult<PlanillaReincorporacionDto> Vacio = new() { Items = [], Total = 0 };
+
+    private readonly IReadOnlyList<EsbaColumn<PlanillaReincorporacionDto>> _columnas =
+    [
+        new() { Titulo = "Alumno", Valor = p => p.Nombre },
+        new() { Titulo = "Código", Valor = p => p.CodigoAlumno },
+        new() { Titulo = "Comisión", Valor = p => p.Cutuco, OcultarEnChico = true },
+        new() { Titulo = "Justif.", Valor = p => p.Justificadas, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Injustif.", Valor = p => p.Injustificadas, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Tard.", Valor = p => p.Tardanzas, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Ed. Fís.", Valor = p => p.EducacionFisica, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Total", Valor = p => p.Total, AlinearDerecha = true },
+        new()
+        {
+            Titulo = "Estado",
+            Valor = p => p.Estado,
+            Celda = p =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorEstado(p.Estado)">@p.Estado</MudChip>,
+        },
+        new() { Titulo = "Fecha", Valor = p => p.Fecha, Formato = "dd/MM/yyyy", OcultarEnChico = true },
+        new() { Titulo = "Actas", Valor = p => p.ActasDisciplina, AlinearDerecha = true, OcultarEnChico = true },
+    ];
+
+    protected override void OnInitialized()
+    {
+        _campos =
+        [
+            new()
+            {
+                Clave = "Carrera", Etiqueta = "Carrera", Tipo = EsbaFilterKind.Seleccion, Obligatorio = true,
+                AnchoMd = 3, OpcionesAsync = CargarCarrerasAsync,
+            },
+            new() { Clave = "CuaAnio", Etiqueta = "Cuat/Año (ej. 124)", Tipo = EsbaFilterKind.Texto, Obligatorio = true, AnchoMd = 2 },
+            new() { Clave = "Cutuco", Etiqueta = "Comisión (0 = todas)", Tipo = EsbaFilterKind.Texto, AnchoMd = 1, ValorInicial = "0" },
+            new() { Clave = "ReinPri", Etiqueta = "Reinc. 1ª", Tipo = EsbaFilterKind.Numero, Obligatorio = true, AnchoMd = 2 },
+            new() { Clave = "ReinSeg", Etiqueta = "Reinc. 2ª", Tipo = EsbaFilterKind.Numero, Obligatorio = true, AnchoMd = 2 },
+            new() { Clave = "Libre", Etiqueta = "Libre", Tipo = EsbaFilterKind.Numero, Obligatorio = true, AnchoMd = 2 },
+        ];
+    }
+
+    private async Task<IReadOnlyList<EsbaFilterOption>> CargarCarrerasAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        var carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        return carreras.Select(c => new EsbaFilterOption(c.Codigo, $"{c.Codigo} — {c.Nombre}")).ToList();
+    }
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task<PagedResult<PlanillaReincorporacionDto>> Cargar(EsbaListRequest req, CancellationToken ct)
+    {
+        var carrera = _filtros?.Texto("Carrera");
+        var cuaAnio = _filtros?.Texto("CuaAnio");
+        var reinPri = _filtros?.Numero("ReinPri");
+        var reinSeg = _filtros?.Numero("ReinSeg");
+        var libre = _filtros?.Numero("Libre");
+        if (carrera is null || cuaAnio is null || reinPri is null || reinSeg is null || libre is null)
+        {
+            return Vacio;
+        }
+
+        var filas = await Planilla.ListarAsync(
+            carrera, _filtros!.Texto("Cutuco") ?? "0", cuaAnio, reinPri.Value, reinSeg.Value, libre.Value, ct);
+
+        // El SP devuelve todo el conjunto; paginamos en memoria para la grilla.
+        var pagina = filas.Skip(req.Skip).Take(req.Take).ToList();
+        return new PagedResult<PlanillaReincorporacionDto> { Items = pagina, Total = filas.Count };
+    }
+
+    private static Color ColorEstado(string? estado) => estado?.Trim().ToUpperInvariant() switch
+    {
+        "LIBRE" => Color.Error,
+        "POR SEGUNDA VEZ" => Color.Warning,
+        "POR PRIMERA VEZ" => Color.Info,
+        _ => Color.Default,
+    };
+}

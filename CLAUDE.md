@@ -95,7 +95,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 4 | **Inscripción de materias** (Académica Etapas 2+3): casos de uso sobre `CURSADA`, pantalla de cursada del alumno, acción en el buscador, wrapper `XXX_NUMCUATANIO`, diálogo Cambiar DNI/LM | ✅ 2026-06-12 |
 | 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ✅ 2026-06-15 |
 | 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ✅ 2026-06-15 |
-| 7 | **Asistencias**: `TBL_FERIADOS`, carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas | ⬜ |
+| 7 | **Asistencias**: carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas, pase a LIBRE (`TBL_FERIADOS` no existe en el esquema; el legacy no usa feriados) | ✅ 2026-06-15 |
 | 8 | **Exámenes**: `MESAS`, `PERMEXA` (permisos individuales y masivos), notas de finales, actas (wrapper `XXX_MATERIAS_FINALES`) | ⬜ |
 | 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias | ⬜ |
 | 10 | **Administración**: ABM usuarios y permisos, cambio de contraseña forzado (`CAMPASS`) y blanqueo, profesores, configuración, correo por comisión (MailKit) | ⬜ |
