@@ -22,6 +22,8 @@ public class EsbaDbContext : DbContext
 
     public DbSet<Comision> Comisiones => Set<Comision>();
 
+    public DbSet<Docente> Docentes => Set<Docente>();
+
     public DbSet<Cursada> Cursadas => Set<Cursada>();
 
     public DbSet<CicloCuatrimestral> CiclosCuatrimestrales => Set<CicloCuatrimestral>();

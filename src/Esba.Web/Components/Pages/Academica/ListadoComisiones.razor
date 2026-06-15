@@ -1,0 +1,160 @@
+@page "/academica/comisiones"
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Academica
+@using Esba.Web.Components.Shared
+@using Esba.Web.Seguridad
+@inject IComisionesQuery Comisiones
+@inject ICarrerasQuery Carreras
+@inject IDocentesQuery Docentes
+
+<PageTitle>ESBA — Listado de Comisiones</PageTitle>
+
+@* Listado de comisiones armadas (sucesor de cargacomisiones.pas, parte de
+   lectura). Server-side con exportación (hito 5). El ABM (alta/edición con la
+   grilla de horarios y la validación XXX_VAL_COMISION) es el sub-paso siguiente
+   del hito 6. Sin SQL ni lógica de negocio (§2.1). *@
+
+<EsbaListView T="ComisionListItemDto" @ref="_listado"
+              Titulo="Comisiones"
+              Subtitulo="Comisiones armadas por carrera y cuatrimestre"
+              Columnas="_columnas"
+              DataProvider="Cargar"
+              NombreArchivo="Comisiones">
+    <Filtros>
+        <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+    </Filtros>
+</EsbaListView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private EsbaListView<ComisionListItemDto>? _listado;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+
+    private static readonly PagedResult<ComisionListItemDto> Vacio =
+        new() { Items = [], Total = 0 };
+
+    private readonly IReadOnlyList<EsbaColumn<ComisionListItemDto>> _columnas =
+    [
+        new() { Titulo = "Comisión", Valor = c => c.Cutuco, ClaveOrden = "Cutuco" },
+        new() { Titulo = "Materia", Valor = c => $"{c.CodigoMateria} — {c.SiglaMateria}", ClaveOrden = "SiglaMateria" },
+        new() { Titulo = "Cuat/Año", Valor = c => FormatearCuaAnio(c.CuatrimestreAnio) },
+        new() { Titulo = "Docente", Valor = c => c.Docente ?? c.CodigoProfesor, ClaveOrden = "Docente" },
+        new() { Titulo = "Horarios", Valor = c => Horarios(c), OcultarEnChico = true },
+        new()
+        {
+            Titulo = "Cargo",
+            Valor = c => CargoTexto(c.TitularSuplente),
+            OcultarEnChico = true,
+            Celda = c =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(c.TitularSuplente?.Trim() == "T" ? Color.Primary : Color.Default)">@CargoTexto(c.TitularSuplente)</MudChip>,
+        },
+    ];
+
+    protected override void OnInitialized()
+    {
+        _campos =
+        [
+            new()
+            {
+                Clave = "Carrera",
+                Etiqueta = "Carrera",
+                Tipo = EsbaFilterKind.Seleccion,
+                Obligatorio = true,
+                AnchoMd = 4,
+                OpcionesAsync = CargarCarrerasAsync,
+            },
+            new() { Clave = "CuaAnio", Etiqueta = "Cuat/Año (ej. 124)", Tipo = EsbaFilterKind.Texto, AnchoMd = 2 },
+            new()
+            {
+                Clave = "Docente",
+                Etiqueta = "Docente",
+                Tipo = EsbaFilterKind.Seleccion,
+                AnchoMd = 3,
+                OpcionesAsync = CargarDocentesAsync,
+            },
+            new() { Clave = "Texto", Etiqueta = "Materia o docente", Tipo = EsbaFilterKind.Texto, AnchoMd = 3 },
+        ];
+    }
+
+    private async Task<IReadOnlyList<EsbaFilterOption>> CargarCarrerasAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        var carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        return carreras.Select(c => new EsbaFilterOption(c.Codigo, $"{c.Codigo} — {c.Nombre}")).ToList();
+    }
+
+    private async Task<IReadOnlyList<EsbaFilterOption>> CargarDocentesAsync()
+    {
+        var docentes = await Docentes.ListarActivosAsync(CancellationToken.None);
+        return docentes.Select(d => new EsbaFilterOption(d.Codigo, $"{d.Codigo} — {d.Nombre}")).ToList();
+    }
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task<PagedResult<ComisionListItemDto>> Cargar(EsbaListRequest req, CancellationToken ct)
+    {
+        var carrera = _filtros?.Texto("Carrera");
+        if (carrera is null)
+        {
+            return Vacio;
+        }
+
+        var filtro = new ComisionesFiltro
+        {
+            CodigoCarrera = carrera,
+            CuatrimestreAnio = _filtros!.Texto("CuaAnio"),
+            CodigoProfesor = _filtros.Texto("Docente"),
+            Texto = _filtros.Texto("Texto"),
+            OrdenarPor = req.OrdenarPor,
+            OrdenDescendente = req.Descendente,
+            Skip = req.Skip,
+            Take = req.Take,
+        };
+
+        return await Comisiones.BuscarAsync(filtro, ct);
+    }
+
+    private static string FormatearCuaAnio(string? cuaAnio) =>
+        cuaAnio is { Length: 3 } ? $"{cuaAnio[0]}/{cuaAnio[1..]}" : cuaAnio ?? "";
+
+    private static string CargoTexto(string? titSup) => titSup?.Trim() switch
+    {
+        "T" => "Titular",
+        "S" => "Suplente",
+        _ => "—",
+    };
+
+    private static string Horarios(ComisionListItemDto c)
+    {
+        var partes = new[]
+        {
+            FormatearDia(c.Dia1, c.Bloque1),
+            FormatearDia(c.Dia2, c.Bloque2),
+            FormatearDia(c.Dia3, c.Bloque3),
+        };
+        return string.Join(" · ", partes.Where(p => p is not null));
+    }
+
+    private static string? FormatearDia(string? dia, string? bloque)
+    {
+        var d = dia?.Trim();
+        if (string.IsNullOrEmpty(d) || d == "BLANCO")
+        {
+            return null;
+        }
+
+        var b = bloque?.Trim();
+        return string.IsNullOrEmpty(b) || b == "BLANCO" ? d : $"{d} ({b})";
+    }
+}

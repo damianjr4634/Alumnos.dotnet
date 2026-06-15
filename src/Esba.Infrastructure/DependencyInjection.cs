@@ -77,6 +77,10 @@ public static class DependencyInjection
         services.AddScoped<CrearMateriaHandler>();
         services.AddScoped<ActualizarMateriaHandler>();
 
+        // Académica: comisiones y docentes (hito 6).
+        services.AddScoped<IComisionesQuery, ComisionesQuery>();
+        services.AddScoped<IDocentesQuery, DocentesQuery>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();
