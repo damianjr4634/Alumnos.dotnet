@@ -1,0 +1,160 @@
+@* Panel de filtros declarativo — sucesor de parametros.pas (Modulo Variable).
+   Recibe una definición tipada de filtros y renderiza los controles MudBlazor;
+   los combos cargan por servicio (OpcionesAsync), nunca por SQL embebido (§3.3).
+   No contiene lógica de negocio: emite los valores y la página arma su query. *@
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        @foreach (var campo in Campos)
+        {
+            <MudItem xs="12" sm="6" md="@campo.AnchoMd">
+                @RenderCampo(campo)
+            </MudItem>
+        }
+        <MudItem xs="12" md="@AnchoBotones" Class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                       OnClick="Buscar" Disabled="@_cargandoOpciones">Buscar</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Clear"
+                       OnClick="Limpiar">Limpiar</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    /// <summary>Definición de los filtros a mostrar.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<EsbaFilterField> Campos { get; set; } = [];
+
+    /// <summary>Se dispara al presionar Buscar con los valores actuales.</summary>
+    [Parameter] public EventCallback<EsbaFilterValores> OnBuscar { get; set; }
+
+    private readonly Dictionary<string, object?> _valores = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<EsbaFilterOption>> _opciones = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _faltantes = new(StringComparer.Ordinal);
+    private bool _cargandoOpciones;
+
+    private int AnchoBotones => Math.Max(3, 12 - Campos.Sum(c => c.AnchoMd) % 12);
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var campo in Campos)
+        {
+            _valores[campo.Clave] = campo.ValorInicial;
+        }
+
+        _cargandoOpciones = true;
+        foreach (var campo in Campos.Where(c => c.OpcionesAsync is not null))
+        {
+            _opciones[campo.Clave] = await campo.OpcionesAsync!();
+        }
+
+        _cargandoOpciones = false;
+    }
+
+    private IReadOnlyList<EsbaFilterOption> OpcionesDe(EsbaFilterField campo) =>
+        _opciones.TryGetValue(campo.Clave, out var cargadas) ? cargadas : campo.Opciones ?? [];
+
+    private RenderFragment RenderCampo(EsbaFilterField campo) => campo.Tipo switch
+    {
+        EsbaFilterKind.Texto => RenderTexto(campo),
+        EsbaFilterKind.Numero => RenderNumero(campo),
+        EsbaFilterKind.Fecha => RenderFecha(campo),
+        EsbaFilterKind.Seleccion => RenderSeleccion(campo),
+        EsbaFilterKind.MultiSeleccion => RenderMultiSeleccion(campo),
+        EsbaFilterKind.Booleano => RenderBooleano(campo),
+        _ => _ => { },
+    };
+
+    private RenderFragment RenderTexto(EsbaFilterField campo) =>@<MudTextField T="string"
+        Value="@(_valores[campo.Clave] as string)" ValueChanged="@(v => _valores[campo.Clave] = v)"
+        Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+        Error="@_faltantes.Contains(campo.Clave)" />;
+
+    private RenderFragment RenderNumero(EsbaFilterField campo) =>@<MudNumericField T="decimal?"
+        Value="@(_valores[campo.Clave] as decimal?)" ValueChanged="@(v => _valores[campo.Clave] = v)"
+        Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+        Error="@_faltantes.Contains(campo.Clave)" />;
+
+    private RenderFragment RenderFecha(EsbaFilterField campo) =>@<MudDatePicker
+        Date="@FechaComoDateTime(campo)" DateChanged="@(d => GuardarFecha(campo, d))"
+        Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" Clearable="true"
+        Error="@_faltantes.Contains(campo.Clave)" />;
+
+    private RenderFragment RenderSeleccion(EsbaFilterField campo) =>@<MudSelect T="string"
+        Value="@(_valores[campo.Clave] as string)" ValueChanged="@(v => _valores[campo.Clave] = v)"
+        Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+        Error="@_faltantes.Contains(campo.Clave)">
+        @foreach (var opcion in OpcionesDe(campo))
+        {
+            <MudSelectItem T="string" Value="@opcion.Valor">@opcion.Etiqueta</MudSelectItem>
+        }
+    </MudSelect>;
+
+    private RenderFragment RenderMultiSeleccion(EsbaFilterField campo) =>@<MudSelect T="string" MultiSelection="true"
+        SelectedValues="@MultiValores(campo)" SelectedValuesChanged="@(v => _valores[campo.Clave] = v.ToList())"
+        Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense"
+        MultiSelectionTextFunc="@(s => $"{s.Count} seleccionado(s)")"
+        Error="@_faltantes.Contains(campo.Clave)">
+        @foreach (var opcion in OpcionesDe(campo))
+        {
+            <MudSelectItem T="string" Value="@opcion.Valor">@opcion.Etiqueta</MudSelectItem>
+        }
+    </MudSelect>;
+
+    private RenderFragment RenderBooleano(EsbaFilterField campo) =>@<MudSelect T="bool?"
+        Value="@(_valores[campo.Clave] as bool?)" ValueChanged="@(v => _valores[campo.Clave] = v)"
+        Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+        Error="@_faltantes.Contains(campo.Clave)">
+        <MudSelectItem T="bool?" Value="@(true)">Sí</MudSelectItem>
+        <MudSelectItem T="bool?" Value="@(false)">No</MudSelectItem>
+    </MudSelect>;
+
+    private static string Etiqueta(EsbaFilterField campo) =>
+        campo.Obligatorio ? campo.Etiqueta + " *" : campo.Etiqueta;
+
+    private DateTime? FechaComoDateTime(EsbaFilterField campo) =>
+        _valores[campo.Clave] is DateOnly f ? f.ToDateTime(TimeOnly.MinValue) : null;
+
+    private void GuardarFecha(EsbaFilterField campo, DateTime? fecha) =>
+        _valores[campo.Clave] = fecha is { } f ? DateOnly.FromDateTime(f) : null;
+
+    private IReadOnlyCollection<string> MultiValores(EsbaFilterField campo) =>
+        _valores[campo.Clave] as IReadOnlyList<string> ?? [];
+
+    private async Task Buscar()
+    {
+        _faltantes.Clear();
+        foreach (var campo in Campos.Where(c => c.Obligatorio))
+        {
+            if (EstaVacio(_valores.GetValueOrDefault(campo.Clave)))
+            {
+                _faltantes.Add(campo.Clave);
+            }
+        }
+
+        if (_faltantes.Count > 0)
+        {
+            return;
+        }
+
+        await OnBuscar.InvokeAsync(new EsbaFilterValores(_valores));
+    }
+
+    private async Task Limpiar()
+    {
+        _faltantes.Clear();
+        foreach (var campo in Campos)
+        {
+            _valores[campo.Clave] = campo.ValorInicial;
+        }
+
+        await OnBuscar.InvokeAsync(new EsbaFilterValores(_valores));
+    }
+
+    private static bool EstaVacio(object? valor) => valor switch
+    {
+        null => true,
+        string s => string.IsNullOrWhiteSpace(s),
+        IReadOnlyList<string> l => l.Count == 0,
+        _ => false,
+    };
+}

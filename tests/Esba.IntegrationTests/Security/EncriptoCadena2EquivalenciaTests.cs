@@ -48,7 +48,7 @@ public class EncriptoCadena2EquivalenciaTests
     public async Task PasswdsReales_RoundTripDescifrarCifrar_ReproduceElValorAlmacenado()
     {
         var connectionString = Environment.GetEnvironmentVariable("ESBA_TEST_CONNECTION")
-            ?? "database=localhost:/var/firebird/esba_restore.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
+            ?? "database=localhost:/pool/firebird/esba.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
         var factory = new FbConnectionFactory(connectionString);
 
         await using var connection = await factory.CreateOpenConnectionAsync(CancellationToken.None);

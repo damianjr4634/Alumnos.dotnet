@@ -387,3 +387,9 @@ dotnet_naming_style.s_camelcase.required_suffix =
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
+
+# El folder Components/Shared/ es nombre normativo (migration_improvements.md §1.2).
+# CA1716 marca "Shared" por ser palabra reservada en VB; no aplica (no hay
+# consumidores VB) y el nombre no se puede cambiar sin violar la regla 🔴.
+[src/Esba.Web/Components/Shared/**.cs]
+dotnet_diagnostic.CA1716.severity = none

@@ -5,9 +5,11 @@ using Esba.Application.Features.Academica;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
 using Esba.Application.Validators;
+using Esba.Infrastructure.Excel;
 using Esba.Infrastructure.Persistence;
 using Esba.Infrastructure.Persistence.Repositories;
 using Esba.Infrastructure.Queries;
+using Esba.Infrastructure.Reports;
 using Esba.Infrastructure.Security;
 using Esba.Infrastructure.StoredProcedures;
 using FluentValidation;
@@ -68,6 +70,10 @@ public static class DependencyInjection
         services.AddScoped<InscribirEnMateriaHandler>();
         services.AddScoped<ModificarInscripcionHandler>();
         services.AddScoped<EliminarInscripcionHandler>();
+
+        // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
+        services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
+        services.AddSingleton<IPdfExportService, QuestPdfExportService>();
 
         return services;
     }

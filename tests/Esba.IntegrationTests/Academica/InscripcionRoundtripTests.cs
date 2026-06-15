@@ -22,7 +22,7 @@ public class InscripcionRoundtripTests
 {
     private static string ConnectionString =>
         Environment.GetEnvironmentVariable("ESBA_TEST_CONNECTION")
-        ?? "database=localhost:/var/firebird/esba_restore.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
+        ?? "database=localhost:/pool/firebird/esba.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
 
     private static DbContextOptions<EsbaDbContext> Opciones =>
         new DbContextOptionsBuilder<EsbaDbContext>().UseFirebird(ConnectionString).Options;

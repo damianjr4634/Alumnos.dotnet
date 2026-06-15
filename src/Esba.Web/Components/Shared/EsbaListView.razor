@@ -1,0 +1,215 @@
+@typeparam T
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@inject IExcelExportService Excel
+@inject IPdfExportService Pdf
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@* Componente genérico de listado — sucesor de modulovariable.pas.
+   MudDataGrid server-side (paginación/orden en Firebird) + toolbar estándar con
+   exportación a Excel (ClosedXML) y PDF (QuestPDF). Toda pantalla "Listado de…"
+   lo instancia con su query y columnas (§3.3). Sin lógica de negocio ni SQL. *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">@Titulo</MudText>
+        @if (!string.IsNullOrWhiteSpace(Subtitulo))
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Subtitulo</MudText>
+        }
+    </div>
+    <MudSpacer />
+    @AccionPrimaria
+</div>
+
+@Filtros
+
+<MudPaper Outlined="true" Class="overflow-hidden">
+    <MudDataGrid T="T" @ref="_grilla" ServerData="CargarPagina" Dense="true" Hover="true" Striped="true"
+                 Elevation="0" RowClick="OnFilaClickInterno" RowsPerPage="@RowsPerPage"
+                 RowClassFunc="@((_, _) => OnFilaClick.HasDelegate ? "cursor-pointer" : null)">
+        <ToolBarContent>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@_total registro(s)</MudText>
+            <MudSpacer />
+            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                <MudButton StartIcon="@Icons.Custom.FileFormats.FileExcel" OnClick="ExportarExcel"
+                           Disabled="@_exportando">Excel</MudButton>
+                <MudButton StartIcon="@Icons.Custom.FileFormats.FilePdf" OnClick="ExportarPdf"
+                           Disabled="@_exportando">PDF</MudButton>
+            </MudButtonGroup>
+        </ToolBarContent>
+        <Columns>
+            @foreach (var columna in Columnas)
+            {
+                <TemplateColumn T="T" Title="@columna.Titulo" Sortable="@(columna.ClaveOrden is not null)"
+                                SortBy="@(x => columna.Valor(x) ?? string.Empty)"
+                                HeaderClass="@columna.ClaseResponsive" CellClass="@columna.ClaseResponsive"
+                                CellStyle="@(columna.AlinearDerecha ? "text-align:right" : null)">
+                    <CellTemplate>
+                        @if (columna.Celda is not null)
+                        {
+                            @columna.Celda(context.Item)
+                        }
+                        else
+                        {
+                            @columna.TextoCelda(context.Item)
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+            }
+            @if (AccionesFila is not null)
+            {
+                <TemplateColumn T="T" Title="" Sortable="false">
+                    <CellTemplate>
+                        <div style="white-space:nowrap">@AccionesFila(context.Item)</div>
+                    </CellTemplate>
+                </TemplateColumn>
+            }
+        </Columns>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No hay registros para los filtros seleccionados.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudDataGridPager T="T" RowsPerPageString="Filas por página:" />
+        </PagerContent>
+    </MudDataGrid>
+</MudPaper>
+
+@code {
+    /// <summary>Cap de filas a exportar para no agotar memoria con listados enormes.</summary>
+    private const int MaxFilasExport = 50_000;
+
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+
+    [Parameter] public string? Subtitulo { get; set; }
+
+    [Parameter, EditorRequired] public IReadOnlyList<EsbaColumn<T>> Columnas { get; set; } = [];
+
+    /// <summary>Provee una página de datos desde la query server-side de la pantalla.</summary>
+    [Parameter, EditorRequired] public Func<EsbaListRequest, CancellationToken, Task<PagedResult<T>>> DataProvider { get; set; } = default!;
+
+    /// <summary>Panel de filtros (típicamente un <see cref="EsbaFilterPanel"/>). Opcional.</summary>
+    [Parameter] public RenderFragment? Filtros { get; set; }
+
+    /// <summary>Acción primaria del encabezado (ej. botón "Nueva materia"). Opcional.</summary>
+    [Parameter] public RenderFragment? AccionPrimaria { get; set; }
+
+    /// <summary>Acciones por fila (editar/eliminar). Opcional.</summary>
+    [Parameter] public RenderFragment<T>? AccionesFila { get; set; }
+
+    [Parameter] public EventCallback<T> OnFilaClick { get; set; }
+
+    [Parameter] public int RowsPerPage { get; set; } = 25;
+
+    /// <summary>Nombre base de los archivos exportados; por defecto, el título.</summary>
+    [Parameter] public string? NombreArchivo { get; set; }
+
+    private MudDataGrid<T>? _grilla;
+    private int _total;
+    private string? _ultimoOrden;
+    private bool _ultimoDesc;
+    private bool _exportando;
+
+    private string NombreArchivoBase =>
+        string.IsNullOrWhiteSpace(NombreArchivo) ? Titulo : NombreArchivo;
+
+    /// <summary>Recarga la grilla (la llama la página cuando cambian los filtros).</summary>
+    public Task RecargarAsync() => _grilla?.ReloadServerData() ?? Task.CompletedTask;
+
+    private async Task<GridData<T>> CargarPagina(GridState<T> estado, CancellationToken ct)
+    {
+        (_ultimoOrden, _ultimoDesc) = ResolverOrden(estado);
+
+        var pagina = await DataProvider(
+            new EsbaListRequest
+            {
+                Skip = estado.Page * estado.PageSize,
+                Take = estado.PageSize,
+                OrdenarPor = _ultimoOrden,
+                Descendente = _ultimoDesc,
+            }, ct);
+
+        _total = pagina.Total;
+        return new GridData<T> { Items = pagina.Items, TotalItems = pagina.Total };
+    }
+
+    /// <summary>
+    /// Mapea la columna ordenada de MudDataGrid a su <see cref="EsbaColumn{T}.ClaveOrden"/>.
+    /// Se matchea por título (identificador de la columna template); si no matchea,
+    /// cae al orden por defecto de la query sin romper.
+    /// </summary>
+    private (string? Orden, bool Descendente) ResolverOrden(GridState<T> estado)
+    {
+        var sort = estado.SortDefinitions.FirstOrDefault();
+        if (sort is null)
+        {
+            return (null, false);
+        }
+
+        var columna = Columnas.FirstOrDefault(c => c.ClaveOrden is not null
+            && (string.Equals(c.Titulo, sort.SortBy, StringComparison.Ordinal)
+                || string.Equals(c.ClaveOrden, sort.SortBy, StringComparison.Ordinal)));
+
+        return columna is null ? (null, false) : (columna.ClaveOrden, sort.Descending);
+    }
+
+    private async Task<IReadOnlyList<T>> ObtenerTodasLasFilas()
+    {
+        var pagina = await DataProvider(
+            new EsbaListRequest { Skip = 0, Take = MaxFilasExport, OrdenarPor = _ultimoOrden, Descendente = _ultimoDesc },
+            CancellationToken.None);
+
+        if (pagina.Total > pagina.Items.Count)
+        {
+            Snackbar.Add($"Se exportan las primeras {pagina.Items.Count} de {pagina.Total} filas.", Severity.Warning);
+        }
+
+        return pagina.Items;
+    }
+
+    private IReadOnlyList<ColumnaExportable<T>> ColumnasExportables() =>
+        Columnas.Where(c => c.Exportable).Select(c => c.AColumnaExportable()).ToList();
+
+    private async Task ExportarExcel()
+    {
+        _exportando = true;
+        try
+        {
+            var filas = await ObtenerTodasLasFilas();
+            var bytes = Excel.Exportar(filas, ColumnasExportables(), Titulo);
+            await Descargar($"{NombreArchivoBase}.xlsx", bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        finally
+        {
+            _exportando = false;
+        }
+    }
+
+    private async Task ExportarPdf()
+    {
+        _exportando = true;
+        try
+        {
+            var filas = await ObtenerTodasLasFilas();
+            var bytes = Pdf.ExportarTabla(filas, ColumnasExportables(), Titulo);
+            await Descargar($"{NombreArchivoBase}.pdf", bytes, "application/pdf");
+        }
+        finally
+        {
+            _exportando = false;
+        }
+    }
+
+    private async Task Descargar(string nombre, byte[] contenido, string tipoMime) =>
+        await JS.InvokeVoidAsync("esbaDescargarArchivo", nombre, Convert.ToBase64String(contenido), tipoMime);
+
+    private async Task OnFilaClickInterno(DataGridRowClickEventArgs<T> args)
+    {
+        if (OnFilaClick.HasDelegate)
+        {
+            await OnFilaClick.InvokeAsync(args.Item);
+        }
+    }
+}

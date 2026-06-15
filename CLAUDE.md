@@ -77,7 +77,7 @@ Decisiones del rediseño visual (2026-06-12). Toda pantalla nueva las respeta; c
 
 - **Fuentes legacy**: `Esba.Delphi XE2/ESBA/` (solo lectura — referencia, jamás se modifican).
 - **Solución destino**: `Esba.sln` con `src/Esba.Domain`, `src/Esba.Application`, `src/Esba.Infrastructure`, `src/Esba.Web` y `tests/` (estructura definida en `migration_improvements.md` §1.2; si aún no existe, la Fase 1 de fundaciones la crea).
-- **Base de datos**: Firebird; el DDL versionado va en `db/schema/`. Si no está, extraerlo es prerrequisito (ver apéndice de `migration_prompts.md`). Base de desarrollo local: `/var/firebird/esba_restore.gdb` (Firebird 3.0.11, los tests de integración la usan).
+- **Base de datos**: Firebird; el DDL versionado va en `db/schema/`. Si no está, extraerlo es prerrequisito (ver apéndice de `migration_prompts.md`). Base de desarrollo local: `/pool/firebird/esba.gdb` (servida por el Firebird de `/opt/firebird`, los tests de integración la usan; override con la variable `ESBA_TEST_CONNECTION`).
 - **Verificación**: `dotnet build` sin warnings y `dotnet test` en verde antes de dar por terminada cualquier tarea (tests de integración excluibles con `--filter Category!=Integration`).
 
 ## 6. Hoja de ruta de la migración (orden acordado, 2026-06-12)
@@ -93,7 +93,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 2 | **Vertical slice Alumnos**: buscador global (query padrón 1.B) + ficha alta/edición + wrapper `XXX_CAMBIA_DNI_LM` (patrón 2.B canónico) | ✅ 2026-06-12 |
 | 3 | **Académica — modelo de datos** (Etapa 1): `MATERIAS`, `COMARM`, `CURSADA`, `TBL_CUAT/TRIM` | ✅ 2026-06-12 |
 | 4 | **Inscripción de materias** (Académica Etapas 2+3): casos de uso sobre `CURSADA`, pantalla de cursada del alumno, acción en el buscador, wrapper `XXX_NUMCUATANIO`, diálogo Cambiar DNI/LM | ✅ 2026-06-12 |
-| 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ⬜ |
+| 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ✅ 2026-06-15 |
 | 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ⬜ |
 | 7 | **Asistencias**: `TBL_FERIADOS`, carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas | ⬜ |
 | 8 | **Exámenes**: `MESAS`, `PERMEXA` (permisos individuales y masivos), notas de finales, actas (wrapper `XXX_MATERIAS_FINALES`) | ⬜ |
@@ -106,6 +106,8 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 **Deuda transversal registrada** (resolver dentro del hito que la toque, no dejar crecer):
 **inscripción masiva por cuatrimestre** (`ConjuntoClick` → SP `XXX_INSC_CUAT_16032023`, hito 6:
 requiere el patrón de dos fases para FERRCOD=1 — preview con rollback + re-ejecución confirmada)
-· subida/cambio de foto del alumno (hito 5) · descripciones de grupos de menú `CARRE_GRP`
+· subida/cambio de foto del alumno (re-asignada a hito 12: binarios servidos por
+endpoint autenticado, §3.4 ⚪ — quedó fuera del alcance de componentes genéricos del hito 5)
+· descripciones de grupos de menú `CARRE_GRP`
 (hito 12) · normalización de `CURSADA.CONDICION` (hito 13, con el usuario) · preferencia de
 modo claro/oscuro persistida en BD (hito 10).

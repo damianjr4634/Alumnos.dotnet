@@ -1,0 +1,128 @@
+@page "/academica/materias"
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Academica
+@using Esba.Web.Components.Shared
+@using Esba.Web.Seguridad
+@inject IMateriasQuery Materias
+@inject ICarrerasQuery Carreras
+
+<PageTitle>ESBA — Listado de Materias</PageTitle>
+
+@* Primer listado real de Académica que valida EsbaListView + EsbaFilterPanel
+   (hito 5). Sucesora del listado de materias de altamodifmaterias.pas, ahora
+   server-side y con exportación a Excel/PDF. Sin SQL ni lógica de negocio. *@
+
+<EsbaListView T="MateriaListItemDto" @ref="_listado"
+              Titulo="Materias"
+              Subtitulo="Catálogo de materias por carrera"
+              Columnas="_columnas"
+              DataProvider="Cargar"
+              NombreArchivo="Materias">
+    <Filtros>
+        <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+    </Filtros>
+</EsbaListView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private EsbaListView<MateriaListItemDto>? _listado;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+
+    private static readonly PagedResult<MateriaListItemDto> Vacio =
+        new() { Items = [], Total = 0 };
+
+    private readonly IReadOnlyList<EsbaColumn<MateriaListItemDto>> _columnas =
+    [
+        new() { Titulo = "Código", Valor = m => m.Codigo, ClaveOrden = "Codigo" },
+        new() { Titulo = "Sigla", Valor = m => m.Sigla, ClaveOrden = "Sigla" },
+        new() { Titulo = "Nombre", Valor = m => m.Nombre, ClaveOrden = "Nombre" },
+        new()
+        {
+            Titulo = "Cuat.",
+            Valor = m => m.EsAnual == true ? "Anual" : m.Cuatrimestre?.ToString(),
+            ClaveOrden = "Cuatrimestre",
+        },
+        new()
+        {
+            Titulo = "Anual",
+            Valor = m => m.EsAnual ?? false,
+            OcultarEnChico = true,
+            Celda = m =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(m.EsAnual == true ? Color.Info : Color.Default)">@(m.EsAnual == true ? "Sí" : "No")</MudChip>,
+        },
+        new()
+        {
+            Titulo = "Promoción",
+            Valor = m => m.AdmitePromocion ?? false,
+            OcultarEnChico = true,
+            Celda = m =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(m.AdmitePromocion == true ? Color.Success : Color.Default)">@(m.AdmitePromocion == true ? "Sí" : "No")</MudChip>,
+        },
+        new() { Titulo = "Orden", Valor = m => m.Orden, ClaveOrden = "Orden", AlinearDerecha = true, OcultarEnChico = true },
+    ];
+
+    protected override void OnInitialized()
+    {
+        _campos =
+        [
+            new()
+            {
+                Clave = "Carrera",
+                Etiqueta = "Carrera",
+                Tipo = EsbaFilterKind.Seleccion,
+                Obligatorio = true,
+                AnchoMd = 4,
+                OpcionesAsync = CargarCarrerasAsync,
+            },
+            new() { Clave = "Texto", Etiqueta = "Descripción o sigla", Tipo = EsbaFilterKind.Texto, AnchoMd = 3 },
+            new() { Clave = "Cuatrimestre", Etiqueta = "Cuatrimestre", Tipo = EsbaFilterKind.Numero, AnchoMd = 2 },
+            new() { Clave = "Anuales", Etiqueta = "Anuales", Tipo = EsbaFilterKind.Booleano, AnchoMd = 2 },
+            new() { Clave = "Promocion", Etiqueta = "Con promoción", Tipo = EsbaFilterKind.Booleano, AnchoMd = 2 },
+        ];
+    }
+
+    private async Task<IReadOnlyList<EsbaFilterOption>> CargarCarrerasAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        var carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        return carreras.Select(c => new EsbaFilterOption(c.Codigo, $"{c.Codigo} — {c.Nombre}")).ToList();
+    }
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task<PagedResult<MateriaListItemDto>> Cargar(EsbaListRequest req, CancellationToken ct)
+    {
+        // Carrera obligatoria: sin ella no se consulta el catálogo.
+        var carrera = _filtros?.Texto("Carrera");
+        if (carrera is null)
+        {
+            return Vacio;
+        }
+
+        var filtro = new MateriasFiltro
+        {
+            CodigoCarrera = carrera,
+            Texto = _filtros!.Texto("Texto"),
+            Cuatrimestre = _filtros.Numero("Cuatrimestre") is { } c ? (short)c : null,
+            SoloAnuales = _filtros.Booleano("Anuales"),
+            SoloConPromocion = _filtros.Booleano("Promocion"),
+            OrdenarPor = req.OrdenarPor,
+            OrdenDescendente = req.Descendente,
+            Skip = req.Skip,
+            Take = req.Take,
+        };
+
+        return await Materias.BuscarAsync(filtro, ct);
+    }
+}

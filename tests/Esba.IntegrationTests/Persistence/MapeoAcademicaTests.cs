@@ -14,7 +14,7 @@ public class MapeoAcademicaTests
     private static EsbaDbContext CrearContexto()
     {
         var connectionString = Environment.GetEnvironmentVariable("ESBA_TEST_CONNECTION")
-            ?? "database=localhost:/var/firebird/esba_restore.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
+            ?? "database=localhost:/pool/firebird/esba.gdb;user=sysdba;password=masterkey;charset=ISO8859_1";
 
         var options = new DbContextOptionsBuilder<EsbaDbContext>()
             .UseFirebird(connectionString)
