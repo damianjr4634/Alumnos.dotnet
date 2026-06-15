@@ -1,0 +1,209 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Examenes
+@using Esba.Application.Features.Examenes
+@inject IMateriasQuery MateriasQuery
+@inject IDocentesQuery DocentesQuery
+@inject ITipoMesaQuery TipoMesaQuery
+@inject CrearMesaHandler CrearMesa
+@inject ActualizarMesaHandler ActualizarMesa
+@inject ISnackbar Snackbar
+
+@* Alta/modificación de una mesa de examen (sucesor de MesasExamen.pas). Solo
+   binding y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="4" sm="2">
+                <MudNumericField T="int" @bind-Value="_numeroMesa" Label="Mesa Nº" Min="1"
+                                 Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="8" sm="6">
+                <MudSelect T="string" @bind-Value="_codigoMateria" Label="Materia" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var materia in _materias)
+                    {
+                        <MudSelectItem T="string" Value="@materia.Codigo">@($"{materia.Codigo} — {materia.Sigla ?? materia.Nombre}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="string" @bind-Value="_codigoTipo" Label="Tipo de mesa" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var tipo in _tipos)
+                    {
+                        <MudSelectItem T="string" Value="@tipo.Codigo">@($"{tipo.Codigo} — {tipo.Descripcion}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_llamado" Label="Llamado" Min="0" Max="9"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudDatePicker @bind-Date="_fecha" Label="Fecha" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_hora" Label="Hora (ej. 1830)" Min="0" Max="2359"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_aula" Label="Aula" Min="0" Max="99"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="4">
+                <MudSelect T="string" @bind-Value="_titular" Label="Titular" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var d in _docentes)
+                    {
+                        <MudSelectItem T="string" Value="@d.Codigo">@($"{d.Codigo} — {d.Nombre}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudSelect T="string" @bind-Value="_vocal1" Label="Vocal 1" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var d in _docentes)
+                    {
+                        <MudSelectItem T="string" Value="@d.Codigo">@($"{d.Codigo} — {d.Nombre}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudSelect T="string" @bind-Value="_vocal2" Label="Vocal 2" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var d in _docentes)
+                    {
+                        <MudSelectItem T="string" Value="@d.Codigo">@($"{d.Codigo} — {d.Nombre}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="4"><MudNumericField T="int" @bind-Value="_comision1" Label="Comisión 1" Min="0" Max="999" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="4"><MudNumericField T="int" @bind-Value="_comision2" Label="Comisión 2" Min="0" Max="999" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="4"><MudNumericField T="int" @bind-Value="_comision3" Label="Comisión 3" Min="0" Max="999" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            @(EsModificacion ? "Guardar cambios" : "Crear mesa")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carrera { get; set; } = string.Empty;
+
+    [Parameter] public MesaDetailDto? Mesa { get; set; }
+
+    private bool EsModificacion => Mesa is not null;
+
+    private IReadOnlyList<MateriaListItemDto> _materias = [];
+    private IReadOnlyList<DocenteListItemDto> _docentes = [];
+    private IReadOnlyList<TipoMesaDto> _tipos = [];
+
+    private int _numeroMesa;
+    private string? _codigoMateria;
+    private string? _codigoTipo;
+    private int _llamado;
+    private DateTime? _fecha = DateTime.Today;
+    private int _hora;
+    private string? _titular;
+    private string? _vocal1;
+    private string? _vocal2;
+    private int _aula;
+    private int _comision1;
+    private int _comision2;
+    private int _comision3;
+    private bool _guardando;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ct = CancellationToken.None;
+        _materias = await MateriasQuery.ListarPorCarreraAsync(Carrera, ct);
+        _docentes = await DocentesQuery.ListarActivosAsync(ct);
+        _tipos = await TipoMesaQuery.ListarPorCarreraAsync(Carrera, ct);
+
+        if (Mesa is { } m)
+        {
+            _numeroMesa = m.NumeroMesa;
+            _codigoMateria = m.CodigoMateria;
+            _codigoTipo = m.CodigoTipo;
+            _llamado = m.Llamado;
+            _fecha = m.FechaExamen.ToDateTime(TimeOnly.MinValue);
+            _hora = m.Hora;
+            _titular = m.Titular;
+            _vocal1 = m.Vocal1;
+            _vocal2 = m.Vocal2;
+            _aula = m.Aula;
+            _comision1 = m.Comision1;
+            _comision2 = m.Comision2;
+            _comision3 = m.Comision3;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(_codigoMateria) || string.IsNullOrWhiteSpace(_codigoTipo))
+        {
+            _error = "Seleccione materia y tipo de mesa.";
+            return;
+        }
+        if (_fecha is null)
+        {
+            _error = "Seleccione la fecha del examen.";
+            return;
+        }
+
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var usuario = (await EstadoAutenticacion!).User.Identity?.Name ?? "desconocido";
+            var fecha = DateOnly.FromDateTime(_fecha.Value);
+
+            var resultado = EsModificacion
+                ? await ActualizarMesa.HandleAsync(new ActualizarMesaCommand
+                {
+                    CodigoCarrera = Carrera, NumeroMesa = _numeroMesa, CodigoMateria = _codigoMateria,
+                    Llamado = _llamado, FechaExamen = fecha, Hora = _hora, Titular = _titular,
+                    Vocal1 = _vocal1, Vocal2 = _vocal2, Aula = _aula,
+                    Comision1 = _comision1, Comision2 = _comision2, Comision3 = _comision3, CodigoTipo = _codigoTipo,
+                }, usuario, CancellationToken.None)
+                : await CrearMesa.HandleAsync(new CrearMesaCommand
+                {
+                    CodigoCarrera = Carrera, NumeroMesa = _numeroMesa, CodigoMateria = _codigoMateria,
+                    Llamado = _llamado, FechaExamen = fecha, Hora = _hora, Titular = _titular,
+                    Vocal1 = _vocal1, Vocal2 = _vocal2, Aula = _aula,
+                    Comision1 = _comision1, Comision2 = _comision2, Comision3 = _comision3, CodigoTipo = _codigoTipo,
+                }, usuario, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(EsModificacion ? "Mesa actualizada." : "Mesa creada.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

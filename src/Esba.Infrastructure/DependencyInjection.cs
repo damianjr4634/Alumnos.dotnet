@@ -2,10 +2,12 @@ using Esba.Application.Abstractions;
 using Esba.Application.DTOs.Academica;
 using Esba.Application.DTOs.Alumnos;
 using Esba.Application.DTOs.Asistencias;
+using Esba.Application.DTOs.Examenes;
 using Esba.Application.Features.Academica;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
 using Esba.Application.Features.Asistencias;
+using Esba.Application.Features.Examenes;
 using Esba.Application.Validators;
 using Esba.Infrastructure.Excel;
 using Esba.Infrastructure.Persistence;
@@ -110,8 +112,16 @@ public static class DependencyInjection
         services.AddScoped<IPaseLibreProcedure, PaseLibreProcedure>();
         services.AddScoped<PasarMateriasALibreHandler>();
 
-        // Exámenes: mesas (hito 8, increment 1).
+        // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();
+        services.AddScoped<ITipoMesaQuery, TipoMesaQuery>();
+        services.AddScoped<IMesaRepository, MesaRepository>();
+        services.AddScoped<IValidoMesaProcedure, ValidoMesaProcedure>();
+        services.AddScoped<IValidator<CrearMesaCommand>, CrearMesaValidator>();
+        services.AddScoped<IValidator<ActualizarMesaCommand>, ActualizarMesaValidator>();
+        services.AddScoped<CrearMesaHandler>();
+        services.AddScoped<ActualizarMesaHandler>();
+        services.AddScoped<EliminarMesaHandler>();
 
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();

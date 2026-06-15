@@ -6,6 +6,9 @@
 @using Esba.Web.Seguridad
 @inject IMesasQuery Mesas
 @inject ICarrerasQuery Carreras
+@inject Esba.Application.Features.Examenes.EliminarMesaHandler EliminarMesa
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>ESBA — Mesas de Examen</PageTitle>
 
@@ -18,10 +21,15 @@
               Subtitulo="Mesas por carrera"
               Columnas="_columnas"
               DataProvider="Cargar"
-              NombreArchivo="Mesas-examen">
+              NombreArchivo="Mesas-examen"
+              AccionesFila="_accionesFila">
     <Filtros>
         <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
     </Filtros>
+    <AccionPrimaria>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NuevaMesa">Nueva mesa</MudButton>
+    </AccionPrimaria>
 </EsbaListView>
 
 @code {
@@ -44,6 +52,13 @@
         new() { Titulo = "Titular", Valor = m => m.Titular, OcultarEnChico = true },
         new() { Titulo = "Comisiones", Valor = m => Comisiones(m), OcultarEnChico = true },
     ];
+
+    private RenderFragment<MesaListItemDto> _accionesFila => mesa =>@<div style="white-space:nowrap">
+        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar mesa"
+                       OnClick="@(() => EditarMesa(mesa))" />
+        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                       aria-label="Eliminar mesa" OnClick="@(() => EliminarMesaClick(mesa))" />
+    </div>;
 
     protected override void OnInitialized()
     {
@@ -94,6 +109,73 @@
         };
 
         return await Mesas.BuscarAsync(filtro, ct);
+    }
+
+    private async Task NuevaMesa()
+    {
+        var carrera = _filtros?.Texto("Carrera");
+        if (carrera is null)
+        {
+            Snackbar.Add("Elegí una carrera y tocá Buscar antes de dar de alta una mesa.", MudBlazor.Severity.Info);
+            return;
+        }
+
+        await AbrirDialogo(carrera, null);
+    }
+
+    private async Task EditarMesa(MesaListItemDto mesa)
+    {
+        var detalle = await Mesas.ObtenerDetalleAsync(mesa.CodigoCarrera, mesa.NumeroMesa, CancellationToken.None);
+        if (detalle is null)
+        {
+            Snackbar.Add("La mesa ya no existe.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        await AbrirDialogo(mesa.CodigoCarrera, detalle);
+    }
+
+    private async Task AbrirDialogo(string carrera, MesaDetailDto? mesa)
+    {
+        var parametros = new DialogParameters<MesaFormDialog>
+        {
+            { d => d.Carrera, carrera },
+            { d => d.Mesa, mesa },
+        };
+
+        var dialogo = await DialogService.ShowAsync<MesaFormDialog>(
+            mesa is null ? "Nueva mesa" : $"Mesa {mesa.NumeroMesa}", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false } && _listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task EliminarMesaClick(MesaListItemDto mesa)
+    {
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Eliminar mesa",
+            $"¿Eliminar la mesa Nº {mesa.NumeroMesa} de {mesa.SiglaMateria ?? mesa.CodigoMateria}?",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var resultado = await EliminarMesa.HandleAsync(mesa.CodigoCarrera, mesa.NumeroMesa, CancellationToken.None);
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Mesa eliminada.", MudBlazor.Severity.Success);
+            if (_listado is not null)
+            {
+                await _listado.RecargarAsync();
+            }
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo eliminar.", MudBlazor.Severity.Error);
+        }
     }
 
     private static string Comisiones(MesaListItemDto m) =>

@@ -11,4 +11,7 @@ public interface IMesasQuery
     /// (server-side, §3.2). Join a MATERIAS y MESA_TIPO como el legacy.
     /// </summary>
     Task<PagedResult<MesaListItemDto>> BuscarAsync(MesasFiltro filtro, CancellationToken ct);
+
+    /// <summary>Mesa completa para precargar el formulario de edición; null si no existe.</summary>
+    Task<MesaDetailDto?> ObtenerDetalleAsync(string codigoCarrera, int numeroMesa, CancellationToken ct);
 }

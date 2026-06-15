@@ -88,6 +88,32 @@ public sealed class MesasQuery : IMesasQuery
         return new PagedResult<MesaListItemDto> { Items = items.AsList(), Total = total };
     }
 
+    public async Task<MesaDetailDto?> ObtenerDetalleAsync(string codigoCarrera, int numeroMesa, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT TRIM(CARRE)   AS CodigoCarrera,
+                   MESA          AS NumeroMesa,
+                   TRIM(COD_MAT) AS CodigoMateria,
+                   COALESCE(LLAMADO, 0) AS Llamado,
+                   FECH_EXA      AS FechaExamen,
+                   COALESCE(HORA, 0)  AS Hora,
+                   TRIM(TITULAR) AS Titular,
+                   TRIM(VOCAL1)  AS Vocal1,
+                   TRIM(VOCAL2)  AS Vocal2,
+                   COALESCE(AULA, 0)  AS Aula,
+                   COALESCE(COMI1, 0) AS Comision1,
+                   COALESCE(COMI2, 0) AS Comision2,
+                   COALESCE(COMI3, 0) AS Comision3,
+                   TRIM(TIPMES)  AS CodigoTipo
+            FROM MESAS
+            WHERE CARRE = @Carre AND MESA = @Mesa
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        return await connection.QueryFirstOrDefaultAsync<MesaDetailDto>(new CommandDefinition(
+            sql, new { Carre = codigoCarrera, Mesa = numeroMesa }, cancellationToken: ct)).ConfigureAwait(false);
+    }
+
     private static string ArmarWhere(MesasFiltro filtro, DynamicParameters parametros)
     {
         var condiciones = new List<string> { "M.CARRE = @Carre" };
