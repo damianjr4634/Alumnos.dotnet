@@ -15,5 +15,8 @@ public interface IPermisosExamenRepository
 
     Task InsertarAsync(CrearPermisoExamenCommand permiso, CancellationToken ct);
 
+    /// <summary>Inserta varios permisos en una sola transacción (carga masiva). Devuelve la cantidad insertada.</summary>
+    Task<int> InsertarVariosAsync(IReadOnlyList<CrearPermisoExamenCommand> permisos, CancellationToken ct);
+
     Task<int> EliminarAsync(string codigoCarrera, string codigoAlumno, string codigoMateria, CancellationToken ct);
 }

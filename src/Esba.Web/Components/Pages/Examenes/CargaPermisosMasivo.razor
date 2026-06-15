@@ -1,0 +1,284 @@
+@page "/examenes/permisos-masivo"
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.DTOs.Carreras
+@using Esba.Application.DTOs.Examenes
+@using Esba.Application.Features.Examenes
+@using Esba.Web.Seguridad
+@inject ICarrerasQuery Carreras
+@inject IAlumnosQuery AlumnosQuery
+@inject IMateriasFinalesProcedure MateriasFinales
+@inject IMesasQuery Mesas
+@inject GuardarPermisosMasivoHandler Guardar
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Carga Masiva de Permisos</PageTitle>
+
+@* Carga masiva de permisos de examen (sucesora de CargadePermisosMasivo.pas).
+   Una carrera por vez: se arma una lista de (alumno → materia que puede rendir
+   vía XXX_MATERIAS_FINALES → mesa) y se graba en bloque. Sin SQL ni lógica de
+   negocio (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Carga masiva de permisos</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Una carrera por vez</MudText>
+    </div>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+               Disabled="@(_pendientes.Count == 0 || _guardando)" OnClick="GrabarTodos">
+        Grabar @_pendientes.Count permiso(s)
+    </MudButton>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="string" Value="_carrera" ValueChanged="CambiarCarrera" Label="Carrera"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var c in _carreras)
+                {
+                    <MudSelectItem T="string" Value="@c.Codigo">@($"{c.Codigo} — {c.Nombre}")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (_carrera is not null)
+    {
+        <MudGrid Spacing="2" Class="align-center mt-2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudAutocomplete T="AlumnoListItemDto" Label="Alumno" Value="_alumnoSel" ValueChanged="SeleccionarAlumno"
+                                 SearchFunc="BuscarAlumno" ToStringFunc="@(a => a is null ? "" : $"{a.Apellido}, {a.Nombre} ({a.Codigo})")"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="MateriaFinalDto" Value="_materiaSel" ValueChanged="SeleccionarMateria" Label="Materia (puede rendir)"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(_finales.Count == 0)">
+                    @foreach (var m in _finales)
+                    {
+                        <MudSelectItem T="MateriaFinalDto" Value="@m">@($"{m.CodigoMateria} — {m.Materia}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="8" sm="4" md="3">
+                <MudSelect T="MesaListItemDto" @bind-Value="_mesaSel" Label="Mesa"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(_mesas.Count == 0)">
+                    @foreach (var mesa in _mesas)
+                    {
+                        <MudSelectItem T="MesaListItemDto" Value="@mesa">@($"Nº {mesa.NumeroMesa} — llam. {mesa.Llamado} — {mesa.FechaExamen:dd/MM/yyyy}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="4" sm="3" md="1">
+                <MudNumericField T="int" @bind-Value="_numeroPermiso" Label="Permiso Nº" Min="0"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="5" md="2" Class="d-flex align-center">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@(_alumnoSel is null || _materiaSel is null || _mesaSel is null)" OnClick="Agregar">
+                    Agregar
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    }
+</MudPaper>
+
+<MudPaper Outlined="true">
+    <MudTable T="PendienteVm" Items="_pendientes" Dense="true" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Alumno</MudTh>
+            <MudTh>Materia</MudTh>
+            <MudTh>Mesa</MudTh>
+            <MudTh>Permiso</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Alumno">@context.Nombre (@context.CodigoAlumno)</MudTd>
+            <MudTd DataLabel="Materia">@context.CodigoMateria — @context.Materia</MudTd>
+            <MudTd DataLabel="Mesa">@context.Mesa</MudTd>
+            <MudTd DataLabel="Permiso">@(context.NumeroPermiso == 0 ? "" : context.NumeroPermiso.ToString())</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               aria-label="Quitar" OnClick="@(() => _pendientes.Remove(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText Class="pa-4 mud-text-secondary">Agregá permisos a la lista.</MudText></NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private IReadOnlyList<AlumnoListItemDto> _alumnos = [];
+    private IReadOnlyList<MateriaFinalDto> _finales = [];
+    private IReadOnlyList<MesaListItemDto> _mesas = [];
+    private readonly List<PendienteVm> _pendientes = [];
+
+    private string? _carrera;
+    private AlumnoListItemDto? _alumnoSel;
+    private MateriaFinalDto? _materiaSel;
+    private MesaListItemDto? _mesaSel;
+    private int _numeroPermiso;
+    private bool _guardando;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private async Task CambiarCarrera(string? carrera)
+    {
+        _carrera = carrera;
+        _alumnoSel = null; _materiaSel = null; _mesaSel = null;
+        _finales = []; _mesas = [];
+        _alumnos = [];
+        if (carrera is null)
+        {
+            return;
+        }
+
+        var usuario = (await EstadoAutenticacion!).User;
+        var pagina = await AlumnosQuery.BuscarPadronAsync(new PadronAlumnosFiltro
+        {
+            CodigoCarrera = carrera,
+            EsSupervisor = usuario.EsSupervisor(),
+            CodigoUsuario = usuario.CodigoUsuario(),
+            Take = 5000,
+        }, CancellationToken.None);
+        _alumnos = pagina.Items;
+    }
+
+    private Task<IEnumerable<AlumnoListItemDto>> BuscarAlumno(string? texto, CancellationToken ct)
+    {
+        IEnumerable<AlumnoListItemDto> resultado = string.IsNullOrWhiteSpace(texto)
+            ? _alumnos.Take(50)
+            : _alumnos.Where(a =>
+                (a.Apellido?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (a.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || a.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)).Take(50);
+        return Task.FromResult(resultado);
+    }
+
+    private async Task SeleccionarAlumno(AlumnoListItemDto? alumno)
+    {
+        _alumnoSel = alumno;
+        _materiaSel = null; _mesaSel = null; _mesas = [];
+        _finales = [];
+        if (alumno is null || _carrera is null)
+        {
+            return;
+        }
+
+        var todas = await MateriasFinales.ListarAsync(alumno.Codigo, _carrera, CancellationToken.None);
+        _finales = todas.Where(m => m.PuedeRendir).ToList();
+    }
+
+    private async Task SeleccionarMateria(MateriaFinalDto? materia)
+    {
+        _materiaSel = materia;
+        _mesaSel = null; _mesas = [];
+        if (materia is null || _carrera is null)
+        {
+            return;
+        }
+
+        var pagina = await Mesas.BuscarAsync(new MesasFiltro
+        {
+            CodigoCarrera = _carrera,
+            CodigoMateria = materia.CodigoMateria,
+            Take = 100,
+        }, CancellationToken.None);
+        _mesas = pagina.Items;
+    }
+
+    private void Agregar()
+    {
+        if (_alumnoSel is null || _materiaSel is null || _mesaSel is null)
+        {
+            return;
+        }
+
+        if (_pendientes.Any(p => p.CodigoAlumno == _alumnoSel.Codigo && p.CodigoMateria == _materiaSel.CodigoMateria && p.Mesa == _mesaSel.NumeroMesa))
+        {
+            Snackbar.Add("Ese permiso ya está en la lista.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        _pendientes.Add(new PendienteVm
+        {
+            CodigoAlumno = _alumnoSel.Codigo,
+            Nombre = $"{_alumnoSel.Apellido}, {_alumnoSel.Nombre}",
+            Apellido = _alumnoSel.Apellido,
+            CodigoMateria = _materiaSel.CodigoMateria,
+            Materia = _materiaSel.Materia,
+            Cutuco = _materiaSel.Cutuco ?? 0,
+            Mesa = _mesaSel.NumeroMesa,
+            NumeroPermiso = _numeroPermiso,
+        });
+
+        _materiaSel = null; _mesaSel = null; _mesas = []; _numeroPermiso = 0;
+    }
+
+    private async Task GrabarTodos()
+    {
+        if (_carrera is null || _pendientes.Count == 0)
+        {
+            return;
+        }
+
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        _guardando = true;
+        try
+        {
+            var permisos = _pendientes.Select(p => new CrearPermisoExamenCommand
+            {
+                CodigoCarrera = _carrera,
+                CodigoAlumno = p.CodigoAlumno,
+                Apellido = p.Apellido,
+                NumeroPermiso = p.NumeroPermiso == 0 ? null : p.NumeroPermiso,
+                Mesa = p.Mesa,
+                Cutuco = p.Cutuco,
+                CodigoMateria = p.CodigoMateria,
+                CodigoUsuario = codusu.Value,
+            }).ToList();
+
+            var resultado = await Guardar.HandleAsync(permisos, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add($"{resultado.Value} permiso(s) grabado(s).", MudBlazor.Severity.Success);
+                _pendientes.Clear();
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudieron grabar.", MudBlazor.Severity.Error);
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private sealed class PendienteVm
+    {
+        public required string CodigoAlumno { get; init; }
+        public required string Nombre { get; init; }
+        public string? Apellido { get; init; }
+        public required string CodigoMateria { get; init; }
+        public string? Materia { get; init; }
+        public int Cutuco { get; init; }
+        public int Mesa { get; init; }
+        public int NumeroPermiso { get; init; }
+    }
+}

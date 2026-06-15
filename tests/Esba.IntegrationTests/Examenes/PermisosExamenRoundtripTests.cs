@@ -15,6 +15,7 @@ namespace Esba.IntegrationTests.Examenes;
 public class PermisosExamenRoundtripTests
 {
     private const string AlumnoPrueba = "TESTPERM001";
+    private const string AlumnoPrueba2 = "TESTPERM002";
 
     private static string ConnectionString =>
         Environment.GetEnvironmentVariable("ESBA_TEST_CONNECTION")
@@ -97,6 +98,43 @@ public class PermisosExamenRoundtripTests
         finally
         {
             await LimpiarAsync(carrera);
+        }
+    }
+
+    [Fact]
+    public async Task Permexa_InsertarVarios_InsertaEnBloque()
+    {
+        var ct = CancellationToken.None;
+
+        await using var conn = await Factory.CreateOpenConnectionAsync(ct);
+        var mesa = await conn.QueryFirstOrDefaultAsync<(string Carre, int Mesa, string CodMat)?>(
+            "SELECT FIRST 1 TRIM(CARRE), MESA, TRIM(COD_MAT) FROM MESAS WHERE COD_MAT IS NOT NULL ORDER BY CARRE, MESA");
+        if (mesa is null)
+        {
+            return;
+        }
+
+        var (carrera, numeroMesa, codMat) = mesa.Value;
+        await LimpiarAsync(carrera);
+        var repo = new PermisosExamenRepository(Factory);
+
+        try
+        {
+            var permisos = new List<CrearPermisoExamenCommand>
+            {
+                new() { CodigoCarrera = carrera, CodigoAlumno = AlumnoPrueba, Mesa = numeroMesa, Cutuco = 111, CodigoMateria = codMat, CodigoUsuario = 1 },
+                new() { CodigoCarrera = carrera, CodigoAlumno = AlumnoPrueba2, Mesa = numeroMesa, Cutuco = 111, CodigoMateria = codMat, CodigoUsuario = 1 },
+            };
+
+            var insertados = await repo.InsertarVariosAsync(permisos, ct);
+            Assert.Equal(2, insertados);
+        }
+        finally
+        {
+            await LimpiarAsync(carrera);
+            await using var ctx = CrearContexto();
+            await ctx.Database.GetDbConnection().ExecuteAsync(
+                "DELETE FROM PERMEXA WHERE COD_ALU=@A AND CARRE=@C", new { A = AlumnoPrueba2, C = carrera });
         }
     }
 }

@@ -12,6 +12,11 @@ namespace Esba.Infrastructure.Persistence.Repositories;
 /// </summary>
 public sealed class PermisosExamenRepository : IPermisosExamenRepository
 {
+    private const string SqlInsert = """
+        INSERT INTO PERMEXA (PERM_EXA, MESA, COD_ALU, APELLIDO, CUTUCO, CARRE, COD_MAT, FECH_EMI, USUARIO)
+        VALUES (@PermExa, @Mesa, @CodAlu, @Apellido, @Cutuco, @Carre, @CodMat, CURRENT_DATE, @Usuario)
+        """;
+
     private readonly FbConnectionFactory _connectionFactory;
 
     public PermisosExamenRepository(FbConnectionFactory connectionFactory)
@@ -64,14 +69,9 @@ public sealed class PermisosExamenRepository : IPermisosExamenRepository
 
     public async Task InsertarAsync(CrearPermisoExamenCommand permiso, CancellationToken ct)
     {
-        const string sql = """
-            INSERT INTO PERMEXA (PERM_EXA, MESA, COD_ALU, APELLIDO, CUTUCO, CARRE, COD_MAT, FECH_EMI, USUARIO)
-            VALUES (@PermExa, @Mesa, @CodAlu, @Apellido, @Cutuco, @Carre, @CodMat, CURRENT_DATE, @Usuario)
-            """;
-
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
         await connection.ExecuteAsync(new CommandDefinition(
-            sql,
+            SqlInsert,
             new
             {
                 PermExa = permiso.NumeroPermiso,
@@ -84,6 +84,48 @@ public sealed class PermisosExamenRepository : IPermisosExamenRepository
                 Usuario = permiso.CodigoUsuario.ToString(System.Globalization.CultureInfo.InvariantCulture),
             },
             cancellationToken: ct)).ConfigureAwait(false);
+    }
+
+    public async Task<int> InsertarVariosAsync(IReadOnlyList<CrearPermisoExamenCommand> permisos, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(permisos);
+        if (permisos.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        await using var transaccion = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var insertados = 0;
+            foreach (var permiso in permisos)
+            {
+                insertados += await connection.ExecuteAsync(new CommandDefinition(
+                    SqlInsert,
+                    new
+                    {
+                        PermExa = permiso.NumeroPermiso,
+                        Mesa = permiso.Mesa,
+                        CodAlu = permiso.CodigoAlumno,
+                        Apellido = permiso.Apellido,
+                        Cutuco = permiso.Cutuco,
+                        Carre = permiso.CodigoCarrera,
+                        CodMat = permiso.CodigoMateria,
+                        Usuario = permiso.CodigoUsuario.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    },
+                    transaction: transaccion,
+                    cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            await transaccion.CommitAsync(ct).ConfigureAwait(false);
+            return insertados;
+        }
+        catch
+        {
+            await transaccion.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task<int> EliminarAsync(string codigoCarrera, string codigoAlumno, string codigoMateria, CancellationToken ct)

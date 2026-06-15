@@ -129,6 +129,7 @@ public static class DependencyInjection
         services.AddScoped<IValidator<CrearPermisoExamenCommand>, CrearPermisoExamenValidator>();
         services.AddScoped<CrearPermisoExamenHandler>();
         services.AddScoped<EliminarPermisoExamenHandler>();
+        services.AddScoped<GuardarPermisosMasivoHandler>();
 
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
