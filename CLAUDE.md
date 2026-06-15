@@ -96,12 +96,13 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ✅ 2026-06-15 |
 | 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ✅ 2026-06-15 |
 | 7 | **Asistencias**: carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas, pase a LIBRE (`TBL_FERIADOS` no existe en el esquema; el legacy no usa feriados) | ✅ 2026-06-15 |
-| 8 | **Exámenes**: `MESAS`, `PERMEXA` (permisos individuales y masivos), notas de finales, actas (wrapper `XXX_MATERIAS_FINALES`) | ⬜ |
+| 8 | **Exámenes — ABM de mesas + permisos**: ABM `MESAS` (wrapper `XXX_VALIDO_MESA`), `PERMEXA` permisos individuales y masivos (wrapper `XXX_MATERIAS_FINALES`). **Notas de finales y actas DIFERIDAS** (hito 14, por decisión 2026-06-15) | ✅ 2026-06-15 |
 | 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias | ⬜ |
 | 10 | **Administración**: ABM usuarios y permisos, cambio de contraseña forzado (`CAMPASS`) y blanqueo, profesores, configuración, correo por comisión (MailKit) | ⬜ |
 | 11 | **Integración Web** (inscripciones/permisos web): confirmar vigencia con el usuario antes de migrar | ⬜ |
 | 12 | **Endurecimiento para producción**: usuario Firebird de mínimos privilegios + secretos fuera del repo, políticas de autorización por área (mapa de `BARRA_OPC`), validación de sesión única en middleware, Serilog completo, deploy | ⬜ |
 | 13 | **Fase 5 — retiro de SPs `XXX_*`**: portar PSQL a C# con tests de equivalencia, un SP por vez (empezar por los de mayor riesgo/uso) | ⬜ |
+| 14 | **Notas de finales y actas** (diferido del hito 8): carga de notas de final por mesa/comisión y actas (mesas, A-REGULAR, reincorporación). ⚠️ `XXX_CARGA_FINAL` lee de la tabla staging compartida `"$$$PERMEXA"` (estado global por usuario, anti-patrón §2.3): decidir entre portar el cálculo de condición/analítico a C# (preferido) o replicar el staging con `// TODO-migrar` | ⬜ |
 
 **Deuda transversal registrada** (resolver dentro del hito que la toque, no dejar crecer):
 subida/cambio de foto del alumno (re-asignada a hito 12: binarios servidos por
