@@ -1,0 +1,101 @@
+@page "/examenes/mesas"
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Examenes
+@using Esba.Web.Components.Shared
+@using Esba.Web.Seguridad
+@inject IMesasQuery Mesas
+@inject ICarrerasQuery Carreras
+
+<PageTitle>ESBA — Mesas de Examen</PageTitle>
+
+@* Listado de mesas de examen (sucesor de MesasExamen.pas, parte de lectura).
+   Server-side con exportación (hito 5). El ABM es el sub-paso siguiente del hito
+   8. Sin SQL ni lógica de negocio (§2.1). *@
+
+<EsbaListView T="MesaListItemDto" @ref="_listado"
+              Titulo="Mesas de examen"
+              Subtitulo="Mesas por carrera"
+              Columnas="_columnas"
+              DataProvider="Cargar"
+              NombreArchivo="Mesas-examen">
+    <Filtros>
+        <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+    </Filtros>
+</EsbaListView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private EsbaListView<MesaListItemDto>? _listado;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+
+    private static readonly PagedResult<MesaListItemDto> Vacio = new() { Items = [], Total = 0 };
+
+    private readonly IReadOnlyList<EsbaColumn<MesaListItemDto>> _columnas =
+    [
+        new() { Titulo = "Mesa", Valor = m => m.NumeroMesa, ClaveOrden = "NumeroMesa", AlinearDerecha = true },
+        new() { Titulo = "Materia", Valor = m => $"{m.CodigoMateria} — {m.SiglaMateria}", ClaveOrden = "SiglaMateria" },
+        new() { Titulo = "Llam.", Valor = m => m.Llamado, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Fecha", Valor = m => m.FechaExamen, Formato = "dd/MM/yyyy", ClaveOrden = "FechaExamen" },
+        new() { Titulo = "Hora", Valor = m => m.Hora, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Tipo", Valor = m => m.DescripcionTipo, OcultarEnChico = true },
+        new() { Titulo = "Titular", Valor = m => m.Titular, OcultarEnChico = true },
+        new() { Titulo = "Comisiones", Valor = m => Comisiones(m), OcultarEnChico = true },
+    ];
+
+    protected override void OnInitialized()
+    {
+        _campos =
+        [
+            new()
+            {
+                Clave = "Carrera", Etiqueta = "Carrera", Tipo = EsbaFilterKind.Seleccion, Obligatorio = true,
+                AnchoMd = 4, OpcionesAsync = CargarCarrerasAsync,
+            },
+            new() { Clave = "Texto", Etiqueta = "Materia (sigla o descripción)", Tipo = EsbaFilterKind.Texto, AnchoMd = 4 },
+        ];
+    }
+
+    private async Task<IReadOnlyList<EsbaFilterOption>> CargarCarrerasAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        var carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        return carreras.Select(c => new EsbaFilterOption(c.Codigo, $"{c.Codigo} — {c.Nombre}")).ToList();
+    }
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task<PagedResult<MesaListItemDto>> Cargar(EsbaListRequest req, CancellationToken ct)
+    {
+        var carrera = _filtros?.Texto("Carrera");
+        if (carrera is null)
+        {
+            return Vacio;
+        }
+
+        var filtro = new MesasFiltro
+        {
+            CodigoCarrera = carrera,
+            Texto = _filtros!.Texto("Texto"),
+            OrdenarPor = req.OrdenarPor,
+            OrdenDescendente = req.Descendente,
+            Skip = req.Skip,
+            Take = req.Take,
+        };
+
+        return await Mesas.BuscarAsync(filtro, ct);
+    }
+
+    private static string Comisiones(MesaListItemDto m) =>
+        string.Join(", ", new[] { m.Comision1, m.Comision2, m.Comision3 }.Where(c => c is > 0));
+}

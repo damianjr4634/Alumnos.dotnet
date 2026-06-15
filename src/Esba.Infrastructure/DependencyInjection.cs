@@ -110,6 +110,9 @@ public static class DependencyInjection
         services.AddScoped<IPaseLibreProcedure, PaseLibreProcedure>();
         services.AddScoped<PasarMateriasALibreHandler>();
 
+        // Exámenes: mesas (hito 8, increment 1).
+        services.AddScoped<IMesasQuery, MesasQuery>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();

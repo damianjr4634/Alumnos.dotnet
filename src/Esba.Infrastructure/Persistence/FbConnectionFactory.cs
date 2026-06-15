@@ -1,3 +1,5 @@
+using System.Data;
+using Dapper;
 using FirebirdSql.Data.FirebirdClient;
 
 namespace Esba.Infrastructure.Persistence;
@@ -10,6 +12,14 @@ namespace Esba.Infrastructure.Persistence;
 public sealed class FbConnectionFactory
 {
     private readonly string _connectionString;
+
+    static FbConnectionFactory()
+    {
+        // Firebird devuelve DATE como DateTime; este handler permite proyectar a
+        // DateOnly en queries y wrappers Dapper. Se registra una sola vez (todas
+        // las lecturas Dapper pasan por esta fábrica, también en los tests).
+        SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+    }
 
     public FbConnectionFactory(string connectionString)
     {
@@ -28,6 +38,17 @@ public sealed class FbConnectionFactory
         {
             await connection.DisposeAsync().ConfigureAwait(false);
             throw;
+        }
+    }
+
+    private sealed class DateOnlyTypeHandler : SqlMapper.TypeHandler<DateOnly>
+    {
+        public override DateOnly Parse(object value) => DateOnly.FromDateTime((DateTime)value);
+
+        public override void SetValue(IDbDataParameter parameter, DateOnly value)
+        {
+            parameter.DbType = DbType.Date;
+            parameter.Value = value.ToDateTime(TimeOnly.MinValue);
         }
     }
 }
