@@ -36,6 +36,8 @@ else
                 </MudText>
             </div>
             <MudSpacer />
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PlaylistAddCheck"
+                       Class="mr-2" OnClick="InscribirCuatrimestre">Inscribir cuatrimestre</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="NuevaInscripcion">Nueva inscripción</MudButton>
         </div>
@@ -135,6 +137,23 @@ else
         "LIBRE" => Color.Error,
         _ => Color.Default,
     };
+
+    private async Task InscribirCuatrimestre()
+    {
+        var parametros = new DialogParameters<InscripcionMasivaDialog>
+        {
+            { d => d.Carre, Carre },
+            { d => d.CodigoAlumno, Codigo },
+            { d => d.CuatrimestreAnioDefault, _cuatrimestreDefault },
+        };
+
+        var dialogo = await DialogService.ShowAsync<InscripcionMasivaDialog>("Inscribir cuatrimestre completo", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+        {
+            await RecargarCursada();
+        }
+    }
 
     private async Task NuevaInscripcion() => await AbrirDialogo(null);
 

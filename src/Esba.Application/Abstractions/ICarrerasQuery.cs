@@ -13,4 +13,10 @@ public interface ICarrerasQuery
     /// null = supervisor (ve todas); si no, solo las habilitadas en BARRA_SEGU.
     /// </summary>
     Task<IReadOnlyList<CarreraListItemDto>> ListarParaMenuAsync(IReadOnlyCollection<string>? codigosPermitidos, CancellationToken ct);
+
+    /// <summary>
+    /// Instituto (INSTITUT) y característica (CARACT) de la carrera, que se copian
+    /// a CURSADA al inscribir. null si la carrera no existe.
+    /// </summary>
+    Task<(string? Instituto, string? Caracteristica)?> ObtenerDatosInscripcionAsync(string codigoCarrera, CancellationToken ct);
 }

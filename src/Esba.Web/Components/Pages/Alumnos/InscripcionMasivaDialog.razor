@@ -1,0 +1,157 @@
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@using Esba.Domain.Common
+@using Esba.Web.Seguridad
+@inject InscribirCuatrimestreCompletoHandler Inscribir
+@inject ISnackbar Snackbar
+
+@* Inscripción masiva por cuatrimestre (deuda hito 6). Dos fases: primero
+   "Previsualizar" (corre el SP y descarta) muestra qué se inscribiría y los
+   errores; recién con "Confirmar" se persiste. Solo binding y llamadas a
+   Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            Inscribe al alumno en todas las materias del cuatrimestre del curso indicado.
+        </MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="6">
+                <MudNumericField T="int" @bind-Value="_curso" Label="Curso (CUTUCO, 3 díg.)" Min="100" Max="999"
+                                 Disabled="@_confirmado" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudTextField @bind-Value="_cuaAnio" Label="Cuat/Año (ej. 124)" MaxLength="3"
+                              Disabled="@_confirmado" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+
+        @if (_preview is not null)
+        {
+            <MudAlert Severity="@SeveridadPreview" Dense="true" Class="mt-3" Style="white-space:pre-line">@_preview</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Disabled="@_procesando" OnClick="Previsualizar">Previsualizar</MudButton>
+        @if (_puedeConfirmar)
+        {
+            <MudButton Color="Color.Secondary" Variant="Variant.Filled" Disabled="@_procesando" OnClick="Confirmar">
+                Confirmar inscripción
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string CodigoAlumno { get; set; } = string.Empty;
+
+    [Parameter] public string? CuatrimestreAnioDefault { get; set; }
+
+    private int _curso;
+    private string _cuaAnio = string.Empty;
+    private string? _preview;
+    private OperationStatus _previewStatus;
+    private bool _puedeConfirmar;
+    private bool _confirmado;
+    private bool _procesando;
+
+    private Severity SeveridadPreview => _previewStatus switch
+    {
+        OperationStatus.Error => MudBlazor.Severity.Error,
+        OperationStatus.NeedsConfirmation => MudBlazor.Severity.Warning,
+        OperationStatus.Warning => MudBlazor.Severity.Info,
+        _ => MudBlazor.Severity.Success,
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(_cuaAnio) && CuatrimestreAnioDefault is { Length: 3 })
+        {
+            _cuaAnio = CuatrimestreAnioDefault;
+        }
+    }
+
+    private async Task<InscribirCuatrimestreCompletoCommand?> ArmarComandoAsync()
+    {
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            _preview = "No se pudo determinar el usuario logueado.";
+            _previewStatus = OperationStatus.Error;
+            _puedeConfirmar = false;
+            return null;
+        }
+
+        return new InscribirCuatrimestreCompletoCommand
+        {
+            CodigoCarrera = Carre,
+            CodigoAlumno = CodigoAlumno,
+            Curso = (short)_curso,
+            CuatrimestreAnio = _cuaAnio,
+            CodigoUsuario = codusu.Value,
+        };
+    }
+
+    private async Task Previsualizar()
+    {
+        _procesando = true;
+        try
+        {
+            var comando = await ArmarComandoAsync();
+            if (comando is null)
+            {
+                return;
+            }
+
+            var resultado = await Inscribir.PrevisualizarAsync(comando, CancellationToken.None);
+            _preview = string.IsNullOrWhiteSpace(resultado.Message)
+                ? "Sin materias para inscribir en este cuatrimestre."
+                : resultado.Message;
+            _previewStatus = resultado.Status;
+            // Se puede confirmar salvo que haya error duro.
+            _puedeConfirmar = resultado.Status != OperationStatus.Error;
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task Confirmar()
+    {
+        _procesando = true;
+        try
+        {
+            var comando = await ArmarComandoAsync();
+            if (comando is null)
+            {
+                return;
+            }
+
+            var resultado = await Inscribir.ConfirmarAsync(comando, CancellationToken.None);
+            if (resultado.IsSuccess || resultado.Status == OperationStatus.NeedsConfirmation)
+            {
+                _confirmado = true;
+                Snackbar.Add("Inscripción masiva realizada.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _preview = resultado.Message;
+                _previewStatus = resultado.Status;
+                _puedeConfirmar = false;
+            }
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}

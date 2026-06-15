@@ -94,7 +94,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 3 | **Académica — modelo de datos** (Etapa 1): `MATERIAS`, `COMARM`, `CURSADA`, `TBL_CUAT/TRIM` | ✅ 2026-06-12 |
 | 4 | **Inscripción de materias** (Académica Etapas 2+3): casos de uso sobre `CURSADA`, pantalla de cursada del alumno, acción en el buscador, wrapper `XXX_NUMCUATANIO`, diálogo Cambiar DNI/LM | ✅ 2026-06-12 |
 | 5 | **Componentes genéricos** (`EsbaListView` + `EsbaFilterPanel` + export Excel/PDF con ClosedXML/QuestPDF), validados con un listado real de Académica — desbloquean todas las pantallas "Listado de…" | ✅ 2026-06-15 |
-| 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ⬜ |
+| 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ✅ 2026-06-15 |
 | 7 | **Asistencias**: `TBL_FERIADOS`, carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas | ⬜ |
 | 8 | **Exámenes**: `MESAS`, `PERMEXA` (permisos individuales y masivos), notas de finales, actas (wrapper `XXX_MATERIAS_FINALES`) | ⬜ |
 | 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias | ⬜ |
@@ -104,9 +104,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 13 | **Fase 5 — retiro de SPs `XXX_*`**: portar PSQL a C# con tests de equivalencia, un SP por vez (empezar por los de mayor riesgo/uso) | ⬜ |
 
 **Deuda transversal registrada** (resolver dentro del hito que la toque, no dejar crecer):
-**inscripción masiva por cuatrimestre** (`ConjuntoClick` → SP `XXX_INSC_CUAT_16032023`, hito 6:
-requiere el patrón de dos fases para FERRCOD=1 — preview con rollback + re-ejecución confirmada)
-· subida/cambio de foto del alumno (re-asignada a hito 12: binarios servidos por
+subida/cambio de foto del alumno (re-asignada a hito 12: binarios servidos por
 endpoint autenticado, §3.4 ⚪ — quedó fuera del alcance de componentes genéricos del hito 5)
 · descripciones de grupos de menú `CARRE_GRP`
 (hito 12) · normalización de `CURSADA.CONDICION` (hito 13, con el usuario) · preferencia de

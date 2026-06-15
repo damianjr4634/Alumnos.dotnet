@@ -88,6 +88,11 @@ public static class DependencyInjection
         services.AddScoped<ActualizarComisionHandler>();
         services.AddScoped<EliminarComisionHandler>();
 
+        // Académica: inscripción masiva por cuatrimestre (deuda hito 6, dos fases).
+        services.AddScoped<IInscripcionMasivaCuatrimestreProcedure, InscripcionMasivaCuatrimestreProcedure>();
+        services.AddScoped<IValidator<InscribirCuatrimestreCompletoCommand>, InscribirCuatrimestreCompletoValidator>();
+        services.AddScoped<InscribirCuatrimestreCompletoHandler>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();
