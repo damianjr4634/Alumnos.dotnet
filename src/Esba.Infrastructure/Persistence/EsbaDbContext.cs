@@ -24,6 +24,8 @@ public class EsbaDbContext : DbContext
 
     public DbSet<Docente> Docentes => Set<Docente>();
 
+    public DbSet<TipoFalta> TiposFalta => Set<TipoFalta>();
+
     public DbSet<Cursada> Cursadas => Set<Cursada>();
 
     public DbSet<CicloCuatrimestral> CiclosCuatrimestrales => Set<CicloCuatrimestral>();

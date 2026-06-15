@@ -93,6 +93,11 @@ public static class DependencyInjection
         services.AddScoped<IValidator<InscribirCuatrimestreCompletoCommand>, InscribirCuatrimestreCompletoValidator>();
         services.AddScoped<InscribirCuatrimestreCompletoHandler>();
 
+        // Asistencias: lectura (hito 7, increment 1).
+        services.AddScoped<ITipoFaltasQuery, TipoFaltasQuery>();
+        services.AddScoped<IFaltasComisionProcedure, FaltasComisionProcedure>();
+        services.AddScoped<IFaltasAlumnoProcedure, FaltasAlumnoProcedure>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();
