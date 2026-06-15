@@ -14,4 +14,10 @@ public interface IMateriasQuery
     /// (server-side: paginación y orden resueltos en Firebird, §3.2).
     /// </summary>
     Task<PagedResult<MateriaListItemDto>> BuscarAsync(MateriasFiltro filtro, CancellationToken ct);
+
+    /// <summary>
+    /// Materia completa para precargar el formulario de edición; las correlativas
+    /// vienen ya separadas en listas. null si no existe.
+    /// </summary>
+    Task<MateriaDetailDto?> ObtenerDetalleAsync(string codigoCarrera, string codigo, CancellationToken ct);
 }

@@ -18,4 +18,10 @@ public sealed record MateriaListItemDto
     public bool? AdmitePromocion { get; init; }
 
     public short? Orden { get; init; }
+
+    /// <summary>ESTADO CHAR(1): 'B' = dada de baja, 'Y'/otro = activa (legacy altamodifmaterias).</summary>
+    public string? Estado { get; init; }
+
+    /// <summary>Conveniencia para la UI: la materia está dada de baja.</summary>
+    public bool DadaDeBaja => string.Equals(Estado?.Trim(), "B", StringComparison.OrdinalIgnoreCase);
 }

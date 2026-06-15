@@ -71,6 +71,12 @@ public static class DependencyInjection
         services.AddScoped<ModificarInscripcionHandler>();
         services.AddScoped<EliminarInscripcionHandler>();
 
+        // Académica: ABM de materias (hito 6).
+        services.AddScoped<IValidator<CrearMateriaCommand>, CrearMateriaValidator>();
+        services.AddScoped<IValidator<ActualizarMateriaCommand>, ActualizarMateriaValidator>();
+        services.AddScoped<CrearMateriaHandler>();
+        services.AddScoped<ActualizarMateriaHandler>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();

@@ -16,4 +16,6 @@ public sealed class MateriaRepository : IMateriaRepository
     public Task<Materia?> ObtenerAsync(string codigoMateria, string codigoCarrera, CancellationToken ct) =>
         _contexto.Materias.FirstOrDefaultAsync(
             m => m.Codigo == codigoMateria && m.CodigoCarrera == codigoCarrera, ct);
+
+    public void Agregar(Materia materia) => _contexto.Materias.Add(materia);
 }

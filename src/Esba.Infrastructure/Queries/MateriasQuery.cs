@@ -16,7 +16,8 @@ public sealed class MateriasQuery : IMateriasQuery
                CUATRIM         AS Cuatrimestre,
                IIF(ANUAL = 'S', TRUE, FALSE)     AS EsAnual,
                IIF(PROMOCION = 'S', TRUE, FALSE) AS AdmitePromocion,
-               ORDEN           AS Orden
+               ORDEN           AS Orden,
+               TRIM(ESTADO)    AS Estado
         FROM MATERIAS
         """;
 
@@ -121,7 +122,84 @@ public sealed class MateriasQuery : IMateriasQuery
             parametros.Add("Promocion", promocion ? "S" : "N");
         }
 
+        if (filtro.DadaDeBaja is { } baja)
+        {
+            // ESTADO='B' es baja; cualquier otro valor (incl. NULL) es activa.
+            condiciones.Add(baja ? "ESTADO = 'B'" : "(ESTADO IS NULL OR ESTADO <> 'B')");
+        }
+
         return "WHERE " + string.Join(" AND ", condiciones);
+    }
+
+    public async Task<MateriaDetailDto?> ObtenerDetalleAsync(string codigoCarrera, string codigo, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT TRIM(CODMATERI) AS Codigo,
+                   TRIM(CODCARRE)  AS CodigoCarrera,
+                   TRIM(DESCRIPCI) AS Nombre,
+                   TRIM(SIGLA)     AS Sigla,
+                   CUATRIM         AS Cuatrimestre,
+                   ORDEN           AS Orden,
+                   ANUAL           AS Anual,
+                   PROMOCION       AS Promocion,
+                   APRSFINAL       AS AprSinFinal,
+                   TRIM(EQUIVALE)  AS Equivale,
+                   TRIM(CORRELATIV) AS CorrelativasCursada,
+                   TRIM(CORREFINAL) AS CorrelativasFinal,
+                   TRIM(ESTADO)    AS Estado
+            FROM MATERIAS
+            WHERE CODCARRE = @Carre AND CODMATERI = @Codigo
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        var fila = await connection.QueryFirstOrDefaultAsync<DetalleRow>(new CommandDefinition(
+            sql, new { Carre = codigoCarrera, Codigo = codigo }, cancellationToken: ct)).ConfigureAwait(false);
+
+        if (fila is null)
+        {
+            return null;
+        }
+
+        return new MateriaDetailDto
+        {
+            Codigo = fila.Codigo,
+            CodigoCarrera = fila.CodigoCarrera,
+            Nombre = fila.Nombre,
+            Sigla = fila.Sigla,
+            Cuatrimestre = fila.Cuatrimestre ?? 0,
+            Orden = fila.Orden ?? 0,
+            EsAnual = fila.Anual == "S",
+            AdmitePromocion = fila.Promocion == "S",
+            ApruebaSinFinal = fila.AprSinFinal == "S",
+            CodigoEquivalencia = string.IsNullOrWhiteSpace(fila.Equivale) ? null : fila.Equivale,
+            CorrelativasCursada = SepararCodigos(fila.CorrelativasCursada),
+            CorrelativasFinal = SepararCodigos(fila.CorrelativasFinal),
+            DadaDeBaja = fila.Estado == "B",
+        };
+    }
+
+    /// <summary>Separa los códigos unidos por '-' (formato CORRELATIV/CORREFINAL legacy).</summary>
+    private static string[] SepararCodigos(string? unidos) =>
+        string.IsNullOrWhiteSpace(unidos)
+            ? []
+            : unidos.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>Fila cruda del detalle; los CHAR(1) llegan como 'S'/'N'/'B'.</summary>
+    private sealed record DetalleRow
+    {
+        public string Codigo { get; init; } = string.Empty;
+        public string CodigoCarrera { get; init; } = string.Empty;
+        public string? Nombre { get; init; }
+        public string? Sigla { get; init; }
+        public short? Cuatrimestre { get; init; }
+        public short? Orden { get; init; }
+        public string? Anual { get; init; }
+        public string? Promocion { get; init; }
+        public string? AprSinFinal { get; init; }
+        public string? Equivale { get; init; }
+        public string? CorrelativasCursada { get; init; }
+        public string? CorrelativasFinal { get; init; }
+        public string? Estado { get; init; }
     }
 
     /// <summary>Orden estable a partir de la whitelist; cae al orden por defecto.</summary>

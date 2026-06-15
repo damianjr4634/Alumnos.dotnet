@@ -6,22 +6,29 @@
 @using Esba.Web.Seguridad
 @inject IMateriasQuery Materias
 @inject ICarrerasQuery Carreras
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>ESBA — Listado de Materias</PageTitle>
 
-@* Primer listado real de Académica que valida EsbaListView + EsbaFilterPanel
-   (hito 5). Sucesora del listado de materias de altamodifmaterias.pas, ahora
-   server-side y con exportación a Excel/PDF. Sin SQL ni lógica de negocio. *@
+@* Listado + ABM de materias (sucesora de altamodifmaterias.pas). El listado es
+   server-side con exportación (hito 5); el alta/edición usa MateriaFormDialog
+   (hito 6). Sin SQL ni lógica de negocio (§2.1). *@
 
 <EsbaListView T="MateriaListItemDto" @ref="_listado"
               Titulo="Materias"
               Subtitulo="Catálogo de materias por carrera"
               Columnas="_columnas"
               DataProvider="Cargar"
-              NombreArchivo="Materias">
+              NombreArchivo="Materias"
+              AccionesFila="_accionesFila">
     <Filtros>
         <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
     </Filtros>
+    <AccionPrimaria>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NuevaMateria">Nueva materia</MudButton>
+    </AccionPrimaria>
 </EsbaListView>
 
 @code {
@@ -62,7 +69,18 @@
                 Color="@(m.AdmitePromocion == true ? Color.Success : Color.Default)">@(m.AdmitePromocion == true ? "Sí" : "No")</MudChip>,
         },
         new() { Titulo = "Orden", Valor = m => m.Orden, ClaveOrden = "Orden", AlinearDerecha = true, OcultarEnChico = true },
+        new()
+        {
+            Titulo = "Estado",
+            Valor = m => m.DadaDeBaja ? "Baja" : "Activa",
+            Celda = m =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(m.DadaDeBaja ? Color.Error : Color.Success)">@(m.DadaDeBaja ? "Baja" : "Activa")</MudChip>,
+        },
     ];
+
+    private RenderFragment<MateriaListItemDto> _accionesFila => materia =>@<MudIconButton
+        Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar materia"
+        OnClick="@(() => EditarMateria(materia))" />;
 
     protected override void OnInitialized()
     {
@@ -81,6 +99,7 @@
             new() { Clave = "Cuatrimestre", Etiqueta = "Cuatrimestre", Tipo = EsbaFilterKind.Numero, AnchoMd = 2 },
             new() { Clave = "Anuales", Etiqueta = "Anuales", Tipo = EsbaFilterKind.Booleano, AnchoMd = 2 },
             new() { Clave = "Promocion", Etiqueta = "Con promoción", Tipo = EsbaFilterKind.Booleano, AnchoMd = 2 },
+            new() { Clave = "Baja", Etiqueta = "Dada de baja", Tipo = EsbaFilterKind.Booleano, AnchoMd = 2 },
         ];
     }
 
@@ -117,6 +136,7 @@
             Cuatrimestre = _filtros.Numero("Cuatrimestre") is { } c ? (short)c : null,
             SoloAnuales = _filtros.Booleano("Anuales"),
             SoloConPromocion = _filtros.Booleano("Promocion"),
+            DadaDeBaja = _filtros.Booleano("Baja"),
             OrdenarPor = req.OrdenarPor,
             OrdenDescendente = req.Descendente,
             Skip = req.Skip,
@@ -124,5 +144,46 @@
         };
 
         return await Materias.BuscarAsync(filtro, ct);
+    }
+
+    private async Task NuevaMateria()
+    {
+        var carrera = _filtros?.Texto("Carrera");
+        if (carrera is null)
+        {
+            Snackbar.Add("Elegí una carrera y tocá Buscar antes de dar de alta una materia.", MudBlazor.Severity.Info);
+            return;
+        }
+
+        await AbrirDialogo(carrera, null);
+    }
+
+    private async Task EditarMateria(MateriaListItemDto materia)
+    {
+        var detalle = await Materias.ObtenerDetalleAsync(materia.CodigoCarrera, materia.Codigo, CancellationToken.None);
+        if (detalle is null)
+        {
+            Snackbar.Add("La materia ya no existe.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        await AbrirDialogo(materia.CodigoCarrera, detalle);
+    }
+
+    private async Task AbrirDialogo(string carrera, MateriaDetailDto? materia)
+    {
+        var parametros = new DialogParameters<MateriaFormDialog>
+        {
+            { d => d.Carrera, carrera },
+            { d => d.Materia, materia },
+        };
+
+        var dialogo = await DialogService.ShowAsync<MateriaFormDialog>(
+            materia is null ? "Nueva materia" : $"Materia {materia.Codigo}", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false } && _listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
     }
 }

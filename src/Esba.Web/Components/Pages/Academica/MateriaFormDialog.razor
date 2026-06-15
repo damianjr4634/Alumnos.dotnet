@@ -1,0 +1,203 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@inject IMateriasQuery MateriasQuery
+@inject CrearMateriaHandler CrearMateria
+@inject ActualizarMateriaHandler ActualizarMateria
+@inject ISnackbar Snackbar
+
+@* Alta/modificación de una materia (sucesor del formulario único de
+   altamodifmaterias.pas). Las correlativas, que el legacy editaba con dos
+   listboxes y botones de transferencia, son acá dos multiselects. Solo binding
+   y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="4" sm="2">
+                <MudTextField @bind-Value="_codigo" Label="Código" Required="true" MaxLength="2"
+                              Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="8" sm="7">
+                <MudTextField @bind-Value="_nombre" Label="Descripción" Required="true" MaxLength="60"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_sigla" Label="Sigla" Required="true" MaxLength="30"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_cuatrimestre" Label="Cuatrimestre" Min="1" Max="99"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_orden" Label="Orden" Min="0" Max="999"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" @bind-Value="_equivalencia" Label="Equivalencia" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var materia in OtrasMaterias)
+                    {
+                        <MudSelectItem T="string" Value="@materia.Codigo">@Etiqueta(materia)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" MultiSelection="true" @bind-SelectedValues="_correlativasCursada"
+                           Label="Correlativas para cursar" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           MultiSelectionTextFunc="@(s => $"{s.Count} materia(s)")">
+                    @foreach (var materia in OtrasMaterias)
+                    {
+                        <MudSelectItem T="string" Value="@materia.Codigo">@Etiqueta(materia)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" MultiSelection="true" @bind-SelectedValues="_correlativasFinal"
+                           Label="Correlativas para rendir final" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           MultiSelectionTextFunc="@(s => $"{s.Count} materia(s)")">
+                    @foreach (var materia in OtrasMaterias)
+                    {
+                        <MudSelectItem T="string" Value="@materia.Codigo">@Etiqueta(materia)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex flex-wrap gap-4 mt-2">
+                <MudSwitch T="bool" @bind-Value="_anual" Label="Anual" Color="Color.Primary" />
+                <MudSwitch T="bool" @bind-Value="_promocion" Label="Promoción" Color="Color.Primary" />
+                <MudSwitch T="bool" @bind-Value="_aprSinFinal" Label="Aprueba sin final" Color="Color.Primary" />
+                <MudSpacer />
+                <MudSwitch T="bool" @bind-Value="_baja" Label="Dada de baja" Color="Color.Error" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            @(EsModificacion ? "Guardar cambios" : "Crear materia")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carrera { get; set; } = string.Empty;
+
+    /// <summary>Materia a editar; null = alta.</summary>
+    [Parameter] public MateriaDetailDto? Materia { get; set; }
+
+    private bool EsModificacion => Materia is not null;
+
+    private IReadOnlyList<MateriaListItemDto> _materias = [];
+    private IEnumerable<MateriaListItemDto> OtrasMaterias =>
+        _materias.Where(m => !EsModificacion || m.Codigo != Materia!.Codigo);
+
+    private string _codigo = string.Empty;
+    private string? _nombre;
+    private string? _sigla;
+    private int _cuatrimestre = 1;
+    private int _orden;
+    private string? _equivalencia;
+    private IReadOnlyCollection<string> _correlativasCursada = new HashSet<string>();
+    private IReadOnlyCollection<string> _correlativasFinal = new HashSet<string>();
+    private bool _anual;
+    private bool _promocion;
+    private bool _aprSinFinal;
+    private bool _baja;
+    private bool _guardando;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _materias = await MateriasQuery.ListarPorCarreraAsync(Carrera, CancellationToken.None);
+
+        if (Materia is { } m)
+        {
+            _codigo = m.Codigo;
+            _nombre = m.Nombre;
+            _sigla = m.Sigla;
+            _cuatrimestre = m.Cuatrimestre;
+            _orden = m.Orden;
+            _equivalencia = m.CodigoEquivalencia;
+            _correlativasCursada = new HashSet<string>(m.CorrelativasCursada);
+            _correlativasFinal = new HashSet<string>(m.CorrelativasFinal);
+            _anual = m.EsAnual;
+            _promocion = m.AdmitePromocion;
+            _aprSinFinal = m.ApruebaSinFinal;
+            _baja = m.DadaDeBaja;
+        }
+    }
+
+    private static string Etiqueta(MateriaListItemDto m) => $"{m.Codigo} — {m.Sigla ?? m.Nombre}";
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var usuario = (await EstadoAutenticacion!).User.Identity?.Name ?? "desconocido";
+            var cursada = _correlativasCursada.ToList();
+            var final = _correlativasFinal.ToList();
+
+            var resultado = EsModificacion
+                ? await ActualizarMateria.HandleAsync(new ActualizarMateriaCommand
+                {
+                    CodigoCarrera = Carrera,
+                    Codigo = _codigo,
+                    Nombre = _nombre,
+                    Sigla = _sigla,
+                    Cuatrimestre = (short)_cuatrimestre,
+                    Orden = (short)_orden,
+                    EsAnual = _anual,
+                    AdmitePromocion = _promocion,
+                    ApruebaSinFinal = _aprSinFinal,
+                    CodigoEquivalencia = _equivalencia,
+                    CorrelativasCursada = cursada,
+                    CorrelativasFinal = final,
+                    DadaDeBaja = _baja,
+                }, usuario, CancellationToken.None)
+                : await CrearMateria.HandleAsync(new CrearMateriaCommand
+                {
+                    CodigoCarrera = Carrera,
+                    Codigo = _codigo,
+                    Nombre = _nombre,
+                    Sigla = _sigla,
+                    Cuatrimestre = (short)_cuatrimestre,
+                    Orden = (short)_orden,
+                    EsAnual = _anual,
+                    AdmitePromocion = _promocion,
+                    ApruebaSinFinal = _aprSinFinal,
+                    CodigoEquivalencia = _equivalencia,
+                    CorrelativasCursada = cursada,
+                    CorrelativasFinal = final,
+                    DadaDeBaja = _baja,
+                }, usuario, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(EsModificacion ? "Materia actualizada." : "Materia creada.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

@@ -158,6 +158,50 @@ public class MateriasQueryTests
     }
 
     [Fact]
+    public async Task ObtenerDetalle_DeUnaMateriaReal_DevuelveSusDatos()
+    {
+        var ct = CancellationToken.None;
+        var carrera = await CarreraConMateriasAsync(ct);
+        var query = CrearQuery();
+
+        var referencia = (await query.ListarPorCarreraAsync(carrera, ct))[0];
+
+        var detalle = await query.ObtenerDetalleAsync(carrera, referencia.Codigo, ct);
+
+        Assert.NotNull(detalle);
+        Assert.Equal(referencia.Codigo, detalle!.Codigo);
+        Assert.Equal(carrera, detalle.CodigoCarrera);
+        Assert.Equal(referencia.EsAnual ?? false, detalle.EsAnual);
+    }
+
+    [Fact]
+    public async Task ObtenerDetalle_MateriaInexistente_DevuelveNull()
+    {
+        var ct = CancellationToken.None;
+        var carrera = await CarreraConMateriasAsync(ct);
+
+        var detalle = await CrearQuery().ObtenerDetalleAsync(carrera, "ZZ", ct);
+
+        Assert.Null(detalle);
+    }
+
+    [Fact]
+    public async Task Buscar_FiltroDadaDeBaja_RespetaElEstado()
+    {
+        var ct = CancellationToken.None;
+        var carrera = await CarreraConMateriasAsync(ct);
+        var query = CrearQuery();
+
+        var activas = await query.BuscarAsync(
+            new MateriasFiltro { CodigoCarrera = carrera, DadaDeBaja = false, Take = 1000 }, ct);
+        var bajas = await query.BuscarAsync(
+            new MateriasFiltro { CodigoCarrera = carrera, DadaDeBaja = true, Take = 1000 }, ct);
+
+        Assert.All(activas.Items, m => Assert.False(m.DadaDeBaja));
+        Assert.All(bajas.Items, m => Assert.True(m.DadaDeBaja));
+    }
+
+    [Fact]
     public async Task Buscar_FiltroCuatrimestre_SoloDevuelveEseCuatrimestre()
     {
         var ct = CancellationToken.None;

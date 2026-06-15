@@ -22,6 +22,9 @@ public sealed record MateriasFiltro
     /// <summary>true = solo con promoción, false = solo sin promoción, null = todas.</summary>
     public bool? SoloConPromocion { get; init; }
 
+    /// <summary>true = solo dadas de baja (ESTADO='B'), false = solo activas, null = todas.</summary>
+    public bool? DadaDeBaja { get; init; }
+
     /// <summary>Campo de orden (whitelist en la query); null = orden por defecto.</summary>
     public string? OrdenarPor { get; init; }
 
