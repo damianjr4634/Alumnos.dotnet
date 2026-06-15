@@ -80,6 +80,13 @@ public static class DependencyInjection
         // Académica: comisiones y docentes (hito 6).
         services.AddScoped<IComisionesQuery, ComisionesQuery>();
         services.AddScoped<IDocentesQuery, DocentesQuery>();
+        services.AddScoped<IComisionRepository, ComisionRepository>();
+        services.AddScoped<IValidoComisionProcedure, ValidoComisionProcedure>();
+        services.AddScoped<IValidator<CrearComisionCommand>, CrearComisionValidator>();
+        services.AddScoped<IValidator<ActualizarComisionCommand>, ActualizarComisionValidator>();
+        services.AddScoped<CrearComisionHandler>();
+        services.AddScoped<ActualizarComisionHandler>();
+        services.AddScoped<EliminarComisionHandler>();
 
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();

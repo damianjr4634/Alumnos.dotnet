@@ -2,6 +2,7 @@ using Dapper;
 using Esba.Application.Abstractions;
 using Esba.Application.Common;
 using Esba.Application.DTOs.Academica;
+using Esba.Domain.Academica;
 using Esba.Infrastructure.Persistence;
 
 namespace Esba.Infrastructure.Queries;
@@ -115,6 +116,70 @@ public sealed class ComisionesQuery : IComisionesQuery
         }
 
         return "WHERE " + string.Join(" AND ", condiciones);
+    }
+
+    public async Task<ComisionDetailDto?> ObtenerDetalleAsync(
+        string codigoCarrera, short cutuco, string codigoMateria, string cuatrimestreAnio, CancellationToken ct)
+    {
+        var sql = $"""
+            {ColumnasSelect}
+            {FromYJoins}
+            WHERE C.CARRE = @Carre AND C.CUTUCO = @Cutuco AND C.COD_MAT = @CodMat AND C.CUA_ANIO = @CuaAnio
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        var fila = await connection.QueryFirstOrDefaultAsync<ComisionListItemDto>(new CommandDefinition(
+            sql,
+            new { Carre = codigoCarrera, Cutuco = cutuco, CodMat = codigoMateria, CuaAnio = cuatrimestreAnio },
+            cancellationToken: ct)).ConfigureAwait(false);
+
+        if (fila is null)
+        {
+            return null;
+        }
+
+        return new ComisionDetailDto
+        {
+            CodigoCarrera = fila.CodigoCarrera,
+            Cutuco = fila.Cutuco,
+            CodigoMateria = fila.CodigoMateria,
+            SiglaMateria = fila.SiglaMateria,
+            CuatrimestreAnio = fila.CuatrimestreAnio,
+            CodigoProfesor = fila.CodigoProfesor,
+            EsTitular = fila.TitularSuplente?.Trim() == "T",
+            Horario = DecodificarHorario(fila),
+        };
+    }
+
+    /// <summary>Reconstruye las marcas por día desde DIAn/BLOQUEn de la fila.</summary>
+    private static List<HorarioDiaComision> DecodificarHorario(ComisionListItemDto fila)
+    {
+        var pares = new[]
+        {
+            (fila.Dia1, fila.Bloque1),
+            (fila.Dia2, fila.Bloque2),
+            (fila.Dia3, fila.Bloque3),
+        };
+
+        var marcas = new List<HorarioDiaComision>();
+        foreach (var (dia, bloque) in pares)
+        {
+            if (BloqueHorario.EsBlanco(dia) || BloqueHorario.EsBlanco(bloque))
+            {
+                continue;
+            }
+
+            var (primero, segundo, tercero) = BloqueHorario.Decodificar(bloque);
+            marcas.Add(new HorarioDiaComision
+            {
+                Dia = dia!.Trim(),
+                Primero = primero,
+                Segundo = segundo,
+                Tercero = tercero,
+            });
+        }
+
+        return marcas;
     }
 
     private static string ArmarOrderBy(ComisionesFiltro filtro)

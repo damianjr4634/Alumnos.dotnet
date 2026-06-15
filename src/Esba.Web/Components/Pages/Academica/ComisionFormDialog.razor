@@ -1,0 +1,210 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@using Esba.Domain.Academica
+@inject IMateriasQuery MateriasQuery
+@inject IDocentesQuery DocentesQuery
+@inject ICuatrimestreVigenteProcedure CuatrimestreVigente
+@inject CrearComisionHandler CrearComision
+@inject ActualizarComisionHandler ActualizarComision
+@inject ISnackbar Snackbar
+
+@* Alta/modificación de una comisión (sucesor de cargacomisiones.pas). La grilla
+   de días × bloques reemplaza al StringGrid de marcas del legacy; la validación
+   de superposición la hace XXX_VAL_COMISION en el servidor. Solo binding y
+   llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3" Style="white-space:pre-line">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" @bind-Value="_codigoMateria" Label="Materia" Required="true"
+                           Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var materia in _materias)
+                    {
+                        <MudSelectItem T="string" Value="@materia.Codigo">@($"{materia.Codigo} — {materia.Sigla ?? materia.Nombre}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudNumericField T="int" @bind-Value="_cutuco" Label="Comisión (CUTUCO)" Min="1" Max="999"
+                                 Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTextField @bind-Value="_cuaAnio" Label="Cuat/Año (ej. 124)" MaxLength="3"
+                              Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="8">
+                <MudSelect T="string" @bind-Value="_codigoProfesor" Label="Docente" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var docente in _docentes)
+                    {
+                        <MudSelectItem T="string" Value="@docente.Codigo">@($"{docente.Codigo} — {docente.Nombre}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-center">
+                <MudRadioGroup T="bool" @bind-Value="_esTitular">
+                    <MudRadio T="bool" Value="true" Color="Color.Primary">Titular</MudRadio>
+                    <MudRadio T="bool" Value="false" Color="Color.Primary">Suplente</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Class="mb-1">Horario (marcá los bloques de cada día)</MudText>
+                <MudSimpleTable Dense="true" Bordered="true" Striped="true">
+                    <thead>
+                        <tr>
+                            <th>Día</th>
+                            <th class="text-center">1º bloque</th>
+                            <th class="text-center">2º bloque</th>
+                            <th class="text-center">3º bloque</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var dia in _dias)
+                        {
+                            <tr>
+                                <td>@dia.Dia</td>
+                                <td class="text-center"><MudCheckBox T="bool" @bind-Value="dia.Primero" Dense="true" /></td>
+                                <td class="text-center"><MudCheckBox T="bool" @bind-Value="dia.Segundo" Dense="true" /></td>
+                                <td class="text-center"><MudCheckBox T="bool" @bind-Value="dia.Tercero" Dense="true" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            @(EsModificacion ? "Guardar cambios" : "Crear comisión")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carrera { get; set; } = string.Empty;
+
+    /// <summary>Comisión a editar; null = alta.</summary>
+    [Parameter] public ComisionDetailDto? Comision { get; set; }
+
+    private bool EsModificacion => Comision is not null;
+
+    private IReadOnlyList<MateriaListItemDto> _materias = [];
+    private IReadOnlyList<DocenteListItemDto> _docentes = [];
+    private readonly List<DiaMarca> _dias = HorarioComision.Dias.Select(d => new DiaMarca { Dia = d }).ToList();
+
+    private string? _codigoMateria;
+    private int _cutuco;
+    private string _cuaAnio = string.Empty;
+    private string? _codigoProfesor;
+    private bool _esTitular = true;
+    private bool _guardando;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _materias = await MateriasQuery.ListarPorCarreraAsync(Carrera, CancellationToken.None);
+        _docentes = await DocentesQuery.ListarActivosAsync(CancellationToken.None);
+
+        if (Comision is { } c)
+        {
+            _codigoMateria = c.CodigoMateria;
+            _cutuco = c.Cutuco;
+            _cuaAnio = c.CuatrimestreAnio;
+            _codigoProfesor = c.CodigoProfesor;
+            _esTitular = c.EsTitular;
+            foreach (var marca in c.Horario)
+            {
+                var fila = _dias.FirstOrDefault(d => string.Equals(d.Dia, marca.Dia, StringComparison.OrdinalIgnoreCase));
+                if (fila is not null)
+                {
+                    fila.Primero = marca.Primero;
+                    fila.Segundo = marca.Segundo;
+                    fila.Tercero = marca.Tercero;
+                }
+            }
+        }
+        else
+        {
+            _cuaAnio = await CuatrimestreVigente.ObtenerAsync(Carrera, CancellationToken.None) ?? string.Empty;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(_codigoMateria))
+        {
+            _error = "Seleccione la materia.";
+            return;
+        }
+
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var usuario = (await EstadoAutenticacion!).User.Identity?.Name ?? "desconocido";
+            var horario = _dias
+                .Select(d => new HorarioDiaComision { Dia = d.Dia, Primero = d.Primero, Segundo = d.Segundo, Tercero = d.Tercero })
+                .ToList();
+
+            var resultado = EsModificacion
+                ? await ActualizarComision.HandleAsync(new ActualizarComisionCommand
+                {
+                    CodigoCarrera = Carrera,
+                    Cutuco = (short)_cutuco,
+                    CodigoMateria = _codigoMateria,
+                    CuatrimestreAnio = _cuaAnio,
+                    CodigoProfesor = _codigoProfesor,
+                    EsTitular = _esTitular,
+                    Horario = horario,
+                }, usuario, CancellationToken.None)
+                : await CrearComision.HandleAsync(new CrearComisionCommand
+                {
+                    CodigoCarrera = Carrera,
+                    Cutuco = (short)_cutuco,
+                    CodigoMateria = _codigoMateria,
+                    CuatrimestreAnio = _cuaAnio,
+                    CodigoProfesor = _codigoProfesor,
+                    EsTitular = _esTitular,
+                    Horario = horario,
+                }, usuario, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(EsModificacion ? "Comisión actualizada." : "Comisión creada.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private sealed class DiaMarca
+    {
+        public required string Dia { get; init; }
+
+        public bool Primero { get; set; }
+
+        public bool Segundo { get; set; }
+
+        public bool Tercero { get; set; }
+    }
+}

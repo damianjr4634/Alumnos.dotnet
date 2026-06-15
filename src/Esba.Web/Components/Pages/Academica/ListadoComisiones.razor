@@ -7,6 +7,9 @@
 @inject IComisionesQuery Comisiones
 @inject ICarrerasQuery Carreras
 @inject IDocentesQuery Docentes
+@inject Esba.Application.Features.Academica.EliminarComisionHandler EliminarComision
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>ESBA — Listado de Comisiones</PageTitle>
 
@@ -20,10 +23,15 @@
               Subtitulo="Comisiones armadas por carrera y cuatrimestre"
               Columnas="_columnas"
               DataProvider="Cargar"
-              NombreArchivo="Comisiones">
+              NombreArchivo="Comisiones"
+              AccionesFila="_accionesFila">
     <Filtros>
         <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
     </Filtros>
+    <AccionPrimaria>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NuevaComision">Nueva comisión</MudButton>
+    </AccionPrimaria>
 </EsbaListView>
 
 @code {
@@ -52,6 +60,13 @@
                 Color="@(c.TitularSuplente?.Trim() == "T" ? Color.Primary : Color.Default)">@CargoTexto(c.TitularSuplente)</MudChip>,
         },
     ];
+
+    private RenderFragment<ComisionListItemDto> _accionesFila => comision =>@<div style="white-space:nowrap">
+        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar comisión"
+                       OnClick="@(() => EditarComision(comision))" />
+        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                       aria-label="Eliminar comisión" OnClick="@(() => EliminarComisionClick(comision))" />
+    </div>;
 
     protected override void OnInitialized()
     {
@@ -123,6 +138,81 @@
         };
 
         return await Comisiones.BuscarAsync(filtro, ct);
+    }
+
+    private async Task NuevaComision()
+    {
+        var carrera = _filtros?.Texto("Carrera");
+        if (carrera is null)
+        {
+            Snackbar.Add("Elegí una carrera y tocá Buscar antes de dar de alta una comisión.", MudBlazor.Severity.Info);
+            return;
+        }
+
+        await AbrirDialogo(carrera, null);
+    }
+
+    private async Task EditarComision(ComisionListItemDto comision)
+    {
+        var detalle = await Comisiones.ObtenerDetalleAsync(
+            comision.CodigoCarrera, comision.Cutuco, comision.CodigoMateria, comision.CuatrimestreAnio, CancellationToken.None);
+        if (detalle is null)
+        {
+            Snackbar.Add("La comisión ya no existe.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        await AbrirDialogo(comision.CodigoCarrera, detalle);
+    }
+
+    private async Task AbrirDialogo(string carrera, ComisionDetailDto? comision)
+    {
+        var parametros = new DialogParameters<ComisionFormDialog>
+        {
+            { d => d.Carrera, carrera },
+            { d => d.Comision, comision },
+        };
+
+        var dialogo = await DialogService.ShowAsync<ComisionFormDialog>(
+            comision is null ? "Nueva comisión" : $"Comisión {comision.Cutuco} — {comision.CodigoMateria}", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false } && _listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task EliminarComisionClick(ComisionListItemDto comision)
+    {
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Eliminar comisión",
+            $"¿Eliminar la comisión {comision.Cutuco} de {comision.SiglaMateria ?? comision.CodigoMateria} ({FormatearCuaAnio(comision.CuatrimestreAnio)})?",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var resultado = await EliminarComision.HandleAsync(new EliminarComisionCommand
+        {
+            CodigoCarrera = comision.CodigoCarrera,
+            Cutuco = comision.Cutuco,
+            CodigoMateria = comision.CodigoMateria,
+            CuatrimestreAnio = comision.CuatrimestreAnio,
+        }, CancellationToken.None);
+
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Comisión eliminada.", MudBlazor.Severity.Success);
+            if (_listado is not null)
+            {
+                await _listado.RecargarAsync();
+            }
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo eliminar.", MudBlazor.Severity.Error);
+        }
     }
 
     private static string FormatearCuaAnio(string? cuaAnio) =>

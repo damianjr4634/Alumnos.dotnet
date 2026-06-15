@@ -11,4 +11,11 @@ public interface IComisionesQuery
     /// (server-side, §3.2). Hace el join a MATERIAS y DOCENTES como el legacy.
     /// </summary>
     Task<PagedResult<ComisionListItemDto>> BuscarAsync(ComisionesFiltro filtro, CancellationToken ct);
+
+    /// <summary>
+    /// Comisión completa para precargar el formulario de edición, con el horario
+    /// decodificado en marcas por día. null si no existe.
+    /// </summary>
+    Task<ComisionDetailDto?> ObtenerDetalleAsync(
+        string codigoCarrera, short cutuco, string codigoMateria, string cuatrimestreAnio, CancellationToken ct);
 }
