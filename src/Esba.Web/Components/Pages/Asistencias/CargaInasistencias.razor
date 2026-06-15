@@ -1,0 +1,343 @@
+@page "/asistencias/carga"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Asistencias
+@using Esba.Application.DTOs.Carreras
+@using Esba.Application.Features.Asistencias
+@using Esba.Web.Seguridad
+@inject ICarrerasQuery Carreras
+@inject IComisionesQuery Comisiones
+@inject IFaltasComisionProcedure FaltasComision
+@inject IFaltasAlumnoProcedure FaltasAlumno
+@inject ITipoFaltasQuery TipoFaltas
+@inject GuardarInasistenciasComisionHandler Guardar
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Carga de Inasistencias</PageTitle>
+
+@* Carga de inasistencias por comisión (sucesora de
+   CargaInasistenciasComisionNuevo.pas). El calendario por alumno del legacy se
+   moderniza como, por alumno, una lista editable de faltas (fecha restringida a
+   los días de dictado de la comisión + tipo). Sin SQL ni lógica de negocio. *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Carga de inasistencias</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Por comisión y cuatrimestre</MudText>
+    </div>
+    <MudSpacer />
+    @if (_comisionAbierta is not null)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@_guardando" OnClick="GuardarFaltas">Guardar</MudButton>
+    }
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="5" md="4">
+            <MudSelect T="string" @bind-Value="_carrera" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Clearable="true">
+                @foreach (var carrera in _carreras)
+                {
+                    <MudSelectItem T="string" Value="@carrera.Codigo">@($"{carrera.Codigo} — {carrera.Nombre}")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_cuaAnio" Label="Cuat/Año (ej. 124)" MaxLength="3"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="BuscarComisiones"
+                       Disabled="@(string.IsNullOrWhiteSpace(_carrera) || _cuaAnio.Length != 3)">Buscar comisiones</MudButton>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="int?" @bind-Value="_comisionSeleccionada" Label="Comisión" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Disabled="@(_comisiones.Count == 0)">
+                @foreach (var comision in _comisiones)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)comision.Cutuco)">
+                        @($"{comision.Cutuco} — {comision.SiglaMateria ?? comision.CodigoMateria}")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+    @if (_comisiones.Count > 0)
+    {
+        <div class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.FolderOpen"
+                       Disabled="@(_comisionSeleccionada is null)" OnClick="AbrirComision">Abrir comisión</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@if (_cargando)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+}
+else if (_comisionAbierta is not null)
+{
+    <MudPaper Outlined="true" Class="pa-2">
+        @if (_alumnos.Count == 0)
+        {
+            <MudText Class="pa-4 mud-text-secondary">La comisión no tiene alumnos inscriptos.</MudText>
+        }
+        @foreach (var alumno in _alumnos)
+        {
+            <MudExpansionPanel>
+                <TitleContent>
+                    <div class="d-flex align-center gap-2">
+                        <MudText>@alumno.Nombre</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@alumno.Codigo</MudChip>
+                        @if (alumno.Faltas.Count > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
+                                @alumno.Faltas.Count falta(s)
+                            </MudChip>
+                        }
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    <MudSimpleTable Dense="true" Striped="true" Class="mb-2">
+                        <thead>
+                            <tr><th>Fecha</th><th>Tipo</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var falta in alumno.Faltas)
+                            {
+                                <tr>
+                                    <td>@falta.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@falta.Descripcion (@falta.CodigoFalta)</td>
+                                    <td>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       aria-label="Quitar falta" OnClick="@(() => alumno.Faltas.Remove(falta))" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudGrid Spacing="2" Class="align-center">
+                        <MudItem xs="5" sm="4">
+                            <MudDatePicker @bind-Date="alumno.NuevaFecha" Label="Fecha" Variant="Variant.Outlined"
+                                           Margin="Margin.Dense" IsDateDisabledFunc="@DiaNoHabilitado" />
+                        </MudItem>
+                        <MudItem xs="5" sm="5">
+                            <MudSelect T="string" @bind-Value="alumno.NuevoTipo" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                @foreach (var tipo in _tipos)
+                                {
+                                    <MudSelectItem T="string" Value="@tipo.Codigo">@($"{tipo.Codigo} — {tipo.Descripcion}")</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="2" sm="3" Class="d-flex align-center">
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add"
+                                       OnClick="@(() => AgregarFalta(alumno))">Agregar</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private IReadOnlyList<ComisionListItemDto> _comisiones = [];
+    private IReadOnlyList<TipoFaltaDto> _tipos = [];
+    private readonly List<AlumnoVm> _alumnos = [];
+
+    private string? _carrera;
+    private string _cuaAnio = string.Empty;
+    private int? _comisionSeleccionada;
+    private ComisionListItemDto? _comisionAbierta;
+    private HashSet<DayOfWeek> _diasHabilitados = [];
+    private bool _cargando;
+    private bool _guardando;
+
+    private static readonly Dictionary<string, DayOfWeek> DiasSemana = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["LUNES"] = DayOfWeek.Monday,
+        ["MARTES"] = DayOfWeek.Tuesday,
+        ["MIERCOLES"] = DayOfWeek.Wednesday,
+        ["JUEVES"] = DayOfWeek.Thursday,
+        ["VIERNES"] = DayOfWeek.Friday,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private async Task BuscarComisiones()
+    {
+        _comisionAbierta = null;
+        _alumnos.Clear();
+        _comisionSeleccionada = null;
+        var pagina = await Comisiones.BuscarAsync(new ComisionesFiltro
+        {
+            CodigoCarrera = _carrera!,
+            CuatrimestreAnio = _cuaAnio,
+            Take = 500,
+        }, CancellationToken.None);
+        _comisiones = pagina.Items;
+    }
+
+    private async Task AbrirComision()
+    {
+        var comision = _comisiones.FirstOrDefault(c => c.Cutuco == _comisionSeleccionada);
+        if (comision is null)
+        {
+            return;
+        }
+
+        _cargando = true;
+        _comisionAbierta = comision;
+        _alumnos.Clear();
+        _diasHabilitados = new[] { comision.Dia1, comision.Dia2, comision.Dia3 }
+            .Select(d => d?.Trim() ?? string.Empty)
+            .Where(d => DiasSemana.ContainsKey(d))
+            .Select(d => DiasSemana[d])
+            .ToHashSet();
+
+        var ct = CancellationToken.None;
+        _tipos = await TipoFaltas.ListarPorCarreraAsync(comision.CodigoCarrera, ct);
+        var roster = await FaltasComision.ListarAsync(
+            comision.CodigoCarrera, comision.Cutuco, comision.CuatrimestreAnio, comision.CodigoMateria, ct);
+
+        foreach (var alumno in roster)
+        {
+            var faltas = await FaltasAlumno.ListarAsync(
+                comision.CodigoCarrera, comision.Cutuco, comision.CuatrimestreAnio,
+                alumno.CodigoAlumno, comision.CodigoMateria, ct);
+
+            _alumnos.Add(new AlumnoVm
+            {
+                Codigo = alumno.CodigoAlumno,
+                Nombre = alumno.Nombre ?? alumno.CodigoAlumno,
+                Faltas = faltas
+                    .Select(f => new FaltaVm
+                    {
+                        Fecha = f.Fecha,
+                        CodigoFalta = f.CodigoFalta,
+                        Descripcion = f.Descripcion,
+                        Cantidad = (decimal)f.Cantidad,
+                    })
+                    .ToList(),
+            });
+        }
+
+        _cargando = false;
+    }
+
+    private bool DiaNoHabilitado(DateTime fecha) =>
+        _diasHabilitados.Count > 0 && !_diasHabilitados.Contains(fecha.DayOfWeek);
+
+    private void AgregarFalta(AlumnoVm alumno)
+    {
+        if (alumno.NuevaFecha is not { } fecha || string.IsNullOrWhiteSpace(alumno.NuevoTipo))
+        {
+            Snackbar.Add("Elegí fecha y tipo.", MudBlazor.Severity.Info);
+            return;
+        }
+
+        var dia = DateOnly.FromDateTime(fecha);
+        var tipo = _tipos.FirstOrDefault(t => t.Codigo == alumno.NuevoTipo);
+        if (alumno.Faltas.Any(f => f.Fecha == dia))
+        {
+            Snackbar.Add("Ya hay una falta cargada para ese día.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        alumno.Faltas.Add(new FaltaVm
+        {
+            Fecha = dia,
+            CodigoFalta = alumno.NuevoTipo!,
+            Descripcion = tipo?.Descripcion,
+            Cantidad = tipo?.Cantidad ?? 0,
+        });
+        alumno.NuevaFecha = null;
+        alumno.NuevoTipo = null;
+    }
+
+    private async Task GuardarFaltas()
+    {
+        if (_comisionAbierta is null)
+        {
+            return;
+        }
+
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        _guardando = true;
+        try
+        {
+            var faltas = _alumnos
+                .SelectMany(a => a.Faltas.Select(f => new FaltaInasistencia
+                {
+                    CodigoAlumno = a.Codigo,
+                    Fecha = f.Fecha,
+                    CodigoFalta = f.CodigoFalta,
+                    Cantidad = f.Cantidad,
+                }))
+                .ToList();
+
+            var resultado = await Guardar.HandleAsync(new GuardarInasistenciasComisionCommand
+            {
+                CodigoCarrera = _comisionAbierta.CodigoCarrera,
+                Cutuco = _comisionAbierta.Cutuco,
+                CuatrimestreAnio = _comisionAbierta.CuatrimestreAnio,
+                CodigoMateria = _comisionAbierta.CodigoMateria,
+                CodigoUsuario = codusu.Value,
+                Faltas = faltas,
+            }, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add("Inasistencias guardadas.", MudBlazor.Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudieron guardar.", MudBlazor.Severity.Error);
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private sealed class AlumnoVm
+    {
+        public required string Codigo { get; init; }
+
+        public required string Nombre { get; init; }
+
+        public List<FaltaVm> Faltas { get; init; } = [];
+
+        public DateTime? NuevaFecha { get; set; }
+
+        public string? NuevoTipo { get; set; }
+    }
+
+    private sealed class FaltaVm
+    {
+        public DateOnly Fecha { get; init; }
+
+        public required string CodigoFalta { get; init; }
+
+        public string? Descripcion { get; init; }
+
+        public decimal Cantidad { get; init; }
+    }
+}

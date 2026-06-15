@@ -1,9 +1,11 @@
 using Esba.Application.Abstractions;
 using Esba.Application.DTOs.Academica;
 using Esba.Application.DTOs.Alumnos;
+using Esba.Application.DTOs.Asistencias;
 using Esba.Application.Features.Academica;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
+using Esba.Application.Features.Asistencias;
 using Esba.Application.Validators;
 using Esba.Infrastructure.Excel;
 using Esba.Infrastructure.Persistence;
@@ -97,6 +99,11 @@ public static class DependencyInjection
         services.AddScoped<ITipoFaltasQuery, TipoFaltasQuery>();
         services.AddScoped<IFaltasComisionProcedure, FaltasComisionProcedure>();
         services.AddScoped<IFaltasAlumnoProcedure, FaltasAlumnoProcedure>();
+
+        // Asistencias: carga de inasistencias por comisión (hito 7, increment 2).
+        services.AddScoped<IInasistenciasRepository, InasistenciasRepository>();
+        services.AddScoped<IValidator<GuardarInasistenciasComisionCommand>, GuardarInasistenciasComisionValidator>();
+        services.AddScoped<GuardarInasistenciasComisionHandler>();
 
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
