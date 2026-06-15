@@ -1,0 +1,185 @@
+@page "/alumnos/{Carre}/{Codigo}/permisos"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.DTOs.Examenes
+@using Esba.Application.Features.Examenes
+@using Esba.Web.Seguridad
+@inject IAlumnosQuery AlumnosQuery
+@inject IMateriasFinalesProcedure MateriasFinales
+@inject IPermisosExamenRepository Permisos
+@inject CrearPermisoExamenHandler CrearPermiso
+@inject EliminarPermisoExamenHandler EliminarPermiso
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Permisos de Examen</PageTitle>
+
+@* Permisos de examen de un alumno (sucesor de PermisoExamen.pas). Las materias
+   que puede rendir las resuelve XXX_MATERIAS_FINALES; el permiso se emite sobre
+   esa lista. Sin SQL ni lógica de negocio (§2.1). *@
+
+@if (_noEncontrado)
+{
+    <MudAlert Severity="MudBlazor.Severity.Warning">El alumno no existe.</MudAlert>
+}
+else if (_alumno is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" aria-label="Volver a la búsqueda" />
+            <div>
+                <MudText Typo="Typo.h5">@_alumno.Apellido, @_alumno.Nombre</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Permisos de examen — Carrera @Carre — @Codigo</MudText>
+            </div>
+        </div>
+    </MudPaper>
+
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Materias para rendir</MudText>
+            <MudPaper Outlined="true">
+                <MudTable T="MateriaFinalDto" Items="_finales" Dense="true" Hover="true" Loading="@_cargando">
+                    <HeaderContent>
+                        <MudTh>Materia</MudTh>
+                        <MudTh>Mesa</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Materia">
+                            @context.CodigoMateria — @context.Materia
+                            @if (!context.PuedeRendir)
+                            {
+                                <MudTooltip Text="@context.Mensaje">
+                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+                                </MudTooltip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Mesa">@context.Mesa</MudTd>
+                        <MudTd Style="white-space:nowrap">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
+                                       Disabled="@(!context.PuedeRendir || context.Mesa is null or 0)"
+                                       OnClick="@(() => GenerarPermiso(context))">Emitir permiso</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText Class="pa-4 mud-text-secondary">No hay materias para rendir.</MudText></NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Permisos emitidos</MudText>
+            <MudPaper Outlined="true">
+                <MudTable T="PermisoExamenDto" Items="_permisos" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Permiso</MudTh>
+                        <MudTh>Materia</MudTh>
+                        <MudTh>Mesa</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Permiso">@context.NumeroPermiso</MudTd>
+                        <MudTd DataLabel="Materia">@context.CodigoMateria — @context.SiglaMateria</MudTd>
+                        <MudTd DataLabel="Mesa">@context.Mesa</MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           aria-label="Eliminar permiso" OnClick="@(() => Eliminar(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText Class="pa-4 mud-text-secondary">Sin permisos emitidos.</MudText></NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string Codigo { get; set; } = string.Empty;
+
+    private AlumnoDetailDto? _alumno;
+    private IReadOnlyList<MateriaFinalDto> _finales = [];
+    private IReadOnlyList<PermisoExamenDto> _permisos = [];
+    private bool _noEncontrado;
+    private bool _cargando;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _alumno = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo, CancellationToken.None);
+        if (_alumno is null)
+        {
+            _noEncontrado = true;
+            return;
+        }
+
+        await Recargar();
+    }
+
+    private async Task Recargar()
+    {
+        _cargando = true;
+        _finales = await MateriasFinales.ListarAsync(Codigo, Carre, CancellationToken.None);
+        _permisos = await Permisos.ListarPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+        _cargando = false;
+    }
+
+    private async Task GenerarPermiso(MateriaFinalDto materia)
+    {
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        var resultado = await CrearPermiso.HandleAsync(new CrearPermisoExamenCommand
+        {
+            CodigoCarrera = Carre,
+            CodigoAlumno = Codigo,
+            Apellido = _alumno?.Apellido,
+            Mesa = materia.Mesa ?? 0,
+            Cutuco = materia.Cutuco ?? 0,
+            CodigoMateria = materia.CodigoMateria,
+            CodigoUsuario = codusu.Value,
+        }, CancellationToken.None);
+
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Permiso emitido.", MudBlazor.Severity.Success);
+            await Recargar();
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo emitir.", MudBlazor.Severity.Error);
+        }
+    }
+
+    private async Task Eliminar(PermisoExamenDto permiso)
+    {
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Eliminar permiso",
+            $"¿Eliminar el permiso de {permiso.SiglaMateria ?? permiso.CodigoMateria}?",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var resultado = await EliminarPermiso.HandleAsync(Carre, Codigo, permiso.CodigoMateria, CancellationToken.None);
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Permiso eliminado.", MudBlazor.Severity.Success);
+            await Recargar();
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo eliminar.", MudBlazor.Severity.Error);
+        }
+    }
+}

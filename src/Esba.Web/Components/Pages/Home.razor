@@ -100,6 +100,7 @@
             <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
                 <MudButton OnClick="AbrirFicha" StartIcon="@Icons.Material.Filled.Badge">Ficha</MudButton>
                 <MudButton OnClick="AbrirCursada" StartIcon="@Icons.Material.Filled.MenuBook">Inscripción de materias</MudButton>
+                <MudButton OnClick="AbrirPermisos" StartIcon="@Icons.Material.Filled.AssignmentTurnedIn">Permisos de examen</MudButton>
                 <MudButton Disabled="true">Constancias</MudButton>
             </MudButtonGroup>
         </div>
@@ -180,6 +181,14 @@
         if (_seleccionado is not null)
         {
             Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/cursada");
+        }
+    }
+
+    private void AbrirPermisos()
+    {
+        if (_seleccionado is not null)
+        {
+            Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/permisos");
         }
     }
 

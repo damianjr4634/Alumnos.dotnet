@@ -123,6 +123,13 @@ public static class DependencyInjection
         services.AddScoped<ActualizarMesaHandler>();
         services.AddScoped<EliminarMesaHandler>();
 
+        // Exámenes: permisos de examen (hito 8, increment 3).
+        services.AddScoped<IMateriasFinalesProcedure, MateriasFinalesProcedure>();
+        services.AddScoped<IPermisosExamenRepository, PermisosExamenRepository>();
+        services.AddScoped<IValidator<CrearPermisoExamenCommand>, CrearPermisoExamenValidator>();
+        services.AddScoped<CrearPermisoExamenHandler>();
+        services.AddScoped<EliminarPermisoExamenHandler>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();
