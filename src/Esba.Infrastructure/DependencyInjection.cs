@@ -2,11 +2,13 @@ using Esba.Application.Abstractions;
 using Esba.Application.DTOs.Academica;
 using Esba.Application.DTOs.Alumnos;
 using Esba.Application.DTOs.Asistencias;
+using Esba.Application.DTOs.Certificados;
 using Esba.Application.DTOs.Examenes;
 using Esba.Application.Features.Academica;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
 using Esba.Application.Features.Asistencias;
+using Esba.Application.Features.Certificados;
 using Esba.Application.Features.Examenes;
 using Esba.Application.Validators;
 using Esba.Infrastructure.Excel;
@@ -134,6 +136,18 @@ public static class DependencyInjection
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();
+
+        // Certificados: constancia de alumno (hito 9.1). Primer reporte con formato propio.
+        services.Configure<InstitucionSettings>(configuration.GetSection(InstitucionSettings.SectionName));
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IConstanciasQuery, ConstanciasQuery>();
+        services.AddScoped<ICertificadoEnTramiteProcedure, CertificadoEnTramiteProcedure>();
+        services.AddScoped<IPaseAlumnoProcedure, PaseAlumnoProcedure>();
+        services.AddScoped<IParrafoConstanciaProcedure, ParrafoConstanciaProcedure>();
+        services.AddScoped<IConstanciaMateriasProcedure, ConstanciaMateriasProcedure>();
+        services.AddScoped<IConstanciaReportService, ConstanciaPdfService>();
+        services.AddScoped<IValidator<GenerarConstanciaCommand>, GenerarConstanciaCommandValidator>();
+        services.AddScoped<GenerarConstanciaAlumnoHandler>();
 
         return services;
     }

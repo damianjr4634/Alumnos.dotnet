@@ -1,0 +1,178 @@
+@page "/alumnos/{Carre}/{Codigo}/constancia"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.DTOs.Certificados
+@using Esba.Application.Features.Certificados
+@using Esba.Domain.Enums
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IAlumnosQuery AlumnosQuery
+@inject GenerarConstanciaAlumnoHandler ConstanciaHandler
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>ESBA — Constancia del Alumno</PageTitle>
+
+@* Sucesora de constanciaalumnos2.pas (variantes de texto: CTT/Pase/Analítico).
+   Solo binding y llamadas a Application (§2.1); el PDF lo sirve el endpoint
+   /constancias/alumno y lo previsualiza el navegador (§3.3). *@
+
+@if (_noEncontrado)
+{
+    <MudAlert Severity="MudBlazor.Severity.Warning">El alumno no existe.</MudAlert>
+}
+else if (_alumno is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                           Href="@($"/alumnos/{Carre}/{Codigo}/cursada")" aria-label="Volver a la cursada" />
+            <div>
+                <MudText Typo="Typo.h5">@_alumno.Apellido, @_alumno.Nombre</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Constancia del alumno — Carrera @Carre — @Codigo
+                </MudText>
+            </div>
+        </div>
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Tipo de constancia</MudText>
+                    <MudRadioGroup T="TipoConstancia" @bind-Value="_tipo">
+                        <MudRadio T="TipoConstancia" Value="@TipoConstancia.CertificadoEnTramite" Dense="true">
+                            Certificado de estudios en trámite
+                        </MudRadio>
+                        <MudRadio T="TipoConstancia" Value="@TipoConstancia.Pase" Dense="true">
+                            Pase en trámite
+                        </MudRadio>
+                        <MudRadio T="TipoConstancia" Value="@TipoConstancia.Analitico" Dense="true">
+                            Certificado analítico en trámite
+                        </MudRadio>
+                    </MudRadioGroup>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_anteQuien" Label="Para ser presentado ante"
+                                  MaxLength="150" Required="true" Immediate="true"
+                                  RequiredError="Indique ante quién se presenta la constancia." />
+                    <MudCheckBox @bind-Value="_incluirMembrete" Color="Color.Primary" Class="mt-3"
+                                 Label="Incluir membrete institucional" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                               OnClick="Generar" Disabled="@_generando">
+                        @if (_generando)
+                        {
+                            <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Generando…</span>
+                        }
+                        else
+                        {
+                            <span>Generar constancia</span>
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string Codigo { get; set; } = string.Empty;
+
+    private MudForm? _form;
+    private AlumnoDetailDto? _alumno;
+    private bool _noEncontrado;
+    private bool _generando;
+
+    private TipoConstancia _tipo = TipoConstancia.CertificadoEnTramite;
+    private string _anteQuien = string.Empty;
+    private bool _incluirMembrete = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _alumno = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo, CancellationToken.None);
+        _noEncontrado = _alumno is null;
+    }
+
+    private async Task Generar()
+    {
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+        }
+
+        _generando = true;
+        try
+        {
+            var command = ArmarComando();
+            var chequeo = await ConstanciaHandler.ValidarAsync(command, confirmado: false, CancellationToken.None);
+
+            var confirmar = false;
+            switch (chequeo.Status)
+            {
+                case Esba.Domain.Common.OperationStatus.Error:
+                    Snackbar.Add(chequeo.Message ?? "No se puede emitir la constancia.", MudBlazor.Severity.Error);
+                    return;
+
+                case Esba.Domain.Common.OperationStatus.NeedsConfirmation:
+                    var ok = await DialogService.ShowMessageBoxAsync(
+                        "Constancia", chequeo.Message ?? "¿Desea continuar?",
+                        yesText: "Continuar", cancelText: "Cancelar");
+                    if (ok != true)
+                    {
+                        return;
+                    }
+
+                    confirmar = true;
+                    break;
+
+                case Esba.Domain.Common.OperationStatus.Warning:
+                    Snackbar.Add(chequeo.Message ?? string.Empty, MudBlazor.Severity.Warning);
+                    break;
+            }
+
+            await AbrirPdf(command, confirmar);
+        }
+        finally
+        {
+            _generando = false;
+        }
+    }
+
+    private GenerarConstanciaCommand ArmarComando() => new()
+    {
+        CodigoCarrera = Carre,
+        CodigoAlumno = Codigo,
+        Tipo = _tipo,
+        AnteQuien = _anteQuien,
+        IncluirMembrete = _incluirMembrete,
+    };
+
+    private async Task AbrirPdf(GenerarConstanciaCommand command, bool confirmar)
+    {
+        var url = $"/constancias/alumno?carre={Uri.EscapeDataString(command.CodigoCarrera)}" +
+                  $"&cod={Uri.EscapeDataString(command.CodigoAlumno)}" +
+                  $"&tipo={command.Tipo}" +
+                  $"&ante={Uri.EscapeDataString(command.AnteQuien ?? string.Empty)}" +
+                  $"&conf={confirmar.ToString().ToLowerInvariant()}" +
+                  $"&membrete={command.IncluirMembrete.ToString().ToLowerInvariant()}";
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+}

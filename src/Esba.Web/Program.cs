@@ -1,4 +1,7 @@
+using Esba.Application.DTOs.Certificados;
 using Esba.Application.Features.Administracion;
+using Esba.Application.Features.Certificados;
+using Esba.Domain.Enums;
 using Esba.Infrastructure;
 using Esba.Web.Components;
 using Esba.Web.Seguridad;
@@ -74,5 +77,41 @@ app.MapPost("/auth/logout", async (HttpContext http) =>
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/login");
 });
+
+// Constancia de alumno (hito 9.1): sirve el PDF inline para previsualizar/imprimir
+// en el navegador (sucesor de Imprimir.pas/TGmPreview, §3.3). El servidor es la
+// autoridad: re-valida con el SP de chequeo aunque la página ya haya confirmado.
+app.MapGet("/constancias/alumno", async (
+    string carre,
+    string cod,
+    string tipo,
+    string? ante,
+    bool conf,
+    bool membrete,
+    GenerarConstanciaAlumnoHandler handler,
+    CancellationToken ct) =>
+{
+    if (!Enum.TryParse<TipoConstancia>(tipo, ignoreCase: true, out var tipoConstancia))
+    {
+        return Results.BadRequest("Tipo de constancia inválido.");
+    }
+
+    var command = new GenerarConstanciaCommand
+    {
+        CodigoCarrera = carre,
+        CodigoAlumno = cod,
+        Tipo = tipoConstancia,
+        AnteQuien = ante,
+        IncluirMembrete = membrete,
+    };
+
+    var resultado = await handler.GenerarPdfAsync(command, conf, ct);
+    if (!resultado.IsSuccess || resultado.Value is null)
+    {
+        return Results.BadRequest(resultado.Message ?? "No se pudo generar la constancia.");
+    }
+
+    return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
 
 app.Run();
