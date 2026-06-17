@@ -149,6 +149,10 @@ public static class DependencyInjection
         services.AddScoped<IValidator<GenerarConstanciaCommand>, GenerarConstanciaCommandValidator>();
         services.AddScoped<GenerarConstanciaAlumnoHandler>();
 
+        // Certificados: analítico tabular + promedio general (hito 9.2a).
+        services.AddScoped<IPromedioGeneralProcedure, PromedioGeneralProcedure>();
+        services.AddScoped<ObtenerAnaliticoAlumnoHandler>();
+
         return services;
     }
 }

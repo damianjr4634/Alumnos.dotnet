@@ -3,19 +3,22 @@
 @using Esba.Application.DTOs.Alumnos
 @using Esba.Application.DTOs.Certificados
 @using Esba.Application.Features.Certificados
+@using Esba.Domain.Certificados
 @using Esba.Domain.Enums
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject IAlumnosQuery AlumnosQuery
 @inject GenerarConstanciaAlumnoHandler ConstanciaHandler
+@inject ObtenerAnaliticoAlumnoHandler AnaliticoHandler
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 
 <PageTitle>ESBA — Constancia del Alumno</PageTitle>
 
-@* Sucesora de constanciaalumnos2.pas (variantes de texto: CTT/Pase/Analítico).
-   Solo binding y llamadas a Application (§2.1); el PDF lo sirve el endpoint
-   /constancias/alumno y lo previsualiza el navegador (§3.3). *@
+@* Sucesora de constanciaalumnos2.pas: grilla del analítico (materias + promedio)
+   y variantes de texto (CTT/Pase/Analítico). Solo binding y llamadas a Application
+   (§2.1); el PDF lo sirve el endpoint /constancias/alumno y lo previsualiza el
+   navegador (§3.3). *@
 
 @if (_noEncontrado)
 {
@@ -84,6 +87,55 @@ else
             </MudGrid>
         </MudForm>
     </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4 mt-4">
+        <div class="d-flex align-center flex-wrap gap-4 mb-3">
+            <MudText Typo="Typo.h6">Analítico — materias</MudText>
+            <MudSpacer />
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary"
+                     Icon="@Icons.Material.Filled.Functions">
+                Promedio general: @_analitico.PromedioGeneral.ToString("0.00")
+            </MudChip>
+        </div>
+
+        <MudTable T="ConstanciaMateriaDto" Items="@_analitico.Materias" Dense="true" Hover="true" Striped="true"
+                  Elevation="0" GroupBy="@_agrupacionPorCuatrimestre">
+            <HeaderContent>
+                <MudTh>Materia</MudTh>
+                <MudTh>Condición</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Nota</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Fecha</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Instituto</MudTh>
+            </HeaderContent>
+            <GroupHeaderTemplate>
+                <MudTh Class="mud-table-cell-custom-group" colspan="5">
+                    @TextoCastellano.CuatrimestreEnLetras(Convert.ToInt32(context.Key)) Cuatrimestre
+                </MudTh>
+            </GroupHeaderTemplate>
+            <RowTemplate>
+                <MudTd DataLabel="Materia">
+                    @context.CodigoMateria — @context.Descripcion
+                    @if (context.Anual == "*")
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="Color.Default" Class="ml-2">anual</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Condición">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@ColorCondicion(context.Condicion)">@context.Condicion</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Nota" Class="d-none d-md-table-cell">@FormatearNota(context.Nota)</MudTd>
+                <MudTd DataLabel="Fecha" Class="d-none d-md-table-cell">
+                    @(context.Fecha is { } f ? f.ToString("dd/MM/yyyy") : "—")
+                </MudTd>
+                <MudTd DataLabel="Instituto" Class="d-none d-lg-table-cell">@context.Instituto</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">El alumno no tiene materias en el plan de la carrera.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
@@ -93,6 +145,7 @@ else
 
     private MudForm? _form;
     private AlumnoDetailDto? _alumno;
+    private AnaliticoAlumnoModel _analitico = new();
     private bool _noEncontrado;
     private bool _generando;
 
@@ -100,11 +153,42 @@ else
     private string _anteQuien = string.Empty;
     private bool _incluirMembrete = true;
 
+    private readonly TableGroupDefinition<ConstanciaMateriaDto> _agrupacionPorCuatrimestre = new()
+    {
+        Selector = m => m.Cuatrimestre,
+        Expandable = false,
+    };
+
     protected override async Task OnParametersSetAsync()
     {
         _alumno = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo, CancellationToken.None);
         _noEncontrado = _alumno is null;
+        if (_alumno is null)
+        {
+            return;
+        }
+
+        _analitico = await AnaliticoHandler.ObtenerAsync(Codigo, Carre, CancellationToken.None);
     }
+
+    private static string FormatearNota(decimal? nota) =>
+        nota is { } n && n != 0 ? n.ToString("0.00") : "—";
+
+    // Color del badge de condición de la materia (presentación; el SP ya calcula el
+    // color VCL, pero acá derivamos del texto con colores semánticos del tema, §4.5).
+    // Cubre las condiciones de las tres ramas de XXX_CONSTANCIA_TERCIARIA: TER, ADM
+    // y BAC/BAD (estas últimas: A/REGULAR=amarillo, LIBRES/PREVIO/DICIEMBRE/MARZO/
+    // P/EQUIVALEN=rojo en el SP).
+    private static Color ColorCondicion(string? condicion) => (condicion ?? string.Empty).Trim().ToUpperInvariant() switch
+    {
+        "CURSANDO" => Color.Success,
+        "REGULAR" => Color.Info,
+        "RECURSANDO" or "RECURSA" or "PREVIA" or "A/REGULAR" => Color.Warning,
+        "LIBRE" or "LIBRES" or "* ADEUDA *" or "PREVIO" or "DICIEMBRE" or "MARZO" or "P/EQUIVALEN" => Color.Error,
+        "EQUIVALENCIA" or "EXIMIDO" => Color.Secondary,
+        "**INSCRIPTO**" => Color.Tertiary,
+        _ => Color.Default,
+    };
 
     private async Task Generar()
     {

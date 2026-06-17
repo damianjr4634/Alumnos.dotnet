@@ -100,3 +100,68 @@ mail → depende de MailKit (hito 10, correo). Coordinar con ese hito.
 
 **Cierre del hito 9**: marcar la fila 9 en `CLAUDE.md` con ✅ + fecha recién cuando 9.2/9.3
 estén entregados (9.1 es sub-commit; la fila queda ⬜ por ahora).
+
+---
+
+# Hito 9.2a — Grilla del analítico + promedio general
+
+**Estado:** ✅ 2026-06-16 (sub-commit 9.2a; reporte CMA en 9.2b, examen final en 9.2c).
+**Etapas cubiertas:** 1+2 (wrapper SP de promedio), 2 (caso de uso de lectura), 3 (grilla en
+la página de constancia), 4 (tests unitario + equivalencia).
+
+## 1. Alcance y decisiones (2026-06-16)
+
+Primera pieza de 9.2: la **grilla de materias del alumno** (analítico) con su condición
+agrupada por cuatrimestre y coloreada, más el **promedio general** en pantalla. Sucesor de
+`Constancia()`/`FormActivate` de `constanciaalumnos2.pas`.
+
+Decisiones acordadas con el usuario para todo 9.2:
+- **Ubicación**: se **extiende la página de constancia** existente
+  (`/alumnos/{Carre}/{Codigo}/constancia`), espejando el form único del legacy, en vez de
+  crear una página aparte.
+- **Papel y firmas** (aplica a 9.2b/c): **A4 fija + firmas como texto** en todos los reportes
+  (coherente con 9.1; normaliza la inconsistencia A4/Oficio del legacy). Firmas-imagen
+  (`firma_secre`/`firma_recto`/`sello2`) diferidas a cuando haya assets (deuda hito 12).
+- **Entrega**: sub-commits **9.2a / 9.2b / 9.2c**.
+
+Hallazgo de mapeo importante: en el legacy el **promedio se muestra en pantalla, NO se imprime
+en ningún reporte** → se ubica como dato del encabezado de la grilla, no en el PDF. Los colores
+del SP (`COLOR`/`HTMLCOLOR`) **no** se replican: por §4.5 se deriva un color semántico del
+campo `CONDICION`.
+
+## 2. Trazabilidad legacy → .NET
+
+| Legacy | Artefacto .NET | Notas |
+|---|---|---|
+| `XXX_PROMEDIO_GRAL` (campo `PromGral`) | `IPromedioGeneralProcedure` / `PromedioGeneralProcedure` (2.B) | Escalar `Result`-libre (`Task<decimal>`); el SP nunca falla y COALESCE a 0. |
+| Grilla `DbMaterias`/`DBResto` (memTable `Mt` ← `XXX_CONSTANCIA_TERCIARIA`) | `MudTable` agrupada en `ConstanciaAlumno.razor` + `IConstanciaMateriasProcedure` (reusado de 9.1) | Una sola grilla responsiva (no dos espejo); columnas secundarias ocultas con `d-none d-md/lg-table-cell`. |
+| `Constancia()` + cálculo de `PromGral` en `FormActivate` | `ObtenerAnaliticoAlumnoHandler` → `AnaliticoAlumnoModel { Materias, PromedioGeneral }` | Lectura pura, sin transacción; compone materias + promedio. |
+| `DbMateriasDrawColumnCell` (color desde `Mt.COLOR`/`FONTCOLOR`) | `ColorCondicion()` (presentación en el `.razor`) | Color semántico del tema (§4.5), no el RGB del VCL; cubre condiciones TER/ADM/BAC-BAD. |
+| `LetrasCuat(cuat)` en el encabezado de grupo | `TextoCastellano.CuatrimestreEnLetras` (reusado) | Encabezado de grupo "N Cuatrimestre". |
+
+## 3. Verificación
+
+- `dotnet build` → **0 warnings** (Nullable + TreatWarningsAsErrors).
+- `dotnet test --filter Category!=Integration` → verdes (Application 112, +2 del handler; Domain 56).
+- Integration (Firebird real) → **5 verdes** en `ConstanciasEquivalenciaTests` (+1: `XXX_PROMEDIO_GRAL`
+  wrapper vs SELECT directo).
+- Revisión adversarial (3 lentes): 2 hallazgos BAJA, sin bugs ni violaciones 🔴. Hallazgo 1
+  (mapa de color incompleto para BAC/BAD) corregido. Hallazgo 2 abajo.
+
+## 4. Deuda registrada
+
+- ⚠️ **Mapa `ColorCondicion` duplicado** entre `ConstanciaAlumno.razor` y `CursadaAlumno.razor`
+  (`d-none`… mismo concepto "condición de materia", criterios divergentes; este último sin
+  `ToUpperInvariant` y con menos estados). Aún **no** viola la regla de tres (§2.1.4): hay 2
+  apariciones. Al aparecer un 3er consumidor (p.ej. el reporte CMA de 9.2b), **consolidar** en
+  un helper de presentación compartido y alinear `CursadaAlumno`.
+
+## 5. Próximos pasos
+
+- **9.2b**: reporte tabular "Constancia de Materias Aprobadas" (CMA) — nuevo
+  `IConstanciaAnaliticoReportService` (QuestPDF), extender `ConstanciaMateriaDto` + el SELECT
+  del wrapper con `ACTINT`/`ACTDEGP`/`EXIMDESC` (ramas equivalencia/eximido), botón en la
+  sección del analítico, endpoint PDF inline. Re-verificar equivalencia tras extender el wrapper.
+- **9.2c**: Constancia de Examen Final (CE) — método de examen final en
+  `IParrafoConstanciaProcedure` (`'CE-'+codMat`), acción de fila sobre materias rendidas
+  (validar condición elegible), reporte/endpoint.

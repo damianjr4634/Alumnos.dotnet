@@ -110,6 +110,27 @@ public class ConstanciasEquivalenciaTests
     }
 
     [Fact]
+    public async Task PromedioGeneral_CoincideConSpDirecto()
+    {
+        var ct = CancellationToken.None;
+        if (await AlumnoRealAsync(ct) is not { } alumno)
+        {
+            return;
+        }
+
+        await using var ctx = CrearContexto();
+        var directo = await ctx.Database.GetDbConnection()
+            .ExecuteScalarAsync<decimal?>(
+                "SELECT PROMGRAL FROM XXX_PROMEDIO_GRAL(@A, @C)",
+                new { A = alumno.Codigo, C = alumno.Carrera });
+
+        var wrapper = await new PromedioGeneralProcedure(Factory)
+            .ObtenerAsync(alumno.Codigo, alumno.Carrera, ct);
+
+        Assert.Equal(directo ?? 0m, wrapper);
+    }
+
+    [Fact]
     public async Task ConstanciaMaterias_CuentaCoincideConSpDirecto()
     {
         var ct = CancellationToken.None;
