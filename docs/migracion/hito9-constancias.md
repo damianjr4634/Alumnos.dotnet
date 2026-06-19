@@ -211,3 +211,47 @@ se **extiende la página de constancia** (botón en la sección del analítico),
 ## 5. Próximo paso
 
 - **9.2c**: Constancia de Examen Final (CE), según el detalle del bloque 9.2a §5.
+
+---
+
+# Hito 9.2c — Constancia de Examen Final (CE)
+
+**Estado:** ✅ 2026-06-18 (sub-commit 9.2c; cierra 9.2).
+**Etapas cubiertas:** 2 (regla de dominio + caso de uso de lectura), 3 (acción de fila +
+endpoint, reusa el reporte de texto de 9.1), 4 (tests unitarios).
+
+## 1. Alcance y decisiones
+
+Constancia de Examen Final de una materia, sucesor de `Impresion_Constancia_Examen` de
+constanciaalumnos2.pas (disparada por el item de popup "Imprimir permiso" sobre una fila de la
+grilla). El legacy la invoca con `('CONSTANCIA DE EXAMEN FINAL', '', 'CE', true)`: **Query vacío
+⇒ no hay SP de validación**, la única regla es que la condición de la materia sea elegible.
+
+El cuerpo (título + "La Dirección del Instituto:" + párrafo + "Para ser presentada ante…" +
+nota legal + firmas) es una variante más simple de la constancia de texto de 9.1, así que **se
+reusa `ConstanciaPdfService`** (se hizo opcional el bloque "DATOS CORRESPONDIENTES / materias que
+adeuda": no se imprime cuando `MateriasQueAdeuda` viene null). A4 + firmas como texto, coherente
+con el resto de 9.2.
+
+## 2. Trazabilidad legacy → .NET
+
+| Legacy (`Impresion_Constancia_Examen`) | Artefacto .NET | Notas |
+|---|---|---|
+| Guarda de condición (`* ADEUDA *`/`CURSANDO`/`RECURSANDO`/`EQUIVALENCIA`/`PREVIA` ⇒ no imprime) | `ConstanciaExamenFinal.EsCondicionElegible` (Domain, con tests) | Regla de dominio; comparación case-insensitive. |
+| `XXX_PARRAFO_CONSTANCIA(codAlu, carre, 'CE-'+codMat)` | `IParrafoConstanciaProcedure.ObtenerAsync(..., "CE-"+codMat)` | El wrapper de párrafo (9.1) ya soporta cualquier TIPO. |
+| Item de popup "Imprimir permiso" sobre la fila del grid | Acción de fila (`MudIconButton`) en la grilla del analítico, visible solo si la condición es elegible | La elegibilidad se **re-valida en el servidor** (§2.7). |
+| Layout (título/párrafo/cierre/firmas, sin "materias que adeuda") | `GenerarConstanciaExamenFinalHandler` → `ConstanciaAlumnoModel` con `MateriasQueAdeuda=null` → `ConstanciaPdfService` (reuso) | `ConstanciaPdfService` ahora omite el bloque de adeudadas cuando está vacío. |
+| `FuncionesConfiguracion.Secretaria/Rector` | `CarreraConstanciaDto` (CARRERA) | Igual que 9.1. |
+| `TGmPreview` | endpoint `GET /constancias/alumno/examen-final` inline | §3.3. |
+
+## 3. Verificación
+
+- `dotnet build` → **0 warnings**.
+- `dotnet test` → verde: Domain 84 (+13 `ConstanciaExamenFinal`), Application 116 (+4 handler:
+  rendida→genera CE, condición no elegible→Error, materia inexistente→Error, sin "ante quién"→Error),
+  Integration 75 (sin cambios).
+
+## 4. Cierre de 9.2
+
+9.2a/b/c entregados. **Falta 9.3 (Equivalencias)** y la Constancia de Alumno Regular (depende de
+MailKit, hito 10) para cerrar el hito 9 completo: la fila 9 de `CLAUDE.md` §6 sigue ⬜.

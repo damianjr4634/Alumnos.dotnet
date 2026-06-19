@@ -14,8 +14,11 @@ public sealed record ConstanciaAlumnoModel
     /// <summary>Cuerpo principal (FPARRAFO de XXX_PARRAFO_CONSTANCIA).</summary>
     public required string Parrafo { get; init; }
 
-    /// <summary>Línea "* Materias que adeuda: …".</summary>
-    public required string MateriasQueAdeuda { get; init; }
+    /// <summary>
+    /// Línea "* Materias que adeuda: …". Null/vacío en constancias que no la llevan
+    /// (p.ej. la de examen final): en ese caso no se imprime el bloque "DATOS CORRESPONDIENTES".
+    /// </summary>
+    public string? MateriasQueAdeuda { get; init; }
 
     /// <summary>Línea "* Idioma extranjero cursado: …" o null si la carrera no tiene idioma.</summary>
     public string? IdiomaLinea { get; init; }

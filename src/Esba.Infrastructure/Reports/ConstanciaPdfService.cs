@@ -58,11 +58,14 @@ public sealed class ConstanciaPdfService : IConstanciaReportService
                     col.Item().PaddingTop(8).Text("La Dirección del Instituto:");
                     col.Item().Text(model.Parrafo).Justify();
 
-                    col.Item().PaddingTop(4).Text("DATOS CORRESPONDIENTES:").Bold().Underline();
-                    col.Item().Text(model.MateriasQueAdeuda).FontSize(9);
-                    if (!string.IsNullOrWhiteSpace(model.IdiomaLinea))
+                    if (!string.IsNullOrWhiteSpace(model.MateriasQueAdeuda))
                     {
-                        col.Item().Text(model.IdiomaLinea).FontSize(9);
+                        col.Item().PaddingTop(4).Text("DATOS CORRESPONDIENTES:").Bold().Underline();
+                        col.Item().Text(model.MateriasQueAdeuda).FontSize(9);
+                        if (!string.IsNullOrWhiteSpace(model.IdiomaLinea))
+                        {
+                            col.Item().Text(model.IdiomaLinea).FontSize(9);
+                        }
                     }
 
                     col.Item().PaddingTop(8).Text(model.ParrafoCierre).Justify();

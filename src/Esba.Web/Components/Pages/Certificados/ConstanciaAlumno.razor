@@ -111,9 +111,10 @@ else
                 <MudTh Class="d-none d-md-table-cell">Nota</MudTh>
                 <MudTh Class="d-none d-md-table-cell">Fecha</MudTh>
                 <MudTh Class="d-none d-lg-table-cell">Instituto</MudTh>
+                <MudTh></MudTh>
             </HeaderContent>
             <GroupHeaderTemplate>
-                <MudTh Class="mud-table-cell-custom-group" colspan="5">
+                <MudTh Class="mud-table-cell-custom-group" colspan="6">
                     @TextoCastellano.CuatrimestreEnLetras(Convert.ToInt32(context.Key)) Cuatrimestre
                 </MudTh>
             </GroupHeaderTemplate>
@@ -135,6 +136,15 @@ else
                     @(context.Fecha is { } f ? f.ToString("dd/MM/yyyy") : "—")
                 </MudTd>
                 <MudTd DataLabel="Instituto" Class="d-none d-lg-table-cell">@context.Instituto</MudTd>
+                <MudTd>
+                    @if (ConstanciaExamenFinal.EsCondicionElegible(context.Condicion))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small"
+                                       Color="Color.Primary" Disabled="@_generando"
+                                       OnClick="@(() => GenerarExamenFinal(context))"
+                                       aria-label="Constancia de examen final de esta materia" />
+                    }
+                </MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <MudText Class="pa-4 mud-text-secondary">El alumno no tiene materias en el plan de la carrera.</MudText>
@@ -255,6 +265,37 @@ else
         {
             var url = $"/constancias/alumno/materias-aprobadas?carre={Uri.EscapeDataString(Carre)}" +
                       $"&cod={Uri.EscapeDataString(Codigo)}" +
+                      $"&ante={Uri.EscapeDataString(_anteQuien)}" +
+                      $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
+
+            await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+        finally
+        {
+            _generando = false;
+        }
+    }
+
+    // Constancia de Examen Final (hito 9.2c): acción de fila sobre una materia rendida.
+    // La elegibilidad por condición se re-valida en el servidor (autoritativo); acá solo
+    // se muestra el botón cuando corresponde. Exige "ante quién".
+    private async Task GenerarExamenFinal(ConstanciaMateriaDto materia)
+    {
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+        }
+
+        _generando = true;
+        try
+        {
+            var url = $"/constancias/alumno/examen-final?carre={Uri.EscapeDataString(Carre)}" +
+                      $"&cod={Uri.EscapeDataString(Codigo)}" +
+                      $"&codmat={Uri.EscapeDataString(materia.CodigoMateria ?? string.Empty)}" +
                       $"&ante={Uri.EscapeDataString(_anteQuien)}" +
                       $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
 

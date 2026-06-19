@@ -134,4 +134,24 @@ app.MapGet("/constancias/alumno/materias-aprobadas", async (
     return Results.File(resultado.Value, "application/pdf");
 }).RequireAuthorization();
 
+// Constancia de Examen Final (hito 9.2c): se emite por materia (acción de fila del
+// analítico). Servida inline (sucesor de Impresion_Constancia_Examen, §3.3).
+app.MapGet("/constancias/alumno/examen-final", async (
+    string carre,
+    string cod,
+    string codmat,
+    string? ante,
+    bool membrete,
+    GenerarConstanciaExamenFinalHandler handler,
+    CancellationToken ct) =>
+{
+    var resultado = await handler.GenerarPdfAsync(cod, carre, codmat, ante, membrete, ct);
+    if (!resultado.IsSuccess || resultado.Value is null)
+    {
+        return Results.BadRequest(resultado.Message ?? "No se pudo generar la constancia.");
+    }
+
+    return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
+
 app.Run();

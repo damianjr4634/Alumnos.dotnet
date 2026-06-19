@@ -157,6 +157,9 @@ public static class DependencyInjection
         services.AddScoped<IConstanciaAnaliticoReportService, ConstanciaAnaliticoPdfService>();
         services.AddScoped<GenerarConstanciaMateriasAprobadasHandler>();
 
+        // Certificados: Constancia de Examen Final (hito 9.2c).
+        services.AddScoped<GenerarConstanciaExamenFinalHandler>();
+
         return services;
     }
 }
