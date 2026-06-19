@@ -32,6 +32,8 @@ public class EsbaDbContext : DbContext
 
     public DbSet<Cursada> Cursadas => Set<Cursada>();
 
+    public DbSet<Analitico> Analiticos => Set<Analitico>();
+
     public DbSet<CicloCuatrimestral> CiclosCuatrimestrales => Set<CicloCuatrimestral>();
 
     public DbSet<CicloTrimestral> CiclosTrimestrales => Set<CicloTrimestral>();

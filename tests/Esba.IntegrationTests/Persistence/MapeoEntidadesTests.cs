@@ -80,6 +80,26 @@ public class MapeoEntidadesTests
     }
 
     [Fact]
+    public async Task Analitico_MaterializaEntidadesCompletas()
+    {
+        await using var contexto = CrearContexto();
+
+        var filas = await contexto.Analiticos.AsNoTracking()
+            .OrderBy(a => a.CodigoCarrera).ThenBy(a => a.CodigoAlumno).ThenBy(a => a.CodigoMateria)
+            .Take(200)
+            .ToListAsync();
+
+        Assert.NotEmpty(filas);
+        Assert.All(filas, a =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(a.CodigoAlumno));
+            Assert.False(string.IsNullOrWhiteSpace(a.CodigoMateria));
+            // INDICE lo asigna el trigger desde el generador: nunca es 0 en datos reales.
+            Assert.NotEqual(0, a.Indice);
+        });
+    }
+
+    [Fact]
     public async Task Alumnos_JoinImplicitoConCarrera_Funciona()
     {
         await using var contexto = CrearContexto();
