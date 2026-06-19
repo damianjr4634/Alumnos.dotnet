@@ -35,7 +35,10 @@ public sealed class ConstanciaMateriasProcedure : IConstanciaMateriasProcedure
                    FECHA          AS Fecha,
                    TRIM(INSTITUTO) AS Instituto,
                    TRIM(CARACT)   AS Caracteristica,
-                   TRIM(ANUAL)    AS Anual
+                   TRIM(ANUAL)    AS Anual,
+                   TRIM(ACTINT)   AS ActividadInterna,
+                   TRIM(ACTDEGP)  AS ActividadDgegp,
+                   TRIM(EXIMDESC) AS EximidoDescripcion
             FROM XXX_CONSTANCIA_TERCIARIA(@CodAlu, @Carre)
             """;
 

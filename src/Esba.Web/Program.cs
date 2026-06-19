@@ -114,4 +114,24 @@ app.MapGet("/constancias/alumno", async (
     return Results.File(resultado.Value, "application/pdf");
 }).RequireAuthorization();
 
+// Constancia de Materias Aprobadas (hito 9.2b): reporte tabular del analítico,
+// servido inline para previsualizar/imprimir en el navegador (sucesor de
+// BitBtn1Click de constanciaalumnos2.pas, §3.3).
+app.MapGet("/constancias/alumno/materias-aprobadas", async (
+    string carre,
+    string cod,
+    string? ante,
+    bool membrete,
+    GenerarConstanciaMateriasAprobadasHandler handler,
+    CancellationToken ct) =>
+{
+    var resultado = await handler.GenerarPdfAsync(cod, carre, ante, membrete, ct);
+    if (!resultado.IsSuccess || resultado.Value is null)
+    {
+        return Results.BadRequest(resultado.Message ?? "No se pudo generar la constancia.");
+    }
+
+    return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
+
 app.Run();

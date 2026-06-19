@@ -165,3 +165,49 @@ campo `CONDICION`.
 - **9.2c**: Constancia de Examen Final (CE) — método de examen final en
   `IParrafoConstanciaProcedure` (`'CE-'+codMat`), acción de fila sobre materias rendidas
   (validar condición elegible), reporte/endpoint.
+
+---
+
+# Hito 9.2b — Constancia de Materias Aprobadas (reporte tabular)
+
+**Estado:** ✅ 2026-06-18 (sub-commit 9.2b; examen final en 9.2c).
+**Etapas cubiertas:** 1 (extensión del wrapper), 2 (caso de uso de lectura + dominio de
+presentación), 3 (reporte QuestPDF + endpoint + botón), 4 (tests unitarios + equivalencia +
+smoke del PDF).
+
+## 1. Alcance y decisiones
+
+Reporte tabular "Constancia de Materias Aprobadas" (CMA), sucesor de `BitBtn1Click` de
+constanciaalumnos2.pas. Vuelca **todo el analítico** (no solo aprobadas, fiel al legacy: el
+título dice "Aprobadas" pero lista la grilla completa) en una tabla agrupada por cuatrimestre.
+Coherente con la decisión de 9.2: **A4 + firmas como texto** (firmas-imagen diferidas a hito 12);
+se **extiende la página de constancia** (botón en la sección del analítico), no una página aparte.
+
+## 2. Trazabilidad legacy → .NET
+
+| Legacy (`BitBtn1Click`) | Artefacto .NET | Notas |
+|---|---|---|
+| Columnas ACTINT/ACTDEGP/EXIMDESC del grid `Mt` | `ConstanciaMateriaDto` + SELECT de `ConstanciaMateriasProcedure` extendidos | Ramas equivalencia/eximido. Equivalencia re-verificada contra el SP. |
+| Lógica por fila (anual / equivalencia-eximido / normal con guiones de "sin dato") | `ConstanciaMateriasAprobadasFormatter` (Domain, con tests) | Presentación de dominio (§2.1.3), como `MateriasAdeudadasCalculator`. Guiones GDI normalizados a "—" y "MATERIA ANUAL". |
+| Encabezado "En Buenos Aires a los …" + `PonePuntos(CodigoAlumno)` | `GenerarConstanciaMateriasAprobadasHandler.ComponerIntroduccion` + `TextoCastellano.CodigoConPuntos` | `PonePuntos` reconstruido (no versionado, vivía en FuncionesText). |
+| Dibujo GDI de la tabla sobre `TGmPreview` | `ConstanciaAnaliticoPdfService` (QuestPDF) + `IConstanciaAnaliticoReportService` | Tabla por cuatrimestre; grupo y "fila completa" con `ColumnSpan`. |
+| Membrete + firmas (compartidos con la constancia de texto) | `ReporteConstanciaLayout` (helper Infra) | Extraído para no duplicar entre los dos reportes (futuros 9.2c/9.3). |
+| `BitBtn1Click` (sin chequeo de negocio) | endpoint `GET /constancias/alumno/materias-aprobadas` → `Results.File(...,"application/pdf")` inline | El legacy emite directo; solo exige "ante quién". |
+
+## 3. Verificación
+
+- `dotnet build` → **0 warnings**.
+- `dotnet test --filter Category!=Integration` → verde (Domain 71: +9 formatter, +6 `CodigoConPuntos`;
+  +3 smoke del PDF sin trait Integration).
+- Integration (Firebird real) → verde: nuevo `ConstanciaMaterias_ColumnasDeEquivalenciaCoincidenConSpDirecto`
+  (ACTINT/ACTDEGP/EXIMDESC wrapper vs SP directo, fila por fila).
+
+## 4. Deuda saldada
+
+- ✅ **`ColorCondicion` consolidado** en `CondicionMateriaColor` (Web/Components/Shared), usado por
+  `ConstanciaAlumno.razor` y `CursadaAlumno.razor`; se alineó la divergencia (`CursadaAlumno` no
+  normalizaba a mayúsculas y le faltaban estados). Resuelve la deuda registrada en 9.2a §4.
+
+## 5. Próximo paso
+
+- **9.2c**: Constancia de Examen Final (CE), según el detalle del bloque 9.2a §5.

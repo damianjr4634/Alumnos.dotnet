@@ -153,6 +153,10 @@ public static class DependencyInjection
         services.AddScoped<IPromedioGeneralProcedure, PromedioGeneralProcedure>();
         services.AddScoped<ObtenerAnaliticoAlumnoHandler>();
 
+        // Certificados: reporte "Constancia de Materias Aprobadas" (hito 9.2b).
+        services.AddScoped<IConstanciaAnaliticoReportService, ConstanciaAnaliticoPdfService>();
+        services.AddScoped<GenerarConstanciaMateriasAprobadasHandler>();
+
         return services;
     }
 }

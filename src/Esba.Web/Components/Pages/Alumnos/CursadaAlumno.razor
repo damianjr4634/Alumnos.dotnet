@@ -71,7 +71,7 @@ else
                 <MudTd DataLabel="Comisión" Class="d-none d-md-table-cell">@NumeroComision(context.Cutuco)</MudTd>
                 <MudTd DataLabel="Condición">
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                             Color="@ColorCondicion(context.Condicion)">@context.Condicion</MudChip>
+                             Color="@CondicionMateriaColor.Para(context.Condicion)">@context.Condicion</MudChip>
                 </MudTd>
                 <MudTd Class="d-none d-lg-table-cell">@context.Evaluacion1</MudTd>
                 <MudTd Class="d-none d-lg-table-cell">@context.Evaluacion2</MudTd>
@@ -133,15 +133,6 @@ else
 
     private static string FormatearCuaAnio(string? cuaAnio) =>
         cuaAnio is { Length: 3 } ? $"{cuaAnio[0]}/{cuaAnio[1..]}" : cuaAnio ?? "";
-
-    private static Color ColorCondicion(string condicion) => condicion.Trim() switch
-    {
-        "CURSANDO" => Color.Success,
-        "REGULAR" => Color.Info,
-        "RECURSANDO" or "RECURSA" => Color.Warning,
-        "LIBRE" => Color.Error,
-        _ => Color.Default,
-    };
 
     private async Task InscribirCuatrimestre()
     {

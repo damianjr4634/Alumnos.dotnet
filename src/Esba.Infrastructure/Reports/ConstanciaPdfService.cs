@@ -15,7 +15,7 @@ namespace Esba.Infrastructure.Reports;
 /// </summary>
 public sealed class ConstanciaPdfService : IConstanciaReportService
 {
-    private const string ColorPrimario = "#1E40AF";
+    private const string ColorPrimario = ReporteConstanciaLayout.ColorPrimario;
 
     private readonly InstitucionSettings _institucion;
 
@@ -33,7 +33,7 @@ public sealed class ConstanciaPdfService : IConstanciaReportService
     {
         ArgumentNullException.ThrowIfNull(model);
 
-        var logo = CargarLogo();
+        var logo = ReporteConstanciaLayout.CargarLogo(_institucion);
 
         var documento = Document.Create(contenedor =>
         {
@@ -45,7 +45,8 @@ public sealed class ConstanciaPdfService : IConstanciaReportService
 
                 if (model.IncluirMembrete)
                 {
-                    pagina.Header().Element(c => Membrete(c, model, logo));
+                    pagina.Header().Element(c =>
+                        ReporteConstanciaLayout.Membrete(c, _institucion, model.Instituto, model.Caracteristica, logo));
                 }
 
                 pagina.Content().PaddingTop(model.IncluirMembrete ? 12 : 0).Column(col =>
@@ -75,73 +76,12 @@ public sealed class ConstanciaPdfService : IConstanciaReportService
                         }
                     });
 
-                    col.Item().PaddingTop(36).Element(c => Firmas(c, model));
+                    col.Item().PaddingTop(36).Element(c =>
+                        ReporteConstanciaLayout.Firmas(c, model.Secretaria, model.Rector));
                 });
             });
         });
 
         return documento.GeneratePdf();
     }
-
-    private void Membrete(IContainer contenedor, ConstanciaAlumnoModel model, byte[]? logo)
-    {
-        var nombre = PrimeroNoVacio(model.Instituto, _institucion.Nombre);
-        var caracteristica = PrimeroNoVacio(model.Caracteristica, _institucion.Caracteristica);
-
-        contenedor.BorderBottom(1).BorderColor(ColorPrimario).PaddingBottom(6).Row(row =>
-        {
-            if (logo is not null)
-            {
-                row.ConstantItem(2, Unit.Centimetre).Image(logo).FitArea();
-                row.Spacing(10);
-            }
-
-            row.RelativeItem().Column(col =>
-            {
-                if (!string.IsNullOrWhiteSpace(nombre))
-                {
-                    col.Item().Text(nombre).FontSize(13).Bold().FontColor(ColorPrimario);
-                }
-
-                if (!string.IsNullOrWhiteSpace(caracteristica))
-                {
-                    col.Item().Text(caracteristica).FontSize(9);
-                }
-
-                if (!string.IsNullOrWhiteSpace(_institucion.Direccion))
-                {
-                    col.Item().Text(_institucion.Direccion).FontSize(9).FontColor(Colors.Grey.Darken1);
-                }
-            });
-        });
-    }
-
-    private static void Firmas(IContainer contenedor, ConstanciaAlumnoModel model)
-    {
-        contenedor.Row(row =>
-        {
-            row.RelativeItem().AlignCenter().Column(col =>
-            {
-                col.Item().AlignCenter().Text(model.Secretaria ?? string.Empty).Bold();
-                col.Item().AlignCenter().Text("Secretaria");
-            });
-
-            row.RelativeItem().AlignCenter().Text("SELLO").FontColor(Colors.Grey.Medium);
-
-            row.RelativeItem().AlignCenter().Column(col =>
-            {
-                col.Item().AlignCenter().Text(model.Rector ?? string.Empty).Bold();
-                col.Item().AlignCenter().Text("Rectora");
-            });
-        });
-    }
-
-    private byte[]? CargarLogo()
-    {
-        var path = _institucion.LogoPath;
-        return !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? File.ReadAllBytes(path) : null;
-    }
-
-    private static string PrimeroNoVacio(string? a, string? b) =>
-        !string.IsNullOrWhiteSpace(a) ? a!.Trim() : (b ?? string.Empty).Trim();
 }

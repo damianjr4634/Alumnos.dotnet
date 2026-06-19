@@ -96,6 +96,11 @@ else
                      Icon="@Icons.Material.Filled.Functions">
                 Promedio general: @_analitico.PromedioGeneral.ToString("0.00")
             </MudChip>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="GenerarMateriasAprobadas" Disabled="@_generando">
+                Constancia de materias aprobadas
+            </MudButton>
         </div>
 
         <MudTable T="ConstanciaMateriaDto" Items="@_analitico.Materias" Dense="true" Hover="true" Striped="true"
@@ -123,7 +128,7 @@ else
                 </MudTd>
                 <MudTd DataLabel="Condición">
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                             Color="@ColorCondicion(context.Condicion)">@context.Condicion</MudChip>
+                             Color="@CondicionMateriaColor.Para(context.Condicion)">@context.Condicion</MudChip>
                 </MudTd>
                 <MudTd DataLabel="Nota" Class="d-none d-md-table-cell">@FormatearNota(context.Nota)</MudTd>
                 <MudTd DataLabel="Fecha" Class="d-none d-md-table-cell">
@@ -173,22 +178,6 @@ else
 
     private static string FormatearNota(decimal? nota) =>
         nota is { } n && n != 0 ? n.ToString("0.00") : "—";
-
-    // Color del badge de condición de la materia (presentación; el SP ya calcula el
-    // color VCL, pero acá derivamos del texto con colores semánticos del tema, §4.5).
-    // Cubre las condiciones de las tres ramas de XXX_CONSTANCIA_TERCIARIA: TER, ADM
-    // y BAC/BAD (estas últimas: A/REGULAR=amarillo, LIBRES/PREVIO/DICIEMBRE/MARZO/
-    // P/EQUIVALEN=rojo en el SP).
-    private static Color ColorCondicion(string? condicion) => (condicion ?? string.Empty).Trim().ToUpperInvariant() switch
-    {
-        "CURSANDO" => Color.Success,
-        "REGULAR" => Color.Info,
-        "RECURSANDO" or "RECURSA" or "PREVIA" or "A/REGULAR" => Color.Warning,
-        "LIBRE" or "LIBRES" or "* ADEUDA *" or "PREVIO" or "DICIEMBRE" or "MARZO" or "P/EQUIVALEN" => Color.Error,
-        "EQUIVALENCIA" or "EXIMIDO" => Color.Secondary,
-        "**INSCRIPTO**" => Color.Tertiary,
-        _ => Color.Default,
-    };
 
     private async Task Generar()
     {
@@ -247,6 +236,35 @@ else
         AnteQuien = _anteQuien,
         IncluirMembrete = _incluirMembrete,
     };
+
+    // Constancia de Materias Aprobadas (reporte tabular del analítico, hito 9.2b).
+    // No tiene chequeo de negocio (el legacy la emite directo); solo exige "ante quién".
+    private async Task GenerarMateriasAprobadas()
+    {
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+        }
+
+        _generando = true;
+        try
+        {
+            var url = $"/constancias/alumno/materias-aprobadas?carre={Uri.EscapeDataString(Carre)}" +
+                      $"&cod={Uri.EscapeDataString(Codigo)}" +
+                      $"&ante={Uri.EscapeDataString(_anteQuien)}" +
+                      $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
+
+            await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+        finally
+        {
+            _generando = false;
+        }
+    }
 
     private async Task AbrirPdf(GenerarConstanciaCommand command, bool confirmar)
     {

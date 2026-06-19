@@ -150,4 +150,33 @@ public class ConstanciasEquivalenciaTests
 
         Assert.Equal(totalDirecto, wrapper.Count);
     }
+
+    [Fact]
+    public async Task ConstanciaMaterias_ColumnasDeEquivalenciaCoincidenConSpDirecto()
+    {
+        // Cubre las columnas agregadas en el hito 9.2b (ACTINT/ACTDEGP/EXIMDESC) que
+        // alimentan las ramas equivalencia/eximido del reporte de materias aprobadas.
+        var ct = CancellationToken.None;
+        if (await AlumnoRealAsync(ct) is not { } alumno)
+        {
+            return;
+        }
+
+        await using var ctx = CrearContexto();
+        var directo = (await ctx.Database.GetDbConnection()
+            .QueryAsync<(string? ActInt, string? ActDegp, string? EximDesc)>(
+                "SELECT TRIM(ACTINT), TRIM(ACTDEGP), TRIM(EXIMDESC) FROM XXX_CONSTANCIA_TERCIARIA(@A, @C)",
+                new { A = alumno.Codigo, C = alumno.Carrera })).ToList();
+
+        var wrapper = await new ConstanciaMateriasProcedure(Factory)
+            .ListarAsync(alumno.Codigo, alumno.Carrera, ct);
+
+        Assert.Equal(directo.Count, wrapper.Count);
+        for (var i = 0; i < directo.Count; i++)
+        {
+            Assert.Equal(directo[i].ActInt, wrapper[i].ActividadInterna);
+            Assert.Equal(directo[i].ActDegp, wrapper[i].ActividadDgegp);
+            Assert.Equal(directo[i].EximDesc, wrapper[i].EximidoDescripcion);
+        }
+    }
 }

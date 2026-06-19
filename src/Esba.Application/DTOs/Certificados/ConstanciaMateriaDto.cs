@@ -30,4 +30,13 @@ public sealed record ConstanciaMateriaDto
 
     /// <summary>'*' si es materia anual (ANUAL='S'), si no vacío.</summary>
     public string? Anual { get; init; }
+
+    /// <summary>ACTINT: N° de acta interna cuando la materia se aprobó por equivalencia.</summary>
+    public string? ActividadInterna { get; init; }
+
+    /// <summary>ACTDEGP: N° de acta D.G.E.G.P. cuando la materia se aprobó por equivalencia.</summary>
+    public string? ActividadDgegp { get; init; }
+
+    /// <summary>EXIMDESC: descripción de la eximición (se imprime en la condición cuando CONDICION='EXIMIDO').</summary>
+    public string? EximidoDescripcion { get; init; }
 }

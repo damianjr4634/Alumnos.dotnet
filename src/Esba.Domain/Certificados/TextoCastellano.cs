@@ -38,4 +38,25 @@ public static class TextoCastellano
         cuatrimestre is >= 1 and <= 12
             ? Ordinales[cuatrimestre - 1]
             : cuatrimestre.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // Separador de miles con punto (convención local), reconstrucción de PonePuntos.
+    private static readonly System.Globalization.NumberFormatInfo MilesConPunto = new()
+    {
+        NumberGroupSeparator = ".",
+        NumberDecimalDigits = 0,
+    };
+
+    /// <summary>
+    /// Formatea el código de alumno con separador de miles ("12345" → "12.345").
+    /// Sucesor de <c>PonePuntos</c> (no versionado, vivía en FuncionesText); si el
+    /// código no es numérico, lo devuelve sin cambios. // TODO-confirmar contra el legacy.
+    /// </summary>
+    public static string CodigoConPuntos(string? codigo)
+    {
+        var texto = (codigo ?? string.Empty).Trim();
+        return long.TryParse(texto, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out var numero)
+            ? numero.ToString("N0", MilesConPunto)
+            : texto;
+    }
 }

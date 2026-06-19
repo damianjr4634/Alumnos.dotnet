@@ -35,4 +35,23 @@ public class TextoCastellanoTests
     {
         Assert.Equal("99", TextoCastellano.CuatrimestreEnLetras(99));
     }
+
+    [Theory]
+    [InlineData("12345", "12.345")]
+    [InlineData("1234567", "1.234.567")]
+    [InlineData("999", "999")]
+    [InlineData(" 4321 ", "4.321")]
+    public void CodigoConPuntos_CodigoNumerico_LoFormateaConSeparadorDeMiles(string codigo, string esperado)
+    {
+        Assert.Equal(esperado, TextoCastellano.CodigoConPuntos(codigo));
+    }
+
+    [Theory]
+    [InlineData("AB-123", "AB-123")]
+    [InlineData("", "")]
+    [InlineData(null, "")]
+    public void CodigoConPuntos_NoNumerico_DevuelveElTextoSinCambios(string? codigo, string esperado)
+    {
+        Assert.Equal(esperado, TextoCastellano.CodigoConPuntos(codigo));
+    }
 }
