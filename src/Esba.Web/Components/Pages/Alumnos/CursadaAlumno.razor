@@ -43,6 +43,8 @@ else
                        Class="mr-2" OnClick="PasarALibre">Pasar a LIBRE</MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PlaylistAddCheck"
                        Class="mr-2" OnClick="InscribirCuatrimestre">Inscribir cuatrimestre</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.SwapHoriz"
+                       Class="mr-2" OnClick="CargarEquivalencia">Cargar equivalencia</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="NuevaInscripcion">Nueva inscripción</MudButton>
         </div>
@@ -172,6 +174,23 @@ else
         else
         {
             Snackbar.Add(resultado.Message ?? "No se pudo realizar el pase.", MudBlazor.Severity.Error);
+        }
+    }
+
+    private async Task CargarEquivalencia()
+    {
+        var parametros = new DialogParameters<EquivalenciaDialog>
+        {
+            { d => d.Carre, Carre },
+            { d => d.CodigoAlumno, Codigo },
+            { d => d.Materias, _materias },
+        };
+
+        var dialogo = await DialogService.ShowAsync<EquivalenciaDialog>("Cargar equivalencia", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+        {
+            await RecargarCursada();
         }
     }
 

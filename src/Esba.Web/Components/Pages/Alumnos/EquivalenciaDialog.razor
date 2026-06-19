@@ -1,0 +1,178 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@using Esba.Domain.Enums
+@inject CrearEquivalenciaHandler CrearEquivalencia
+@inject IEquivalenciaNumeracionProcedure Numeracion
+@inject ISnackbar Snackbar
+
+@* Alta de equivalencia (solapa "Equivalencia" de Equivalencia.pas): inserta en el
+   analítico con condición EQUIVALENCIA. Las solapas pase-regular/final se difieren
+   al hito 14. Solo binding y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSelect T="string" @bind-Value="_codigoMateria" Label="Materia a equivaler" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var materia in Materias)
+                    {
+                        <MudSelectItem Value="@materia.Codigo">
+                            @($"{materia.Codigo} — {materia.Nombre} (cuat. {materia.Cuatrimestre})")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudRadioGroup T="TipoActuacionEquivalencia" @bind-Value="_tipoActuacion">
+                    <MudRadio T="TipoActuacionEquivalencia" Value="@TipoActuacionEquivalencia.Interna" Dense="true">Actuación interna</MudRadio>
+                    <MudRadio T="TipoActuacionEquivalencia" Value="@TipoActuacionEquivalencia.Dgegp" Dense="true">D.G.E.G.P.</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                @if (_tipoActuacion == TipoActuacionEquivalencia.Interna)
+                {
+                    <MudTextField Value="@(_numero?.NumeroFormateado ?? "—")" Label="N° de actuación interna (sugerido)"
+                                  ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  HelperText="@_numero?.Mensaje" />
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_numeroDgegp" Label="N° de actuación D.G.E.G.P." Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                }
+            </MudItem>
+
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_institutoOrigen" Label="Institución de origen" Required="true"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_caracteristicaOrigen" Label="Característica" MaxLength="6"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_colegio" Label="Colegio de origen" MaxLength="40"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_plan" Label="Plan de origen" MaxLength="40"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudRadioGroup T="DocumentoEquivalencia?" @bind-Value="_documento">
+                    <MudRadio T="DocumentoEquivalencia?" Value="@((DocumentoEquivalencia?)DocumentoEquivalencia.Constancia)" Dense="true">Constancia</MudRadio>
+                    <MudRadio T="DocumentoEquivalencia?" Value="@((DocumentoEquivalencia?)DocumentoEquivalencia.Analitico)" Dense="true">Analítico</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_materiaOrigen" Label="Materia cursada en origen" MaxLength="50"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="5">
+                <MudTextField @bind-Value="_carreraOrigen" Label="Carrera cursada en origen" MaxLength="100"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_docenteOrigen" Label="Docente (cód.)" MaxLength="3"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            Cargar equivalencia
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string CodigoAlumno { get; set; } = string.Empty;
+
+    [Parameter] public IReadOnlyList<MateriaListItemDto> Materias { get; set; } = [];
+
+    private string? _codigoMateria;
+    private TipoActuacionEquivalencia _tipoActuacion = TipoActuacionEquivalencia.Interna;
+    private string? _numeroDgegp;
+    private string? _institutoOrigen;
+    private string? _caracteristicaOrigen;
+    private string? _colegio;
+    private string? _plan;
+    private DocumentoEquivalencia? _documento;
+    private string? _docenteOrigen;
+    private string? _materiaOrigen;
+    private string? _carreraOrigen;
+
+    private NumeroEquivalenciaDto? _numero;
+    private bool _guardando;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Número interno sugerido (solo informativo; el alta lo re-resuelve en el servidor).
+        _numero = await Numeracion.ObtenerProximoNumeroAsync(CodigoAlumno, Carre, CancellationToken.None);
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(_codigoMateria))
+        {
+            _error = "Seleccione la materia a equivaler.";
+            return;
+        }
+
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var usuario = (await EstadoAutenticacion!).User.Identity?.Name ?? "desconocido";
+
+            var resultado = await CrearEquivalencia.HandleAsync(new CrearEquivalenciaCommand
+            {
+                CodigoCarrera = Carre,
+                CodigoAlumno = CodigoAlumno,
+                CodigoMateria = _codigoMateria,
+                TipoActuacion = _tipoActuacion,
+                NumeroDgegp = _numeroDgegp,
+                InstitutoOrigen = _institutoOrigen,
+                CaracteristicaOrigen = _caracteristicaOrigen,
+                Colegio = _colegio,
+                Plan = _plan,
+                Documento = _documento,
+                DocenteOrigen = _docenteOrigen,
+                MateriaOrigen = _materiaOrigen,
+                CarreraOrigen = _carreraOrigen,
+            }, usuario, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add("Equivalencia cargada.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

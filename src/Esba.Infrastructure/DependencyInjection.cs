@@ -77,6 +77,13 @@ public static class DependencyInjection
         services.AddScoped<ModificarInscripcionHandler>();
         services.AddScoped<EliminarInscripcionHandler>();
 
+        // Académica: alta de equivalencias (hito 9.3b).
+        services.AddScoped<IAnaliticoRepository, AnaliticoRepository>();
+        services.AddScoped<IValidacionMateriaProcedure, ValidacionMateriaProcedure>();
+        services.AddScoped<IEquivalenciaNumeracionProcedure, EquivalenciaNumeracionProcedure>();
+        services.AddScoped<IValidator<CrearEquivalenciaCommand>, CrearEquivalenciaValidator>();
+        services.AddScoped<CrearEquivalenciaHandler>();
+
         // Académica: ABM de materias (hito 6).
         services.AddScoped<IValidator<CrearMateriaCommand>, CrearMateriaValidator>();
         services.AddScoped<IValidator<ActualizarMateriaCommand>, ActualizarMateriaValidator>();
