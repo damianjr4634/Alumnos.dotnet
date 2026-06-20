@@ -172,6 +172,11 @@ public static class DependencyInjection
         services.AddScoped<IEquivalenciaBachillerReportService, EquivalenciaBachillerPdfService>();
         services.AddScoped<GenerarEquivalenciaBachillerHandler>();
 
+        // Certificados: resolución de equivalencia terciaria (hito 9.3d).
+        services.AddScoped<IEquivalenciaTerciariaQuery, EquivalenciaTerciariaQuery>();
+        services.AddScoped<IResolucionEquivalenciaReportService, ResolucionEquivalenciaTerciariaPdfService>();
+        services.AddScoped<GenerarResolucionEquivalenciaTerciariaHandler>();
+
         return services;
     }
 }

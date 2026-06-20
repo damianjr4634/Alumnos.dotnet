@@ -13,6 +13,7 @@
 @inject Esba.Application.Features.Asistencias.PasarMateriasALibreHandler PaseLibre
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>ESBA — Inscripción de Materias</PageTitle>
 
@@ -53,6 +54,13 @@ else
                            Class="mr-2" Target="_blank"
                            Href="@($"/constancias/alumno/equivalencia-bachiller?carre={Carre}&cod={Codigo}&membrete=true")">
                     Imprimir equivalencia
+                </MudButton>
+            }
+            @if (_esTerciaria)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Gavel"
+                           Class="mr-2" OnClick="ImprimirResolucionTerciaria">
+                    Imprimir resolución
                 </MudButton>
             }
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
@@ -118,6 +126,7 @@ else
     private bool _noEncontrado;
     private bool _cargando;
     private bool _esBachiller;
+    private bool _esTerciaria;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -130,6 +139,7 @@ else
 
         var tipoCarrera = await CarrerasQuery.ObtenerTipoAsync(Carre, CancellationToken.None);
         _esBachiller = EquivalenciaBachillerFormatter.EsTipoBachiller(tipoCarrera);
+        _esTerciaria = string.Equals(tipoCarrera?.Trim(), "TER", StringComparison.OrdinalIgnoreCase);
         _materias = await MateriasQuery.ListarPorCarreraAsync(Carre, CancellationToken.None);
         _cuatrimestreDefault = await CuatrimestreVigente.ObtenerAsync(Carre, CancellationToken.None);
         await RecargarCursada();
@@ -204,6 +214,18 @@ else
         if (resultado is { Canceled: false })
         {
             await RecargarCursada();
+        }
+    }
+
+    private async Task ImprimirResolucionTerciaria()
+    {
+        var dialogo = await DialogService.ShowAsync<ResolucionTerciariaDialog>("Imprimir resolución de equivalencia");
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false, Data: string cuatrimestres } && !string.IsNullOrWhiteSpace(cuatrimestres))
+        {
+            var url = $"/constancias/alumno/equivalencia-terciaria?carre={Uri.EscapeDataString(Carre)}" +
+                      $"&cod={Uri.EscapeDataString(Codigo)}&cuatrimestres={Uri.EscapeDataString(cuatrimestres)}&membrete=true";
+            await JS.InvokeVoidAsync("open", url, "_blank");
         }
     }
 

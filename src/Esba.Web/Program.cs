@@ -173,4 +173,24 @@ app.MapGet("/constancias/alumno/equivalencia-bachiller", async (
     return Results.File(resultado.Value, "application/pdf");
 }).RequireAuthorization();
 
+// Resolución de equivalencia terciaria (hito 9.3d): VISTO/CONSIDERANDO/RESUELVE para
+// los cuatrimestres indicados, servida inline (sucesor del formato nuevo de
+// lst_impresion_equivalencia_terc.pas). El servidor revalida que la carrera sea terciaria.
+app.MapGet("/constancias/alumno/equivalencia-terciaria", async (
+    string carre,
+    string cod,
+    string? cuatrimestres,
+    bool membrete,
+    GenerarResolucionEquivalenciaTerciariaHandler handler,
+    CancellationToken ct) =>
+{
+    var resultado = await handler.GenerarPdfAsync(cod, carre, cuatrimestres, membrete, ct);
+    if (!resultado.IsSuccess || resultado.Value is null)
+    {
+        return Results.BadRequest(resultado.Message ?? "No se pudo generar la resolución.");
+    }
+
+    return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
+
 app.Run();

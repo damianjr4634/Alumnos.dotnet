@@ -97,7 +97,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 6 | **ABM de Materias y Comisiones** (cierra Académica): incluye wrapper `XXX_VALIDO_COMISION` y modelo mínimo de `DOCENTES` para el join | ✅ 2026-06-15 |
 | 7 | **Asistencias**: carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas, pase a LIBRE (`TBL_FERIADOS` no existe en el esquema; el legacy no usa feriados) | ✅ 2026-06-15 |
 | 8 | **Exámenes — ABM de mesas + permisos**: ABM `MESAS` (wrapper `XXX_VALIDO_MESA`), `PERMEXA` permisos individuales y masivos (wrapper `XXX_MATERIAS_FINALES`). **Notas de finales y actas DIFERIDAS** (hito 14, por decisión 2026-06-15) | ✅ 2026-06-15 |
-| 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias | ⬜ |
+| 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias (bachiller 9.3c + terciaria 9.3d) | ✅ 2026-06-20 (Constancia de Alumno Regular diferida a hito 10 por MailKit) |
 | 10 | **Administración**: ABM usuarios y permisos, cambio de contraseña forzado (`CAMPASS`) y blanqueo, profesores, configuración, correo por comisión (MailKit) | ⬜ |
 | 11 | **Integración Web** (inscripciones/permisos web): confirmar vigencia con el usuario antes de migrar | ⬜ |
 | 12 | **Endurecimiento para producción**: usuario Firebird de mínimos privilegios + secretos fuera del repo, políticas de autorización por área (mapa de `BARRA_OPC`), validación de sesión única en middleware, Serilog completo, deploy | ⬜ |

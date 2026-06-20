@@ -27,4 +27,11 @@ public sealed class InstitucionSettings
     /// el original es un .wmf vectorial no usable directo en QuestPDF.
     /// </summary>
     public string? LogoPath { get; set; }
+
+    /// <summary>
+    /// Ruta (absoluta o relativa al directorio de ejecución) al papel membretado JPG de
+    /// la resolución de equivalencia terciaria (sucesor de "membrete_con_direccion.jpg").
+    /// Si está vacía o no existe, la resolución se imprime sin fondo (para preimpreso).
+    /// </summary>
+    public string? MembreteResolucionPath { get; set; }
 }

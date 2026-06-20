@@ -103,9 +103,40 @@ compartido (decisión hito 9.2, `ReporteConstanciaLayout`).
   +4 handler; Integration +2: wrapper vs SP directo y encabezado vs `CARRERA.TIPO`).
 - PDF de muestra generado con datos reales (carrera 333/BAC) y validado visualmente.
 
-## Hito 9.3d — Impresión de equivalencia terciaria
+## Hito 9.3d — Resolución de equivalencia terciaria
 
-**Estado:** ⬜ (próximo). `lst_impresion_equivalencia_terc.pas`: resolución formal
-VISTO/CONSIDERANDO/RESUELVE, plantillas h1/h2/h3, un párrafo por materia y firmas por
-docente (join DOCENTES). Reusa `XXX_CONSTANCIA_TERCIARIA` o un SELECT ANALITIC
-equivalencia. Más complejo que bachiller; sub-commit propio.
+**Estado:** ✅ 2026-06-20.
+
+Migración del **formato nuevo** de `lst_impresion_equivalencia_terc.pas`
+(`BtnImprimirFormatoNuevoClick`): una resolución formal VISTO / CONSIDERANDO / RESUELVE
+para uno o más cuatrimestres. **Decisiones de alcance (usuario, 2026-06-20):**
+
+- **Solo el formato nuevo.** El "formato viejo" (`ImprimirClick`: impresión por materia
+  sobre 3 plantillas `.wmf` h1/h2/h3 + regrabación de `FEQDOCE/FEQMATE/FEQCARRE/FEQINST`)
+  **no se migra**: es código muerto y su regrabación ya la cubre el alta (9.3b).
+- **Membrete = JPG de fondo** (`wwwroot/plantillas/membrete_con_direccion.jpg`), no el
+  membrete-texto de 9.2. Es el único reporte de equivalencias que usa papel membretado.
+- **Resolución consolidada en una secuencia** (VISTO→CONSIDERANDO→RESUELVE) con paginación
+  automática de QuestPDF, en vez del doble render manual de páginas del legacy (artefacto
+  del posicionamiento VCL). El bloque "Firma Docente" estaba comentado en el legacy: no se migra.
+
+### Trazabilidad legacy → .NET
+
+| Legacy | Artefacto .NET | Notas |
+|---|---|---|
+| `SELECT … LIST(DISTINCT …ACTINT…)` (encabezado) | `IEquivalenciaTerciariaQuery.ObtenerEncabezadoAsync` + `EncabezadoResolucionTerciariaDto` | Año actual, COD_ALU con "DNI " y LIST de actas formateadas. **No usa** `XXX_CONSTANCIA_TERCIARIA` (son SELECTs directos). |
+| `SELECT … FROM ANALITIC … DOCENTES … containing m.cuatrim` (detalle) | `IEquivalenciaTerciariaQuery.ListarMateriasAsync` + `MateriaEquivalenciaTerciariaDto` | Filtro por cuatrimestres con `IN` (lista de enteros), no el `CONTAINING` por substring del legacy (evita el falso positivo con cuatrimestres de >1 dígito). |
+| Literales VISTO/CONSIDERANDO/Art.1° + `LetrasCuat` | `ResolucionEquivalenciaFormatter` (Domain) | `ParsearCuatrimestres` ("2,3"→[2,3] únicos/ordenados). Corrige el faltante de espacio "Establecimiento"+FEQINST del legacy. |
+| `cast(ACTINT as integer)` + separación de año | SQL en `EquivalenciaTerciariaQuery` | A diferencia de bachiller, castea a integer ⇒ quita ceros a la izquierda ("200/19"). |
+| `membrete_con_direccion.jpg` de fondo + `FuncionesConfiguracion.Rector` | `ResolucionEquivalenciaTerciariaPdfService` (QuestPDF) + `InstitucionSettings.MembreteResolucionPath` | JPG de fondo por página; Rector como texto (sello-imagen diferido a hito 12). |
+| `InputBox` de cuatrimestres + menú terciaria | `ResolucionTerciariaDialog` + botón "Imprimir resolución" en `CursadaAlumno` (gated `TIPO='TER'`) + endpoint `/constancias/alumno/equivalencia-terciaria` | El servidor revalida TER y que haya materias en los cuatrimestres (§2.7). |
+
+### Verificación
+
+- `dotnet build` → 0 warnings. `dotnet test` → verde (Domain +9 formatter, Application +4
+  handler; Integration +2: encabezado y conteo de materias vs SELECT directo).
+- PDF de muestra (carrera 37414/TER, cuatrimestres 1,2) generado con el membrete real y
+  validado visualmente: VISTO/CONSIDERANDO/RESUELVE, párrafo por materia y paginación OK.
+- ⚠️ El nombre de carrera (`CARRERA.DESCARRE`) trae un carácter de control embebido en el
+  dato; se imprime tal cual (fidelidad). Normalizarlo afectaría a todos los reportes que
+  usan el nombre de carrera — fuera de alcance de 9.3d.
