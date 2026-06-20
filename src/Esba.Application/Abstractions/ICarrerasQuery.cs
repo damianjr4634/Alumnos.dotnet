@@ -19,4 +19,10 @@ public interface ICarrerasQuery
     /// a CURSADA al inscribir. null si la carrera no existe.
     /// </summary>
     Task<(string? Instituto, string? Caracteristica)?> ObtenerDatosInscripcionAsync(string codigoCarrera, CancellationToken ct);
+
+    /// <summary>
+    /// TIPO de la carrera ('BAC'/'BAD'/'TER'), para habilitar acciones propias de
+    /// bachillerato en la UI. null si la carrera no existe.
+    /// </summary>
+    Task<string?> ObtenerTipoAsync(string codigoCarrera, CancellationToken ct);
 }

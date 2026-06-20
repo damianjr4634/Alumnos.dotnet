@@ -13,4 +13,11 @@ public interface IConstanciasQuery
     /// null si la carrera no existe.
     /// </summary>
     Task<CarreraConstanciaDto?> ObtenerDatosCarreraAsync(string codigoCarrera, CancellationToken ct);
+
+    /// <summary>
+    /// Encabezado de la equivalencia bachiller (alumno, actuación interna, secundario
+    /// de origen, plan y carrera). null si el alumno no registra equivalencias en la carrera.
+    /// </summary>
+    Task<EncabezadoEquivalenciaBachillerDto?> ObtenerEncabezadoEquivalenciaBachillerAsync(
+        string codigoAlumno, string codigoCarrera, CancellationToken ct);
 }

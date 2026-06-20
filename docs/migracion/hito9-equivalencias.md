@@ -66,8 +66,46 @@ Alta de una equivalencia de materia, sucesor de `GrabaMateriaClick` (página 0 d
   `XXX_NUMERO_EQUIVALENCIA` (wrapper vs SP directo). `XXX_GRABA_NUMEQUI` no se testea en
   integración (escribe TBLEQUIVA); lo cubre el unitario del handler.
 
-## Hito 9.3c — Impresiones de equivalencia
+## Hito 9.3c — Impresión de equivalencia bachiller
 
-**Estado:** ⬜ (próximo): bachiller (`XXX_IMPRESION_EQ_BAC`) y terciaria
-(`XXX_CONSTANCIA_TERCIARIA`, wrapper ya existe), reportes QuestPDF reusando
-`ReporteConstanciaLayout`.
+**Estado:** ✅ 2026-06-20.
+
+Impresión de la equivalencia bachiller, sucesora de `ImprimirClick` de
+`lst_impresion_equivalencia_bac.pas`. El legacy posicionaba `TextOut` en centímetros
+sobre un membrete `.wmf`; acá se reflowa a un documento QuestPDF A4 reusando el membrete
+compartido (decisión hito 9.2, `ReporteConstanciaLayout`).
+
+### Trazabilidad legacy → .NET
+
+| Legacy | Artefacto .NET | Notas |
+|---|---|---|
+| `XXX_IMPRESION_EQ_BAC` (COLUMNA1/COLUMNA2) | `IEquivalenciaBachillerProcedure` / `ImpresionEquivalenciaBachillerProcedure` (2.B) | Lista las materias de la carrera marcando `SI`/`--` por equivalencia, en disposición 2-up. Usa la GTT `TMP_EQUI` (ON COMMIT DELETE ROWS); Dapper autocommitea ⇒ no acumula entre llamadas. |
+| `SELECT FIRST 1 … FROM ANALITIC … ALUMNOS … TBLPLANES` (encabezado) | `IConstanciasQuery.ObtenerEncabezadoEquivalenciaBachillerAsync` + `EncabezadoEquivalenciaBachillerDto` | Ampliado con JOIN a CARRERA para traer nombre largo, TIPO e instituto emisor en una sola consulta. |
+| `COPY(actint,1,len-2)+'/'+COPY(len-1,2)` | `EquivalenciaBachillerFormatter.FormatearResolucionInterna` | Separa los dos últimos dígitos como año ("00001/03"); conserva ceros a la izquierda (paridad). |
+| Literales "y teniendo a la vista…" + nota AD-REFERENDUM (según `A_C`) | `EquivalenciaBachillerFormatter.TextoVista` / `EsTituloEnTramite` | `A_C='C'` ⇒ "constancia de título en trámite" + nota; en otro caso "Certificado Analítico del nivel medio". Origen = INSTITUT o, si vacío, COLEGIO. |
+| `TextOut` posicionados + membrete WMF | `EquivalenciaBachillerPdfService` (QuestPDF, reusa `ReporteConstanciaLayout.Membrete`) | A4, sin firmas (el legacy solo rotula la carrera al pie). Relleno de asteriscos de la 2ª columna omitido. |
+| Menú bachiller (form solo accesible desde BAC/BAD) | Botón "Imprimir equivalencia" en `CursadaAlumno`, gated por `CARRERA.TIPO` (`ICarrerasQuery.ObtenerTipoAsync`) + endpoint `/constancias/alumno/equivalencia-bachiller` | El servidor revalida BAC/BAD en el handler (§2.7): no confía en desde dónde se invocó. |
+
+### Decisiones
+
+- **Distinción de "institutos"**: `ANALITIC.INSTITUT`/`COLEGIO` es el **secundario de
+  origen** (va en el texto "otorgado por"); el membrete usa `CARRERA.INSTITUT`/`CARACT`
+  (instituto **emisor**). El encabezado trae ambos por separado.
+- **Acentos inconsistentes** en las descripciones de `MATERIAS` (p.ej. `MATEMáTICA` con
+  minúscula vs `QUÍMICA` con mayúscula): vienen así del dato legacy y se respetan por
+  fidelidad — no se normalizan en el reporte.
+- **Sin fuente monoespaciada**: Courier New no está instalada (caía al mismo fallback);
+  el cuerpo usa la fuente del documento y cada columna alinea por celda.
+
+### Verificación
+
+- `dotnet build` → 0 warnings. `dotnet test` → verde (Domain +7 formatter, Application
+  +4 handler; Integration +2: wrapper vs SP directo y encabezado vs `CARRERA.TIPO`).
+- PDF de muestra generado con datos reales (carrera 333/BAC) y validado visualmente.
+
+## Hito 9.3d — Impresión de equivalencia terciaria
+
+**Estado:** ⬜ (próximo). `lst_impresion_equivalencia_terc.pas`: resolución formal
+VISTO/CONSIDERANDO/RESUELVE, plantillas h1/h2/h3, un párrafo por materia y firmas por
+docente (join DOCENTES). Reusa `XXX_CONSTANCIA_TERCIARIA` o un SELECT ANALITIC
+equivalencia. Más complejo que bachiller; sub-commit propio.

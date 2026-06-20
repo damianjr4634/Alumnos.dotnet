@@ -3,9 +3,11 @@
 @using Esba.Application.DTOs.Academica
 @using Esba.Application.DTOs.Alumnos
 @using Esba.Application.Features.Academica
+@using Esba.Domain.Certificados
 @inject IAlumnosQuery AlumnosQuery
 @inject ICursadaQuery CursadaQuery
 @inject IMateriasQuery MateriasQuery
+@inject ICarrerasQuery CarrerasQuery
 @inject ICuatrimestreVigenteProcedure CuatrimestreVigente
 @inject EliminarInscripcionHandler EliminarInscripcion
 @inject Esba.Application.Features.Asistencias.PasarMateriasALibreHandler PaseLibre
@@ -45,6 +47,14 @@ else
                        Class="mr-2" OnClick="InscribirCuatrimestre">Inscribir cuatrimestre</MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.SwapHoriz"
                        Class="mr-2" OnClick="CargarEquivalencia">Cargar equivalencia</MudButton>
+            @if (_esBachiller)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
+                           Class="mr-2" Target="_blank"
+                           Href="@($"/constancias/alumno/equivalencia-bachiller?carre={Carre}&cod={Codigo}&membrete=true")">
+                    Imprimir equivalencia
+                </MudButton>
+            }
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="NuevaInscripcion">Nueva inscripción</MudButton>
         </div>
@@ -107,6 +117,7 @@ else
     private string? _cuatrimestreDefault;
     private bool _noEncontrado;
     private bool _cargando;
+    private bool _esBachiller;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -117,6 +128,8 @@ else
             return;
         }
 
+        var tipoCarrera = await CarrerasQuery.ObtenerTipoAsync(Carre, CancellationToken.None);
+        _esBachiller = EquivalenciaBachillerFormatter.EsTipoBachiller(tipoCarrera);
         _materias = await MateriasQuery.ListarPorCarreraAsync(Carre, CancellationToken.None);
         _cuatrimestreDefault = await CuatrimestreVigente.ObtenerAsync(Carre, CancellationToken.None);
         await RecargarCursada();

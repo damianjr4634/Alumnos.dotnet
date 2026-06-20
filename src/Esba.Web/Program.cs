@@ -154,4 +154,23 @@ app.MapGet("/constancias/alumno/examen-final", async (
     return Results.File(resultado.Value, "application/pdf");
 }).RequireAuthorization();
 
+// Equivalencia bachiller (hito 9.3c): impresión del listado de materias por
+// equivalencia, servida inline (sucesor de lst_impresion_equivalencia_bac.pas, §3.3).
+// El servidor revalida que la carrera sea de bachillerato (BAC/BAD).
+app.MapGet("/constancias/alumno/equivalencia-bachiller", async (
+    string carre,
+    string cod,
+    bool membrete,
+    GenerarEquivalenciaBachillerHandler handler,
+    CancellationToken ct) =>
+{
+    var resultado = await handler.GenerarPdfAsync(cod, carre, membrete, ct);
+    if (!resultado.IsSuccess || resultado.Value is null)
+    {
+        return Results.BadRequest(resultado.Message ?? "No se pudo generar la equivalencia.");
+    }
+
+    return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
+
 app.Run();

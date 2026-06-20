@@ -167,6 +167,11 @@ public static class DependencyInjection
         // Certificados: Constancia de Examen Final (hito 9.2c).
         services.AddScoped<GenerarConstanciaExamenFinalHandler>();
 
+        // Certificados: impresión de equivalencia bachiller (hito 9.3c).
+        services.AddScoped<IEquivalenciaBachillerProcedure, ImpresionEquivalenciaBachillerProcedure>();
+        services.AddScoped<IEquivalenciaBachillerReportService, EquivalenciaBachillerPdfService>();
+        services.AddScoped<GenerarEquivalenciaBachillerHandler>();
+
         return services;
     }
 }

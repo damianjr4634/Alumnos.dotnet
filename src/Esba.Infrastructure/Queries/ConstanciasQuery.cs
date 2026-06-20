@@ -36,4 +36,34 @@ public sealed class ConstanciasQuery : IConstanciasQuery
         return await connection.QueryFirstOrDefaultAsync<CarreraConstanciaDto>(
             new CommandDefinition(sql, new { Carre = codigoCarrera }, cancellationToken: ct)).ConfigureAwait(false);
     }
+
+    public async Task<EncabezadoEquivalenciaBachillerDto?> ObtenerEncabezadoEquivalenciaBachillerAsync(
+        string codigoAlumno, string codigoCarrera, CancellationToken ct)
+    {
+        // SELECT FIRST 1 de lst_impresion_equivalencia_bac.pas, ampliado con CARRERA
+        // (nombre largo y TIPO) para que el handler reformatee la resolución y revalide
+        // que la carrera sea de bachillerato sin una segunda consulta.
+        const string sql = """
+            SELECT FIRST 1
+                   TRIM(L.APELLIDO) || ' ' || TRIM(L.NOM_APE)   AS Alumno,
+                   TRIM(A.ACTINT)                               AS ActividadInterna,
+                   TRIM(A.A_C)                                  AS DocumentoAC,
+                   TRIM(A.INSTITUT)                             AS Instituto,
+                   TRIM(A.COLEGIO)                              AS Colegio,
+                   TRIM(COALESCE(T.FDESCRI, A."PLAN"))          AS PlanDescripcion,
+                   TRIM(C.DESCARRE)                             AS NombreCarrera,
+                   TRIM(C.TIPO)                                 AS TipoCarrera,
+                   TRIM(C.INSTITUT)                             AS InstitutoEmisor,
+                   TRIM(C.CARACT)                               AS CaracteristicaEmisor
+            FROM ANALITIC A
+            LEFT OUTER JOIN ALUMNOS L ON L.CARRE = A.CARRE AND L.COD_ALU = A.COD_ALU
+            LEFT OUTER JOIN TBLPLANES T ON T.FCODIGO = A."PLAN"
+            LEFT OUTER JOIN CARRERA C ON C.CARRE = A.CARRE
+            WHERE A.COD_ALU = @CodAlu AND A.CARRE = @Carre AND A.CONDICION = 'EQUIVALENCIA'
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        return await connection.QueryFirstOrDefaultAsync<EncabezadoEquivalenciaBachillerDto>(
+            new CommandDefinition(sql, new { CodAlu = codigoAlumno, Carre = codigoCarrera }, cancellationToken: ct)).ConfigureAwait(false);
+    }
 }

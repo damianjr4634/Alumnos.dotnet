@@ -64,6 +64,15 @@ public sealed class CarrerasQuery : ICarrerasQuery
         return fila is null ? null : (fila.Instituto, fila.Caracteristica);
     }
 
+    public async Task<string?> ObtenerTipoAsync(string codigoCarrera, CancellationToken ct)
+    {
+        const string sql = "SELECT TRIM(TIPO) FROM CARRERA WHERE TRIM(CARRE) = @Carre";
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        return await connection.QueryFirstOrDefaultAsync<string?>(
+            new CommandDefinition(sql, new { Carre = codigoCarrera }, cancellationToken: ct)).ConfigureAwait(false);
+    }
+
     private sealed record DatosInscripcionRow
     {
         public string? Instituto { get; init; }
