@@ -67,6 +67,8 @@
     private RenderFragment<UsuarioListItemDto> _accionesFila => usuario =>@<text>
         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar usuario"
                        OnClick="@(() => EditarUsuario(usuario))" />
+        <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small" aria-label="Permisos del usuario"
+                       OnClick="@(() => EditarPermisos(usuario))" />
         @if (usuario.EstaDeBaja)
         {
             <MudIconButton Icon="@Icons.Material.Filled.PersonAddAlt" Size="Size.Small" Color="Color.Success"
@@ -133,6 +135,17 @@
         {
             await _listado.RecargarAsync();
         }
+    }
+
+    private async Task EditarPermisos(UsuarioListItemDto usuario)
+    {
+        var parametros = new DialogParameters<PermisosUsuarioDialog>
+        {
+            { d => d.CodigoUsuario, usuario.Codigo },
+            { d => d.NombreUsuario, usuario.NombreUsuario },
+        };
+
+        await DialogService.ShowAsync<PermisosUsuarioDialog>($"Permisos de {usuario.NombreUsuario}", parametros);
     }
 
     private async Task DarDeBajaUsuario(UsuarioListItemDto usuario)

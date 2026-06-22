@@ -1,0 +1,144 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Administracion
+@using Esba.Application.Features.Administracion
+@inject ISeguOpcionesProcedure SeguOpciones
+@inject AsignarPermisosUsuarioHandler AsignarPermisos
+@inject ISnackbar Snackbar
+
+@* Asignación de permisos de un usuario (sucesor de PermisosPorUsuario.pas). Las
+   dos listas + botones de transferencia del legacy son acá una lista única de
+   carreras/opciones con checkboxes. Solo binding y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_cargando)
+        {
+            <div class="d-flex justify-center pa-6"><MudProgressCircular Indeterminate="true" /></div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                Marcá las carreras y opciones que puede usar @NombreUsuario.
+            </MudText>
+            <MudTextField @bind-Value="_filtro" Placeholder="Filtrar…" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" Clearable="true" />
+            <div class="d-flex gap-2 mb-2">
+                <MudButton Size="Size.Small" OnClick="MarcarVisibles">Marcar todo</MudButton>
+                <MudButton Size="Size.Small" OnClick="DesmarcarVisibles">Desmarcar todo</MudButton>
+                <MudSpacer />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary align-self-center">
+                    @_habilitados.Count habilitada(s)
+                </MudText>
+            </div>
+            <MudPaper Outlined="true" Style="max-height:50vh; overflow-y:auto" Class="pa-2">
+                @foreach (var opcion in Visibles)
+                {
+                    <div>
+                        <MudCheckBox T="bool" Dense="true" Size="Size.Small"
+                                     Value="@_habilitados.Contains(opcion.Codigo)"
+                                     ValueChanged="@(v => Alternar(opcion.Codigo, v))">
+                            <strong>@opcion.Codigo</strong> — @opcion.Descripcion
+                        </MudCheckBox>
+                    </div>
+                }
+                @if (Visibles.Count == 0)
+                {
+                    <MudText Class="pa-2 mud-text-secondary">No hay opciones para el filtro.</MudText>
+                }
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(_guardando || _cargando)" OnClick="Guardar">
+            Guardar permisos
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public int CodigoUsuario { get; set; }
+
+    [Parameter] public string NombreUsuario { get; set; } = string.Empty;
+
+    private IReadOnlyList<PermisoOpcionDto> _opciones = [];
+    private readonly HashSet<string> _habilitados = new(StringComparer.OrdinalIgnoreCase);
+    private string? _filtro;
+    private bool _cargando = true;
+    private bool _guardando;
+
+    private IReadOnlyList<PermisoOpcionDto> Visibles =>
+        string.IsNullOrWhiteSpace(_filtro)
+            ? _opciones
+            : _opciones.Where(o =>
+                o.Codigo.Contains(_filtro, StringComparison.OrdinalIgnoreCase)
+                || o.Descripcion.Contains(_filtro, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _opciones = await SeguOpciones.ListarAsync(CodigoUsuario, CancellationToken.None);
+        foreach (var o in _opciones.Where(o => o.Habilitado))
+        {
+            _habilitados.Add(o.Codigo);
+        }
+        _cargando = false;
+    }
+
+    private void Alternar(string codigo, bool habilitar)
+    {
+        if (habilitar)
+        {
+            _habilitados.Add(codigo);
+        }
+        else
+        {
+            _habilitados.Remove(codigo);
+        }
+    }
+
+    private void MarcarVisibles()
+    {
+        foreach (var o in Visibles)
+        {
+            _habilitados.Add(o.Codigo);
+        }
+    }
+
+    private void DesmarcarVisibles()
+    {
+        foreach (var o in Visibles)
+        {
+            _habilitados.Remove(o.Codigo);
+        }
+    }
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        try
+        {
+            var resultado = await AsignarPermisos.HandleAsync(new AsignarPermisosUsuarioCommand
+            {
+                CodigoUsuario = CodigoUsuario,
+                CodigosOpcion = _habilitados.ToList(),
+            }, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add("Permisos actualizados.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudieron guardar los permisos.", MudBlazor.Severity.Error);
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

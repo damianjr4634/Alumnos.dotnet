@@ -66,6 +66,12 @@ public static class DependencyInjection
         services.AddScoped<DarDeBajaUsuarioHandler>();
         services.AddScoped<ReactivarUsuarioHandler>();
 
+        // Administración: permisos por usuario (hito 10.1b). Wrappers de YYY_SEGU_*.
+        services.AddScoped<ISeguOpcionesProcedure, SeguOpcionesProcedure>();
+        services.AddScoped<ISeguGrabaProcedure, SeguGrabaProcedure>();
+        services.AddScoped<IValidator<AsignarPermisosUsuarioCommand>, AsignarPermisosUsuarioValidator>();
+        services.AddScoped<AsignarPermisosUsuarioHandler>();
+
         services.AddScoped<IAlumnoRepository, AlumnoRepository>();
         services.AddScoped<IValidator<CrearAlumnoCommand>, CrearAlumnoValidator>();
         services.AddScoped<IValidator<ActualizarAlumnoCommand>, ActualizarAlumnoValidator>();
