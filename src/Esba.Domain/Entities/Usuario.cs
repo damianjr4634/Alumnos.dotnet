@@ -42,6 +42,15 @@ public class Usuario
     /// <summary>IMGFIRMA VARCHAR(30): archivo de imagen de firma (CARPETA_FIRMAS legacy) para constancias.</summary>
     public string? ImagenFirma { get; set; }
 
+    /// <summary>
+    /// FECHA_BAJ DATE: baja lógica introducida por el lado .NET (hito 10.1a).
+    /// NULL = usuario activo. El login .NET rechaza a los usuarios dados de baja.
+    /// </summary>
+    public DateOnly? FechaBaja { get; set; }
+
     /// <summary>Carreras/opciones habilitadas (BARRA_SEGU).</summary>
     public ICollection<PermisoUsuario> Permisos { get; set; } = [];
+
+    /// <summary>true si el usuario está dado de baja (FECHA_BAJ no nula).</summary>
+    public bool EstaDeBaja => FechaBaja is not null;
 }

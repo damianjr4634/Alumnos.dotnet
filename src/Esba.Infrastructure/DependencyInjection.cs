@@ -1,5 +1,6 @@
 using Esba.Application.Abstractions;
 using Esba.Application.DTOs.Academica;
+using Esba.Application.DTOs.Administracion;
 using Esba.Application.DTOs.Alumnos;
 using Esba.Application.DTOs.Asistencias;
 using Esba.Application.DTOs.Certificados;
@@ -55,6 +56,15 @@ public static class DependencyInjection
         // Casos de uso y validadores de Application.
         services.AddScoped<IValidator<IniciarSesionCommand>, IniciarSesionValidator>();
         services.AddScoped<IniciarSesionHandler>();
+
+        // Administración: ABM de usuarios (hito 10.1a).
+        services.AddScoped<IUsuariosQuery, UsuariosQuery>();
+        services.AddScoped<IValidator<CrearUsuarioCommand>, CrearUsuarioValidator>();
+        services.AddScoped<IValidator<ActualizarUsuarioCommand>, ActualizarUsuarioValidator>();
+        services.AddScoped<CrearUsuarioHandler>();
+        services.AddScoped<ActualizarUsuarioHandler>();
+        services.AddScoped<DarDeBajaUsuarioHandler>();
+        services.AddScoped<ReactivarUsuarioHandler>();
 
         services.AddScoped<IAlumnoRepository, AlumnoRepository>();
         services.AddScoped<IValidator<CrearAlumnoCommand>, CrearAlumnoValidator>();

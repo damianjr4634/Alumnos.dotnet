@@ -1,0 +1,177 @@
+@page "/administracion/usuarios"
+@attribute [Authorize(Policy = EsbaPolicies.Supervisores)]
+@using Microsoft.AspNetCore.Authorization
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Administracion
+@using Esba.Application.Features.Administracion
+@using Esba.Web.Components.Shared
+@using Esba.Web.Seguridad
+@inject IUsuariosQuery UsuariosQuery
+@inject DarDeBajaUsuarioHandler DarDeBaja
+@inject ReactivarUsuarioHandler Reactivar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Usuarios</PageTitle>
+
+@* ABM de usuarios del sistema (sucesor de AltaUsuario/BajaUsuarios/PermisosPorUsuario,
+   hito 10.1a). Solo supervisores (política). El listado es server-side con
+   exportación; baja lógica con confirmación. Sin SQL ni lógica de negocio (§2.1). *@
+
+<EsbaListView T="UsuarioListItemDto" @ref="_listado"
+              Titulo="Usuarios"
+              Subtitulo="Usuarios del sistema y su estado"
+              Columnas="_columnas"
+              DataProvider="Cargar"
+              NombreArchivo="Usuarios"
+              AccionesFila="_accionesFila">
+    <Filtros>
+        <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+    </Filtros>
+    <AccionPrimaria>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PersonAdd"
+                   OnClick="NuevoUsuario">Nuevo usuario</MudButton>
+    </AccionPrimaria>
+</EsbaListView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private EsbaListView<UsuarioListItemDto>? _listado;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+
+    private readonly IReadOnlyList<EsbaColumn<UsuarioListItemDto>> _columnas =
+    [
+        new() { Titulo = "Usuario", Valor = u => u.NombreUsuario, ClaveOrden = "NombreUsuario" },
+        new() { Titulo = "Nombre", Valor = NombreCompleto },
+        new() { Titulo = "Cargo", Valor = u => u.Cargo, ClaveOrden = "Cargo", OcultarEnChico = true },
+        new()
+        {
+            Titulo = "Supervisor",
+            Valor = u => u.EsSupervisor ? "Sí" : "No",
+            OcultarEnChico = true,
+            Celda = u =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(u.EsSupervisor ? Color.Info : Color.Default)">@(u.EsSupervisor ? "Sí" : "No")</MudChip>,
+        },
+        new()
+        {
+            Titulo = "Estado",
+            Valor = u => u.EstaDeBaja ? "Baja" : "Activo",
+            Celda = u =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(u.EstaDeBaja ? Color.Error : Color.Success)">@(u.EstaDeBaja ? "Baja" : "Activo")</MudChip>,
+        },
+    ];
+
+    private RenderFragment<UsuarioListItemDto> _accionesFila => usuario =>@<text>
+        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar usuario"
+                       OnClick="@(() => EditarUsuario(usuario))" />
+        @if (usuario.EstaDeBaja)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.PersonAddAlt" Size="Size.Small" Color="Color.Success"
+                           aria-label="Reactivar usuario" OnClick="@(() => ReactivarUsuario(usuario))" />
+        }
+        else
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Error"
+                           aria-label="Dar de baja usuario" OnClick="@(() => DarDeBajaUsuario(usuario))" />
+        }
+    </text>;
+
+    protected override void OnInitialized()
+    {
+        _campos =
+        [
+            new() { Clave = "Texto", Etiqueta = "Usuario, nombre o cargo", Tipo = EsbaFilterKind.Texto, AnchoMd = 4 },
+            new() { Clave = "IncluirBajas", Etiqueta = "Incluir dados de baja", Tipo = EsbaFilterKind.Booleano, AnchoMd = 3 },
+        ];
+    }
+
+    private static string NombreCompleto(UsuarioListItemDto u) =>
+        string.Join(", ", new[] { u.Apellido, u.Nombres }.Where(p => !string.IsNullOrWhiteSpace(p)));
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task<PagedResult<UsuarioListItemDto>> Cargar(EsbaListRequest req, CancellationToken ct)
+    {
+        var filtro = new UsuariosFiltro
+        {
+            Texto = _filtros?.Texto("Texto"),
+            IncluirBajas = _filtros?.Booleano("IncluirBajas") ?? false,
+            OrdenarPor = req.OrdenarPor,
+            Descendente = req.Descendente,
+            Skip = req.Skip,
+            Take = req.Take,
+        };
+
+        return await UsuariosQuery.BuscarAsync(filtro, ct);
+    }
+
+    private Task NuevoUsuario() => AbrirDialogo(null);
+
+    private Task EditarUsuario(UsuarioListItemDto usuario) => AbrirDialogo(usuario);
+
+    private async Task AbrirDialogo(UsuarioListItemDto? usuario)
+    {
+        var parametros = new DialogParameters<UsuarioFormDialog>
+        {
+            { d => d.Usuario, usuario },
+        };
+
+        var dialogo = await DialogService.ShowAsync<UsuarioFormDialog>(
+            usuario is null ? "Nuevo usuario" : $"Usuario {usuario.NombreUsuario}", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false } && _listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task DarDeBajaUsuario(UsuarioListItemDto usuario)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Dar de baja",
+            $"¿Dar de baja al usuario '{usuario.NombreUsuario}'? No podrá iniciar sesión.",
+            yesText: "Dar de baja", cancelText: "Cancelar");
+        if (confirmar != true)
+        {
+            return;
+        }
+
+        var ejecutor = (await EstadoAutenticacion!).User.CodigoUsuario() ?? 0;
+        var resultado = await DarDeBaja.HandleAsync(usuario.Codigo, ejecutor, CancellationToken.None);
+        await MostrarYRecargar(resultado, "Usuario dado de baja.");
+    }
+
+    private async Task ReactivarUsuario(UsuarioListItemDto usuario)
+    {
+        var resultado = await Reactivar.HandleAsync(usuario.Codigo, CancellationToken.None);
+        await MostrarYRecargar(resultado, "Usuario reactivado.");
+    }
+
+    private async Task MostrarYRecargar(Esba.Domain.Common.Result<int> resultado, string mensajeOk)
+    {
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Error)
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo completar la operación.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(
+            resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? resultado.Message! : mensajeOk,
+            resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? MudBlazor.Severity.Warning : MudBlazor.Severity.Success);
+
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+}

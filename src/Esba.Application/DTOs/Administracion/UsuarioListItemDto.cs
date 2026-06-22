@@ -16,4 +16,9 @@ public sealed record UsuarioListItemDto
     public bool EsSupervisor { get; init; }
 
     public bool DebeCambiarPassword { get; init; }
+
+    /// <summary>FECHA_BAJ: NULL = activo. Cuando tiene valor, el usuario está dado de baja.</summary>
+    public DateOnly? FechaBaja { get; init; }
+
+    public bool EstaDeBaja => FechaBaja is not null;
 }

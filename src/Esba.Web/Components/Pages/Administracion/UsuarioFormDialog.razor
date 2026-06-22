@@ -1,0 +1,130 @@
+@using Esba.Application.DTOs.Administracion
+@using Esba.Application.Features.Administracion
+@inject CrearUsuarioHandler CrearUsuario
+@inject ActualizarUsuarioHandler ActualizarUsuario
+@inject ISnackbar Snackbar
+
+@* Alta/modificación de un usuario del sistema (sucesor de AltaUsuario.pas). La
+   contraseña solo se fija en el alta; el cambio y el blanqueo son flujos aparte
+   (hito 10.1c). Solo binding y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_nombreUsuario" Label="Usuario (login)" Required="true" MaxLength="15"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            @if (!EsModificacion)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_password" Label="Contraseña inicial" Required="true"
+                                  InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  HelperText="El usuario deberá cambiarla en su primer ingreso." />
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_nombres" Label="Nombres" MaxLength="50"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_apellido" Label="Apellido" MaxLength="50"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_cargo" Label="Cargo" MaxLength="30"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex align-center mt-2">
+                <MudSwitch T="bool" @bind-Value="_esSupervisor" Label="Supervisor" Color="Color.Primary" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2">
+                    Ve todas las carreras y administra el sistema.
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            @(EsModificacion ? "Guardar cambios" : "Crear usuario")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Usuario a editar; null = alta.</summary>
+    [Parameter] public UsuarioListItemDto? Usuario { get; set; }
+
+    private bool EsModificacion => Usuario is not null;
+
+    private string _nombreUsuario = string.Empty;
+    private string _password = string.Empty;
+    private string? _nombres;
+    private string? _apellido;
+    private string? _cargo;
+    private bool _esSupervisor;
+    private bool _guardando;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Usuario is { } u)
+        {
+            _nombreUsuario = u.NombreUsuario;
+            _nombres = u.Nombres;
+            _apellido = u.Apellido;
+            _cargo = u.Cargo;
+            _esSupervisor = u.EsSupervisor;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var resultado = EsModificacion
+                ? await ActualizarUsuario.HandleAsync(new ActualizarUsuarioCommand
+                {
+                    Codigo = Usuario!.Codigo,
+                    NombreUsuario = _nombreUsuario,
+                    Nombres = _nombres,
+                    Apellido = _apellido,
+                    Cargo = _cargo,
+                    EsSupervisor = _esSupervisor,
+                }, CancellationToken.None)
+                : await CrearUsuario.HandleAsync(new CrearUsuarioCommand
+                {
+                    NombreUsuario = _nombreUsuario,
+                    Password = _password,
+                    Nombres = _nombres,
+                    Apellido = _apellido,
+                    Cargo = _cargo,
+                    EsSupervisor = _esSupervisor,
+                }, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(EsModificacion ? "Usuario actualizado." : "Usuario creado.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

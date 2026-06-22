@@ -48,9 +48,10 @@ public sealed class IniciarSesionHandler
         }
 
         var usuario = await _usuarios.ObtenerPorNombreConPermisosAsync(command.NombreUsuario.Trim(), ct).ConfigureAwait(false);
-        if (usuario is null)
+        if (usuario is null || usuario.EstaDeBaja)
         {
-            // Mismo mensaje genérico que el legacy: no se revela si el usuario existe.
+            // Mismo mensaje genérico que el legacy: no se revela si el usuario existe
+            // ni si está dado de baja (baja lógica, hito 10.1a).
             return Result.Error<SesionIniciadaDto>(MensajeCredencialesInvalidas);
         }
 

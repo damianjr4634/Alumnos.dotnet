@@ -26,7 +26,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Acceso a las pantallas de Administración: solo supervisores (SUPERV='S').
+    // La autorización fina por área (mapa BARRA_OPC/BARRA_SEGU) es del hito 12.
+    options.AddPolicy(EsbaPolicies.Supervisores, policy =>
+        policy.RequireClaim(EsbaClaims.Supervisor, "S"));
+});
 builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();

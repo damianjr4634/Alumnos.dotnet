@@ -26,6 +26,10 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .HasConversion(FbConverters.SiNo);
         builder.Property(u => u.SesionUid).HasColumnName("UID").HasMaxLength(50);
         builder.Property(u => u.ImagenFirma).HasColumnName("IMGFIRMA").HasMaxLength(30);
+        builder.Property(u => u.FechaBaja).HasColumnName("FECHA_BAJ");
+
+        // EstaDeBaja es calculada (FECHA_BAJ no nula): no se mapea.
+        builder.Ignore(u => u.EstaDeBaja);
 
         builder.HasMany(u => u.Permisos)
             .WithOne(p => p.Usuario)

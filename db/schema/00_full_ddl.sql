@@ -1331,6 +1331,7 @@ CREATE TABLE USUARIOS (CODUSU INTEGER NOT NULL,
         SUPERV CHAR(1),
         CAMPASS CHAR(1),
         IMGFIRMA VARCHAR(30),
+        FECHA_BAJ DATE, /* baja lógica agregada por el lado .NET — ver db/schema/migrations/2026-06-22_usuarios_fecha_baja.sql */
 CONSTRAINT PK_USUARIOS PRIMARY KEY (CODUSU));
 
 /* Table: WEB_ALUMNOS, Owner: SYSDBA */
