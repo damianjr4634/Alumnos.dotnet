@@ -12,6 +12,7 @@ using Esba.Application.Features.Asistencias;
 using Esba.Application.Features.Certificados;
 using Esba.Application.Features.Examenes;
 using Esba.Application.Validators;
+using Esba.Infrastructure.Email;
 using Esba.Infrastructure.Excel;
 using Esba.Infrastructure.Persistence;
 using Esba.Infrastructure.Persistence.Repositories;
@@ -83,6 +84,13 @@ public static class DependencyInjection
         services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
         services.AddScoped<IValidator<ActualizarConfiguracionCommand>, ActualizarConfiguracionValidator>();
         services.AddScoped<ActualizarConfiguracionHandler>();
+
+        // Administración: correo SMTP institucional (hito 10.3b). Cuenta única global;
+        // credenciales en user-secrets/entorno (§2.7). Envío con MailKit.
+        services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
+        services.AddScoped<IEmailService, MailKitEmailService>();
+        services.AddScoped<IValidator<EnviarCorreoPruebaCommand>, EnviarCorreoPruebaValidator>();
+        services.AddScoped<EnviarCorreoPruebaHandler>();
 
         // Administración: ABM de profesores (hito 10.2). DOCENTES por EF (sin SP).
         services.AddScoped<IDocenteRepository, DocenteRepository>();

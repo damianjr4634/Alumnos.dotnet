@@ -1,0 +1,60 @@
+@using Esba.Application.DTOs.Administracion
+@using Esba.Application.Features.Administracion
+@inject EnviarCorreoPruebaHandler EnviarCorreoPrueba
+
+@* Envío de un correo de prueba para verificar la configuración SMTP institucional
+   (hito 10.3b). Solo binding y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            Se enviará un correo de prueba desde la cuenta institucional configurada para
+            verificar que el envío funciona.
+        </MudText>
+        <MudTextField @bind-Value="_destinatario" Label="Correo de destino" InputType="InputType.Email"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_enviando"
+                   StartIcon="@Icons.Material.Filled.Send" OnClick="Enviar">
+            Enviar prueba
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    private string _destinatario = string.Empty;
+    private bool _enviando;
+    private string? _error;
+
+    private async Task Enviar()
+    {
+        _error = null;
+        _enviando = true;
+        try
+        {
+            var resultado = await EnviarCorreoPrueba.HandleAsync(
+                new EnviarCorreoPruebaCommand { Destinatario = _destinatario }, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                MudDialog?.Close(DialogResult.Ok($"Correo de prueba enviado a {_destinatario}."));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _enviando = false;
+        }
+    }
+}
