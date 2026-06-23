@@ -38,6 +38,9 @@
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@estadoAuth.User.Identity?.Name</MudText>
                         </div>
                         <MudDivider Class="mb-1" />
+                        <MudButton Href="/cambiar-password" Variant="Variant.Text" Color="Color.Inherit"
+                                   FullWidth="true" StartIcon="@Icons.Material.Filled.Password"
+                                   Class="justify-start px-4">Cambiar mi contraseña</MudButton>
                         <form method="post" action="/auth/logout" class="ma-0">
                             <AntiforgeryToken />
                             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error"

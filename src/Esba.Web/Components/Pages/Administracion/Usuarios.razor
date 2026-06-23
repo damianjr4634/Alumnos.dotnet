@@ -69,6 +69,8 @@
                        OnClick="@(() => EditarUsuario(usuario))" />
         <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small" aria-label="Permisos del usuario"
                        OnClick="@(() => EditarPermisos(usuario))" />
+        <MudIconButton Icon="@Icons.Material.Filled.LockReset" Size="Size.Small" aria-label="Blanquear contraseña"
+                       OnClick="@(() => BlanquearPasswordUsuario(usuario))" />
         @if (usuario.EstaDeBaja)
         {
             <MudIconButton Icon="@Icons.Material.Filled.PersonAddAlt" Size="Size.Small" Color="Color.Success"
@@ -146,6 +148,17 @@
         };
 
         await DialogService.ShowAsync<PermisosUsuarioDialog>($"Permisos de {usuario.NombreUsuario}", parametros);
+    }
+
+    private async Task BlanquearPasswordUsuario(UsuarioListItemDto usuario)
+    {
+        var parametros = new DialogParameters<BlanquearPasswordDialog>
+        {
+            { d => d.CodigoUsuario, usuario.Codigo },
+            { d => d.NombreUsuario, usuario.NombreUsuario },
+        };
+
+        await DialogService.ShowAsync<BlanquearPasswordDialog>($"Blanquear contraseña de {usuario.NombreUsuario}", parametros);
     }
 
     private async Task DarDeBajaUsuario(UsuarioListItemDto usuario)

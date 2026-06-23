@@ -74,8 +74,9 @@ app.MapPost("/auth/login", async (
 
     await http.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, EsbaClaims.CrearPrincipal(resultado.Value));
 
-    // TODO-migrar: si DebeCambiarPassword, redirigir a /cambiar-password cuando exista ese caso de uso.
-    return Results.Redirect("/");
+    // CAMPASS='S': el usuario aterriza en el cambio de contraseña forzado (10.1c).
+    // El bloqueo estricto de navegación hasta cambiarla es del hito 12.
+    return Results.Redirect(resultado.Value.DebeCambiarPassword ? "/cambiar-password" : "/");
 });
 
 app.MapPost("/auth/logout", async (HttpContext http) =>

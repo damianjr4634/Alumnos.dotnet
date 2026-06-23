@@ -72,6 +72,12 @@ public static class DependencyInjection
         services.AddScoped<IValidator<AsignarPermisosUsuarioCommand>, AsignarPermisosUsuarioValidator>();
         services.AddScoped<AsignarPermisosUsuarioHandler>();
 
+        // Administración: contraseña — cambio propio y blanqueo por admin (hito 10.1c).
+        services.AddScoped<IValidator<CambiarPasswordCommand>, CambiarPasswordValidator>();
+        services.AddScoped<IValidator<BlanquearPasswordCommand>, BlanquearPasswordValidator>();
+        services.AddScoped<CambiarPasswordHandler>();
+        services.AddScoped<BlanquearPasswordHandler>();
+
         services.AddScoped<IAlumnoRepository, AlumnoRepository>();
         services.AddScoped<IValidator<CrearAlumnoCommand>, CrearAlumnoValidator>();
         services.AddScoped<IValidator<ActualizarAlumnoCommand>, ActualizarAlumnoValidator>();
