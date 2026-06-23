@@ -78,6 +78,12 @@ public static class DependencyInjection
         services.AddScoped<CambiarPasswordHandler>();
         services.AddScoped<BlanquearPasswordHandler>();
 
+        // Administración: configuración general XXX_CONF (hito 10.3a). Clave-valor por EF.
+        services.AddScoped<IConfiguracionQuery, ConfiguracionQuery>();
+        services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
+        services.AddScoped<IValidator<ActualizarConfiguracionCommand>, ActualizarConfiguracionValidator>();
+        services.AddScoped<ActualizarConfiguracionHandler>();
+
         // Administración: ABM de profesores (hito 10.2). DOCENTES por EF (sin SP).
         services.AddScoped<IDocenteRepository, DocenteRepository>();
         services.AddScoped<IValidator<CrearDocenteCommand>, CrearDocenteValidator>();

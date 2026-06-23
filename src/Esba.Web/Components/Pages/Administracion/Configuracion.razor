@@ -1,0 +1,120 @@
+@page "/administracion/configuracion"
+@attribute [Authorize(Policy = EsbaPolicies.Supervisores)]
+@using Microsoft.AspNetCore.Authorization
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Administracion
+@using Esba.Application.Features.Administracion
+@using Esba.Web.Seguridad
+@inject IConfiguracionQuery ConfiguracionQuery
+@inject ActualizarConfiguracionHandler ActualizarConfiguracion
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Configuración</PageTitle>
+
+@* Configuración general del sistema (sucesor de TablaConfiguraciones.pas, XXX_CONF).
+   Solo supervisores. El usuario edita el VALOR; el nombre y la descripción del
+   parámetro son de solo lectura. Sin SQL ni lógica de negocio (§2.1). *@
+
+<div class="d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
+    <div>
+        <MudText Typo="Typo.h5">Configuración del sistema</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Parámetros generales (XXX_CONF). Editá el valor de cada parámetro y guardá los cambios.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+               Disabled="@(_guardando || _parametros is null)" OnClick="Guardar">
+        Guardar cambios
+    </MudButton>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4">
+    @if (_parametros is null)
+    {
+        <div class="d-flex justify-center pa-8">
+            <MudProgressCircular Indeterminate="true" />
+        </div>
+    }
+    else if (_parametros.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+            No hay parámetros de configuración cargados.
+        </MudText>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (var p in _parametros)
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="p.Valor" Label="@p.Parame" HelperText="@p.Descripcion"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200"
+                                  Immediate="false" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    private List<ParametroEditable>? _parametros;
+    private bool _guardando;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        var items = await ConfiguracionQuery.ListarAsync(CancellationToken.None);
+        _parametros = items
+            .Select(i => new ParametroEditable { Parame = i.Parame, Descripcion = i.Descripcion, Valor = i.Valor })
+            .ToList();
+    }
+
+    private async Task Guardar()
+    {
+        if (_parametros is null)
+        {
+            return;
+        }
+
+        _guardando = true;
+        try
+        {
+            var command = new ActualizarConfiguracionCommand
+            {
+                Valores = _parametros
+                    .Select(p => new ValorParametro { Parame = p.Parame, Valor = p.Valor })
+                    .ToList(),
+            };
+
+            var resultado = await ActualizarConfiguracion.HandleAsync(command, CancellationToken.None);
+
+            switch (resultado.Status)
+            {
+                case Esba.Domain.Common.OperationStatus.Error:
+                    Snackbar.Add(resultado.Message ?? "No se pudieron guardar los cambios.", MudBlazor.Severity.Error);
+                    break;
+                case Esba.Domain.Common.OperationStatus.Warning:
+                    Snackbar.Add(resultado.Message!, MudBlazor.Severity.Warning);
+                    break;
+                default:
+                    Snackbar.Add(
+                        resultado.Value == 0 ? "No hubo cambios para guardar." : $"Se guardaron {resultado.Value} parámetro(s).",
+                        resultado.Value == 0 ? MudBlazor.Severity.Info : MudBlazor.Severity.Success);
+                    await Cargar();
+                    break;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private sealed class ParametroEditable
+    {
+        public required string Parame { get; init; }
+        public string? Descripcion { get; init; }
+        public string? Valor { get; set; }
+    }
+}

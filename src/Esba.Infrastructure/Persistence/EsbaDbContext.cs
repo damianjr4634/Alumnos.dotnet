@@ -38,6 +38,8 @@ public class EsbaDbContext : DbContext
 
     public DbSet<CicloTrimestral> CiclosTrimestrales => Set<CicloTrimestral>();
 
+    public DbSet<ParametroConfiguracion> Configuraciones => Set<ParametroConfiguracion>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EsbaDbContext).Assembly);
