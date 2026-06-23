@@ -14,6 +14,13 @@ internal static class FbConverters
     public static readonly ValueConverter<bool, string> SiNo =
         new(v => v ? "S" : "N", v => v.Trim() == "S");
 
+    /// <summary>
+    /// CHAR(1) 'S'/'N' ↔ bool, tolerante a NULL/blanco en lectura (= false), para
+    /// columnas legacy opcionales que pueden venir sin dato (ej. DOCENTES.LICENCIA).
+    /// </summary>
+    public static readonly ValueConverter<bool, string?> SiNoNulable =
+        new(v => v ? "S" : "N", v => v != null && v.Trim() == "S");
+
     /// <summary>CHAR(1) '*' (marcado) / NULL o vacío (desmarcado) ↔ bool, patrón de los checkboxes CTT/CA del legacy.</summary>
     public static readonly ValueConverter<bool, string?> Asterisco =
         new(v => v ? "*" : null, v => v != null && v.Trim() == "*");

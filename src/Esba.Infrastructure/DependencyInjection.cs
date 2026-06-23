@@ -78,6 +78,15 @@ public static class DependencyInjection
         services.AddScoped<CambiarPasswordHandler>();
         services.AddScoped<BlanquearPasswordHandler>();
 
+        // Administración: ABM de profesores (hito 10.2). DOCENTES por EF (sin SP).
+        services.AddScoped<IDocenteRepository, DocenteRepository>();
+        services.AddScoped<IValidator<CrearDocenteCommand>, CrearDocenteValidator>();
+        services.AddScoped<IValidator<ActualizarDocenteCommand>, ActualizarDocenteValidator>();
+        services.AddScoped<CrearDocenteHandler>();
+        services.AddScoped<ActualizarDocenteHandler>();
+        services.AddScoped<DarDeBajaDocenteHandler>();
+        services.AddScoped<ReactivarDocenteHandler>();
+
         services.AddScoped<IAlumnoRepository, AlumnoRepository>();
         services.AddScoped<IValidator<CrearAlumnoCommand>, CrearAlumnoValidator>();
         services.AddScoped<IValidator<ActualizarAlumnoCommand>, ActualizarAlumnoValidator>();

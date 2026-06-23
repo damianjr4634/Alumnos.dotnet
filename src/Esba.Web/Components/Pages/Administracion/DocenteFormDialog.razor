@@ -1,0 +1,210 @@
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Administracion
+@inject CrearDocenteHandler CrearDocente
+@inject ActualizarDocenteHandler ActualizarDocente
+@inject ISnackbar Snackbar
+
+@* Alta/modificación de un docente (sucesor de FrmAltaModProfes, alcance esencial
+   del hito 10.2). Solo binding y llamadas a Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="4" sm="2">
+                <MudTextField @bind-Value="_codigo" Label="Código" Required="true" MaxLength="3"
+                              Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="8" sm="10">
+                <MudTextField @bind-Value="_nombre" Label="Apellido y nombre" Required="true" MaxLength="80"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6" sm="3">
+                <MudTextField @bind-Value="_tipoDoc" Label="Tipo doc." MaxLength="3"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudTextField @bind-Value="_nroDoc" Label="N° documento" MaxLength="8"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_fechaNacimiento" Label="Fecha de nacimiento" Editable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_direccion" Label="Domicilio" MaxLength="30"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="3" sm="2">
+                <MudTextField @bind-Value="_piso" Label="Piso" MaxLength="2"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="3" sm="2">
+                <MudTextField @bind-Value="_depto" Label="Depto" MaxLength="2"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudTextField @bind-Value="_codPostal" Label="C. Postal" MaxLength="4"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_localidad" Label="Localidad" MaxLength="30"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="6" sm="4">
+                <MudTextField @bind-Value="_telParticular" Label="Tel. particular" MaxLength="20"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudTextField @bind-Value="_telMensajes" Label="Tel. mensajes" MaxLength="20"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="4">
+                <MudTextField @bind-Value="_interno" Label="Interno" MaxLength="4"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_fechaIngreso" Label="Fecha de ingreso" Editable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6" Class="d-flex align-center gap-4">
+                <MudSwitch T="bool" @bind-Value="_enLicencia" Label="En licencia" Color="Color.Warning" />
+                @if (_enLicencia)
+                {
+                    <MudDatePicker @bind-Date="_fechaLicencia" Label="Fecha licencia" Editable="true"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                }
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            @(EsModificacion ? "Guardar cambios" : "Crear docente")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Docente a editar; null = alta.</summary>
+    [Parameter] public DocenteDetailDto? Docente { get; set; }
+
+    private bool EsModificacion => Docente is not null;
+
+    private string _codigo = string.Empty;
+    private string? _nombre;
+    private string? _tipoDoc;
+    private string? _nroDoc;
+    private DateTime? _fechaNacimiento;
+    private string? _direccion;
+    private string? _piso;
+    private string? _depto;
+    private string? _codPostal;
+    private string? _localidad;
+    private string? _telParticular;
+    private string? _telMensajes;
+    private string? _interno;
+    private DateTime? _fechaIngreso;
+    private bool _enLicencia;
+    private DateTime? _fechaLicencia;
+    private bool _guardando;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Docente is { } d)
+        {
+            _codigo = d.Codigo;
+            _nombre = d.Nombre;
+            _tipoDoc = d.TipoDocumento;
+            _nroDoc = d.NumeroDocumento;
+            _fechaNacimiento = ADateTime(d.FechaNacimiento);
+            _direccion = d.Direccion;
+            _piso = d.Piso;
+            _depto = d.Departamento;
+            _codPostal = d.CodigoPostal;
+            _localidad = d.Localidad;
+            _telParticular = d.TelefonoParticular;
+            _telMensajes = d.TelefonoMensajes;
+            _interno = d.Interno;
+            _fechaIngreso = ADateTime(d.FechaIngreso);
+            _enLicencia = d.EnLicencia;
+            _fechaLicencia = ADateTime(d.FechaLicencia);
+        }
+    }
+
+    private static DateTime? ADateTime(DateOnly? fecha) => fecha?.ToDateTime(TimeOnly.MinValue);
+
+    private static DateOnly? ADateOnly(DateTime? fecha) => fecha is null ? null : DateOnly.FromDateTime(fecha.Value);
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var resultado = EsModificacion
+                ? await ActualizarDocente.HandleAsync(new ActualizarDocenteCommand
+                {
+                    Codigo = _codigo,
+                    Nombre = _nombre,
+                    TipoDocumento = _tipoDoc,
+                    NumeroDocumento = _nroDoc,
+                    FechaNacimiento = ADateOnly(_fechaNacimiento),
+                    Direccion = _direccion,
+                    Piso = _piso,
+                    Departamento = _depto,
+                    CodigoPostal = _codPostal,
+                    Localidad = _localidad,
+                    TelefonoParticular = _telParticular,
+                    TelefonoMensajes = _telMensajes,
+                    Interno = _interno,
+                    FechaIngreso = ADateOnly(_fechaIngreso),
+                    EnLicencia = _enLicencia,
+                    FechaLicencia = _enLicencia ? ADateOnly(_fechaLicencia) : null,
+                }, CancellationToken.None)
+                : await CrearDocente.HandleAsync(new CrearDocenteCommand
+                {
+                    Codigo = _codigo,
+                    Nombre = _nombre,
+                    TipoDocumento = _tipoDoc,
+                    NumeroDocumento = _nroDoc,
+                    FechaNacimiento = ADateOnly(_fechaNacimiento),
+                    Direccion = _direccion,
+                    Piso = _piso,
+                    Departamento = _depto,
+                    CodigoPostal = _codPostal,
+                    Localidad = _localidad,
+                    TelefonoParticular = _telParticular,
+                    TelefonoMensajes = _telMensajes,
+                    Interno = _interno,
+                    FechaIngreso = ADateOnly(_fechaIngreso),
+                    EnLicencia = _enLicencia,
+                    FechaLicencia = _enLicencia ? ADateOnly(_fechaLicencia) : null,
+                }, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(EsModificacion ? "Docente actualizado." : "Docente creado.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

@@ -1,0 +1,174 @@
+@page "/administracion/profesores"
+@attribute [Authorize(Policy = EsbaPolicies.Supervisores)]
+@using Microsoft.AspNetCore.Authorization
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Administracion
+@using Esba.Web.Components.Shared
+@using Esba.Web.Seguridad
+@inject IDocentesQuery Docentes
+@inject DarDeBajaDocenteHandler DarDeBaja
+@inject ReactivarDocenteHandler Reactivar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Profesores</PageTitle>
+
+@* ABM de profesores (sucesor de FrmAltaModProfes, alcance esencial del hito 10.2).
+   Solo supervisores (política). Listado server-side con exportación; baja lógica
+   con confirmación. Sin SQL ni lógica de negocio (§2.1). *@
+
+<EsbaListView T="DocenteListItemDto" @ref="_listado"
+              Titulo="Profesores"
+              Subtitulo="Docentes del instituto"
+              Columnas="_columnas"
+              DataProvider="Cargar"
+              NombreArchivo="Profesores"
+              AccionesFila="_accionesFila">
+    <Filtros>
+        <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+    </Filtros>
+    <AccionPrimaria>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NuevoDocente">Nuevo profesor</MudButton>
+    </AccionPrimaria>
+</EsbaListView>
+
+@code {
+    private EsbaListView<DocenteListItemDto>? _listado;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+
+    private readonly IReadOnlyList<EsbaColumn<DocenteListItemDto>> _columnas =
+    [
+        new() { Titulo = "Código", Valor = d => d.Codigo, ClaveOrden = "Codigo" },
+        new() { Titulo = "Apellido y nombre", Valor = d => d.Nombre, ClaveOrden = "Nombre" },
+        new() { Titulo = "Documento", Valor = d => d.NumeroDocumento, OcultarEnChico = true },
+        new() { Titulo = "Localidad", Valor = d => d.Localidad, ClaveOrden = "Localidad", OcultarEnChico = true },
+        new()
+        {
+            Titulo = "Estado",
+            Valor = d => d.EstaDeBaja ? "Baja" : "Activo",
+            Celda = d =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@(d.EstaDeBaja ? Color.Error : Color.Success)">@(d.EstaDeBaja ? "Baja" : "Activo")</MudChip>,
+        },
+    ];
+
+    private RenderFragment<DocenteListItemDto> _accionesFila => docente =>@<text>
+        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar profesor"
+                       OnClick="@(() => EditarDocente(docente))" />
+        @if (docente.EstaDeBaja)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.PersonAddAlt" Size="Size.Small" Color="Color.Success"
+                           aria-label="Reactivar profesor" OnClick="@(() => ReactivarDocente(docente))" />
+        }
+        else
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Error"
+                           aria-label="Dar de baja profesor" OnClick="@(() => DarDeBajaDocente(docente))" />
+        }
+    </text>;
+
+    protected override void OnInitialized()
+    {
+        _campos =
+        [
+            new() { Clave = "Texto", Etiqueta = "Código, nombre, documento o localidad", Tipo = EsbaFilterKind.Texto, AnchoMd = 4 },
+            new() { Clave = "IncluirBajas", Etiqueta = "Incluir dados de baja", Tipo = EsbaFilterKind.Booleano, AnchoMd = 3 },
+        ];
+    }
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task<PagedResult<DocenteListItemDto>> Cargar(EsbaListRequest req, CancellationToken ct)
+    {
+        var filtro = new DocentesFiltro
+        {
+            Texto = _filtros?.Texto("Texto"),
+            IncluirBajas = _filtros?.Booleano("IncluirBajas") ?? false,
+            OrdenarPor = req.OrdenarPor,
+            Descendente = req.Descendente,
+            Skip = req.Skip,
+            Take = req.Take,
+        };
+
+        return await Docentes.BuscarAsync(filtro, ct);
+    }
+
+    private Task NuevoDocente() => AbrirDialogo(null);
+
+    private async Task EditarDocente(DocenteListItemDto docente)
+    {
+        var detalle = await Docentes.ObtenerDetalleAsync(docente.Codigo, CancellationToken.None);
+        if (detalle is null)
+        {
+            Snackbar.Add("El docente ya no existe.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        await AbrirDialogo(detalle);
+    }
+
+    private async Task AbrirDialogo(DocenteDetailDto? docente)
+    {
+        var parametros = new DialogParameters<DocenteFormDialog>
+        {
+            { d => d.Docente, docente },
+        };
+
+        var dialogo = await DialogService.ShowAsync<DocenteFormDialog>(
+            docente is null ? "Nuevo profesor" : $"Profesor {docente.Codigo}", parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false } && _listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+
+    private async Task DarDeBajaDocente(DocenteListItemDto docente)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Dar de baja",
+            $"¿Dar de baja al profesor {docente.Codigo} — {docente.Nombre}? Dejará de aparecer en comisiones y mesas.",
+            yesText: "Dar de baja", cancelText: "Cancelar");
+        if (confirmar != true)
+        {
+            return;
+        }
+
+        var resultado = await DarDeBaja.HandleAsync(docente.Codigo, CancellationToken.None);
+        await MostrarYRecargar(resultado, "Profesor dado de baja.");
+    }
+
+    private async Task ReactivarDocente(DocenteListItemDto docente)
+    {
+        var resultado = await Reactivar.HandleAsync(docente.Codigo, CancellationToken.None);
+        await MostrarYRecargar(resultado, "Profesor reactivado.");
+    }
+
+    private async Task MostrarYRecargar(Esba.Domain.Common.Result<string> resultado, string mensajeOk)
+    {
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Error)
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo completar la operación.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(
+            resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? resultado.Message! : mensajeOk,
+            resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? MudBlazor.Severity.Warning : MudBlazor.Severity.Success);
+
+        if (_listado is not null)
+        {
+            await _listado.RecargarAsync();
+        }
+    }
+}
