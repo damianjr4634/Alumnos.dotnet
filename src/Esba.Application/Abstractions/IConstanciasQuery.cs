@@ -20,4 +20,12 @@ public interface IConstanciasQuery
     /// </summary>
     Task<EncabezadoEquivalenciaBachillerDto?> ObtenerEncabezadoEquivalenciaBachillerAsync(
         string codigoAlumno, string codigoCarrera, CancellationToken ct);
+
+    /// <summary>
+    /// Cursada vigente que respalda la Constancia de Alumno Regular: el alumno debe
+    /// estar CURSANDO/RECURSANDO en el cuatrimestre <paramref name="cuatrimestreVigente"/>
+    /// (formato CUA_ANIO, p.ej. "124"). null si no está cursando (no se puede emitir).
+    /// </summary>
+    Task<AlumnoRegularDto?> ObtenerAlumnoRegularAsync(
+        string codigoAlumno, string codigoCarrera, string cuatrimestreVigente, CancellationToken ct);
 }

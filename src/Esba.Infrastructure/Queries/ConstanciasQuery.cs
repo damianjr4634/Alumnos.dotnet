@@ -27,6 +27,7 @@ public sealed class ConstanciasQuery : IConstanciasQuery
                    TRIM(IDIOMA)    AS Idioma,
                    TRIM(INSTITUT)  AS Instituto,
                    TRIM(CARACT)    AS Caracteristica,
+                   TRIM(TIPO)      AS Tipo,
                    IIF(TRIM(CARRE) IN ('333', '650'), TRUE, FALSE) AS EsCarreraPorAnio
             FROM CARRERA
             WHERE TRIM(CARRE) = @Carre
@@ -65,5 +66,34 @@ public sealed class ConstanciasQuery : IConstanciasQuery
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
         return await connection.QueryFirstOrDefaultAsync<EncabezadoEquivalenciaBachillerDto>(
             new CommandDefinition(sql, new { CodAlu = codigoAlumno, Carre = codigoCarrera }, cancellationToken: ct)).ConfigureAwait(false);
+    }
+
+    public async Task<AlumnoRegularDto?> ObtenerAlumnoRegularAsync(
+        string codigoAlumno, string codigoCarrera, string cuatrimestreVigente, CancellationToken ct)
+    {
+        // SELECT de FormShow de constanciaalumnoregular.pas (CURSADA + CARRERA), ampliado
+        // con ALUMNOS para el nombre y el mail. Toma la primera fila del orden legacy.
+        const string sql = """
+            SELECT FIRST 1
+                   TRIM(AL.APELLIDO) || ', ' || TRIM(AL.NOM_APE)   AS NombreCompleto,
+                   C.CUTUCO                                        AS Cutuco,
+                   IIF(TRIM(CA.DISTANCIA) = 'S', TRUE, FALSE)      AS EsADistancia,
+                   TRIM(CA.DICTAMEN)                               AS Dictamen,
+                   TRIM(AL.MAIL)                                   AS Mail
+            FROM CURSADA C
+            LEFT OUTER JOIN CARRERA CA ON CA.CARRE = C.CARRE
+            LEFT OUTER JOIN ALUMNOS AL ON AL.CARRE = C.CARRE AND AL.COD_ALU = C.COD_ALU
+            WHERE C.CARRE = @Carre AND C.COD_ALU = @CodAlu
+              AND TRIM(C.CONDICION) IN ('CURSANDO', 'RECURSANDO')
+              AND C.CUA_ANIO = @CuaAnio
+            ORDER BY C.CUTUCO DESC, C.CONDICION
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        return await connection.QueryFirstOrDefaultAsync<AlumnoRegularDto>(
+            new CommandDefinition(
+                sql,
+                new { CodAlu = codigoAlumno, Carre = codigoCarrera, CuaAnio = cuatrimestreVigente },
+                cancellationToken: ct)).ConfigureAwait(false);
     }
 }

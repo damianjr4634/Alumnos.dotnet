@@ -8,6 +8,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject IAlumnosQuery AlumnosQuery
 @inject GenerarConstanciaAlumnoHandler ConstanciaHandler
+@inject GenerarConstanciaRegularHandler ConstanciaRegularHandler
 @inject ObtenerAnaliticoAlumnoHandler AnaliticoHandler
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -69,7 +70,12 @@ else
                                  Label="Incluir membrete institucional" />
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-end">
+                <MudItem xs="12" Class="d-flex justify-end gap-2 flex-wrap">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.HowToReg"
+                               OnClick="GenerarRegular" Disabled="@_generando">
+                        Constancia de alumno regular
+                    </MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.PictureAsPdf"
                                OnClick="Generar" Disabled="@_generando">
@@ -246,6 +252,50 @@ else
         AnteQuien = _anteQuien,
         IncluirMembrete = _incluirMembrete,
     };
+
+    // Constancia de Alumno Regular (hito 10.4a): exige "ante quién"; el servidor revalida
+    // que el alumno esté cursando (si no, avisa y no abre el PDF, como el legacy).
+    private async Task GenerarRegular()
+    {
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+        }
+
+        _generando = true;
+        try
+        {
+            var command = new GenerarConstanciaRegularCommand
+            {
+                CodigoCarrera = Carre,
+                CodigoAlumno = Codigo,
+                AnteQuien = _anteQuien,
+                IncluirMembrete = _incluirMembrete,
+            };
+
+            var chequeo = await ConstanciaRegularHandler.ValidarAsync(command, CancellationToken.None);
+            if (!chequeo.IsSuccess)
+            {
+                Snackbar.Add(chequeo.Message ?? "No se puede emitir la constancia.", MudBlazor.Severity.Error);
+                return;
+            }
+
+            var url = $"/constancias/alumno/regular?carre={Uri.EscapeDataString(Carre)}" +
+                      $"&cod={Uri.EscapeDataString(Codigo)}" +
+                      $"&ante={Uri.EscapeDataString(_anteQuien)}" +
+                      $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
+
+            await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+        finally
+        {
+            _generando = false;
+        }
+    }
 
     // Constancia de Materias Aprobadas (reporte tabular del analítico, hito 9.2b).
     // No tiene chequeo de negocio (el legacy la emite directo); solo exige "ante quién".

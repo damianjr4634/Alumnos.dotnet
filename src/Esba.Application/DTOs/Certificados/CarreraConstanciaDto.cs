@@ -36,4 +36,7 @@ public sealed record CarreraConstanciaDto
 
     /// <summary>true para carreras anuales (333/650): el listado de adeudadas dice "AÑO" en vez de "CUAT.".</summary>
     public bool EsCarreraPorAnio { get; init; }
+
+    /// <summary>TIPO: tipo de carrera (TER/BAC/…). Define la línea de subvención de la constancia regular.</summary>
+    public string? Tipo { get; init; }
 }

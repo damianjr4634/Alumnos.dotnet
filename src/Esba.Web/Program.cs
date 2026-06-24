@@ -121,6 +121,34 @@ app.MapGet("/constancias/alumno", async (
     return Results.File(resultado.Value, "application/pdf");
 }).RequireAuthorization();
 
+// Constancia de Alumno Regular (hito 10.4a): hoja A4 con membrete de fondo. El servidor
+// revalida que el alumno esté CURSANDO/RECURSANDO en el cuatrimestre vigente (sucesor de
+// constanciaalumnoregular.pas). Servida inline para previsualizar/imprimir (§3.3).
+app.MapGet("/constancias/alumno/regular", async (
+    string carre,
+    string cod,
+    string? ante,
+    bool membrete,
+    GenerarConstanciaRegularHandler handler,
+    CancellationToken ct) =>
+{
+    var command = new GenerarConstanciaRegularCommand
+    {
+        CodigoCarrera = carre,
+        CodigoAlumno = cod,
+        AnteQuien = ante,
+        IncluirMembrete = membrete,
+    };
+
+    var resultado = await handler.GenerarPdfAsync(command, ct);
+    if (!resultado.IsSuccess || resultado.Value is null)
+    {
+        return Results.BadRequest(resultado.Message ?? "No se pudo generar la constancia.");
+    }
+
+    return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
+
 // Constancia de Materias Aprobadas (hito 9.2b): reporte tabular del analítico,
 // servido inline para previsualizar/imprimir en el navegador (sucesor de
 // BitBtn1Click de constanciaalumnos2.pas, §3.3).

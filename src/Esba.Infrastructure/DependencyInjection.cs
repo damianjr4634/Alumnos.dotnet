@@ -217,6 +217,11 @@ public static class DependencyInjection
         services.AddScoped<IEquivalenciaBachillerReportService, EquivalenciaBachillerPdfService>();
         services.AddScoped<GenerarEquivalenciaBachillerHandler>();
 
+        // Certificados: Constancia de Alumno Regular (hito 10.4a). A4 + membrete de fondo.
+        services.AddScoped<IConstanciaRegularReportService, ConstanciaRegularPdfService>();
+        services.AddScoped<IValidator<GenerarConstanciaRegularCommand>, GenerarConstanciaRegularCommandValidator>();
+        services.AddScoped<GenerarConstanciaRegularHandler>();
+
         // Certificados: resolución de equivalencia terciaria (hito 9.3d).
         services.AddScoped<IEquivalenciaTerciariaQuery, EquivalenciaTerciariaQuery>();
         services.AddScoped<IResolucionEquivalenciaReportService, ResolucionEquivalenciaTerciariaPdfService>();

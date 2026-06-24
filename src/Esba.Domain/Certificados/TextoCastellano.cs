@@ -39,6 +39,14 @@ public static class TextoCastellano
             ? Ordinales[cuatrimestre - 1]
             : cuatrimestre.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// Ordinal del cuatrimestre en minúsculas ("primer", "segundo", …). Sucesor de
+    /// <c>LetrasCuat(n)</c> sin <c>UpperCase</c>, como lo usa la constancia de alumno
+    /// regular ("es alumno regular de la Carrera X - primer cuatrimestre").
+    /// </summary>
+    public static string CuatrimestreEnLetrasMinuscula(int cuatrimestre) =>
+        CuatrimestreEnLetras(cuatrimestre).ToLowerInvariant();
+
     // Separador de miles con punto (convención local), reconstrucción de PonePuntos.
     private static readonly System.Globalization.NumberFormatInfo MilesConPunto = new()
     {

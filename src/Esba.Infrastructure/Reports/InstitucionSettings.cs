@@ -34,4 +34,11 @@ public sealed class InstitucionSettings
     /// Si está vacía o no existe, la resolución se imprime sin fondo (para preimpreso).
     /// </summary>
     public string? MembreteResolucionPath { get; set; }
+
+    /// <summary>
+    /// Ruta (absoluta o relativa al directorio de ejecución) al papel membretado JPG de la
+    /// Constancia de Alumno Regular. Es el mismo "membrete_con_direccion.jpg" (A4) que usaba
+    /// constanciaalumnoregular.pas. Si está vacía o no existe, la constancia se imprime sin fondo.
+    /// </summary>
+    public string? MembreteConstanciaRegularPath { get; set; }
 }
