@@ -1,4 +1,5 @@
 using Esba.Application.Abstractions;
+using Esba.Application.DTOs.Administracion;
 using Esba.Application.DTOs.Certificados;
 using Esba.Application.Features.Certificados;
 using Esba.Application.Validators;
@@ -12,9 +13,10 @@ public class GenerarConstanciaRegularHandlerTests
     private readonly ICuatrimestreVigenteProcedure _cuatrimestre = Substitute.For<ICuatrimestreVigenteProcedure>();
     private readonly IConstanciasQuery _constancias = Substitute.For<IConstanciasQuery>();
     private readonly IConstanciaRegularReportService _reporte = Substitute.For<IConstanciaRegularReportService>();
+    private readonly IEmailService _email = Substitute.For<IEmailService>();
 
     private GenerarConstanciaRegularHandler Handler() => new(
-        new GenerarConstanciaRegularCommandValidator(), _cuatrimestre, _constancias, _reporte, TimeProvider.System);
+        new GenerarConstanciaRegularCommandValidator(), _cuatrimestre, _constancias, _reporte, _email, TimeProvider.System);
 
     private static GenerarConstanciaRegularCommand Comando() => new()
     {
@@ -114,5 +116,38 @@ public class GenerarConstanciaRegularHandlerTests
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
         _reporte.DidNotReceive().GenerarConstanciaRegular(Arg.Any<ConstanciaRegularModel>());
+    }
+
+    [Fact]
+    public async Task EnviarPorMail_AlumnoConMail_AdjuntaPdfYEnvia()
+    {
+        ConfigurarCarreraYCuatrimestre();
+        _constancias.ObtenerAlumnoRegularAsync("12345", "ABC", "124", Arg.Any<CancellationToken>())
+            .Returns(AlumnoRegular());
+        _reporte.GenerarConstanciaRegular(Arg.Any<ConstanciaRegularModel>()).Returns([9, 9, 9]);
+        _email.EnviarAsync(Arg.Any<MensajeCorreo>(), Arg.Any<CancellationToken>()).Returns(Result.Ok(true));
+
+        var resultado = await Handler().EnviarPorMailAsync(Comando(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        await _email.Received(1).EnviarAsync(
+            Arg.Is<MensajeCorreo>(m =>
+                m.Para.Single() == "juan@mail.com" &&
+                m.Adjuntos.Count == 1 &&
+                m.Adjuntos[0].TipoContenido == "application/pdf"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task EnviarPorMail_AlumnoSinMail_DevuelveErrorSinEnviar()
+    {
+        ConfigurarCarreraYCuatrimestre();
+        _constancias.ObtenerAlumnoRegularAsync("12345", "ABC", "124", Arg.Any<CancellationToken>())
+            .Returns(AlumnoRegular() with { Mail = null });
+
+        var resultado = await Handler().EnviarPorMailAsync(Comando(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Error, resultado.Status);
+        await _email.DidNotReceive().EnviarAsync(Arg.Any<MensajeCorreo>(), Arg.Any<CancellationToken>());
     }
 }

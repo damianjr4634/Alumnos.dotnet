@@ -72,6 +72,11 @@ else
 
                 <MudItem xs="12" Class="d-flex justify-end gap-2 flex-wrap">
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Email"
+                               OnClick="EnviarRegularPorMail" Disabled="@_generando">
+                        Constancia regular por mail
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.HowToReg"
                                OnClick="GenerarRegular" Disabled="@_generando">
                         Constancia de alumno regular
@@ -290,6 +295,46 @@ else
                       $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
 
             await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+        finally
+        {
+            _generando = false;
+        }
+    }
+
+    // Enviar la constancia regular por mail al alumno (hito 10.4c). El servidor genera
+    // el PDF, lo adjunta y lo manda al mail del alumno (sucesor de la opción "Mail" del legacy).
+    private async Task EnviarRegularPorMail()
+    {
+        if (_form is not null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+        }
+
+        _generando = true;
+        try
+        {
+            var command = new GenerarConstanciaRegularCommand
+            {
+                CodigoCarrera = Carre,
+                CodigoAlumno = Codigo,
+                AnteQuien = _anteQuien,
+                IncluirMembrete = _incluirMembrete,
+            };
+
+            var resultado = await ConstanciaRegularHandler.EnviarPorMailAsync(command, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add("Constancia enviada por mail al alumno.", MudBlazor.Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudo enviar la constancia.", MudBlazor.Severity.Error);
+            }
         }
         finally
         {

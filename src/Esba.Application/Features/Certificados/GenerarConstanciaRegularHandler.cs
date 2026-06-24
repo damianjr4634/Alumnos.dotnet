@@ -1,4 +1,5 @@
 using Esba.Application.Abstractions;
+using Esba.Application.DTOs.Administracion;
 using Esba.Application.DTOs.Certificados;
 using Esba.Domain.Certificados;
 using Esba.Domain.Common;
@@ -18,6 +19,7 @@ public sealed class GenerarConstanciaRegularHandler
     private readonly ICuatrimestreVigenteProcedure _cuatrimestre;
     private readonly IConstanciasQuery _constancias;
     private readonly IConstanciaRegularReportService _reporte;
+    private readonly IEmailService _email;
     private readonly TimeProvider _tiempo;
 
     public GenerarConstanciaRegularHandler(
@@ -25,12 +27,14 @@ public sealed class GenerarConstanciaRegularHandler
         ICuatrimestreVigenteProcedure cuatrimestre,
         IConstanciasQuery constancias,
         IConstanciaRegularReportService reporte,
+        IEmailService email,
         TimeProvider tiempo)
     {
         _validator = validator;
         _cuatrimestre = cuatrimestre;
         _constancias = constancias;
         _reporte = reporte;
+        _email = email;
         _tiempo = tiempo;
     }
 
@@ -53,7 +57,51 @@ public sealed class GenerarConstanciaRegularHandler
             return new Result<byte[]> { Status = datos.Status, Message = datos.Message };
         }
 
-        var (alumno, carrera) = (datos.Value.Alumno, datos.Value.Carrera);
+        return Result.Ok(ConstruirPdf(datos.Value, command));
+    }
+
+    /// <summary>
+    /// Genera el PDF y lo envía por mail al alumno (sucesor de la opción "Mail" de
+    /// BitBtn1Click de constanciaalumnoregular.pas). El alumno debe tener mail cargado.
+    /// </summary>
+    public async Task<Result<bool>> EnviarPorMailAsync(GenerarConstanciaRegularCommand command, CancellationToken ct)
+    {
+        var datos = await ResolverAsync(command, ct).ConfigureAwait(false);
+        if (!datos.IsSuccess || datos.Value is null)
+        {
+            return new Result<bool> { Status = datos.Status, Message = datos.Message };
+        }
+
+        var alumno = datos.Value.Alumno;
+        if (string.IsNullOrWhiteSpace(alumno.Mail))
+        {
+            return Result.Error<bool>("El alumno no tiene un mail cargado.");
+        }
+
+        var pdf = ConstruirPdf(datos.Value, command);
+
+        var mensaje = new MensajeCorreo
+        {
+            Para = [alumno.Mail.Trim()],
+            Asunto = "Constancia de Alumno regular",
+            Cuerpo = "Adjuntamos la constancia de alumno regular solicitada.",
+            Adjuntos =
+            [
+                new AdjuntoCorreo
+                {
+                    NombreArchivo = "Constancia de Alumno Regular.pdf",
+                    Contenido = pdf,
+                    TipoContenido = "application/pdf",
+                },
+            ],
+        };
+
+        return await _email.EnviarAsync(mensaje, ct).ConfigureAwait(false);
+    }
+
+    private byte[] ConstruirPdf(ConstanciaRegularDatos datos, GenerarConstanciaRegularCommand command)
+    {
+        var (alumno, carrera) = (datos.Alumno, datos.Carrera);
         var cutuco = alumno.Cutuco.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         var contexto = new ConstanciaRegularContexto
@@ -82,7 +130,7 @@ public sealed class GenerarConstanciaRegularHandler
             IncluirMembrete = command.IncluirMembrete,
         };
 
-        return Result.Ok(_reporte.GenerarConstanciaRegular(model));
+        return _reporte.GenerarConstanciaRegular(model);
     }
 
     private async Task<Result<ConstanciaRegularDatos>> ResolverAsync(
