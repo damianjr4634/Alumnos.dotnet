@@ -35,4 +35,14 @@ public sealed class ConfiguracionQuery : IConfiguracionQuery
 
         return items.AsList();
     }
+
+    public async Task<string?> ObtenerValorAsync(string parame, CancellationToken ct)
+    {
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+
+        return await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+            "SELECT VALOR FROM XXX_CONF WHERE PARAME = @Parame",
+            new { Parame = parame },
+            cancellationToken: ct)).ConfigureAwait(false);
+    }
 }

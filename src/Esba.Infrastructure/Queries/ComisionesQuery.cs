@@ -192,4 +192,30 @@ public sealed class ComisionesQuery : IComisionesQuery
 
         return OrdenDefecto;
     }
+
+    public async Task<IReadOnlyList<AlumnoComisionCorreoDto>> ListarAlumnosDeComisionAsync(
+        string codigoCarrera, short cutuco, string cuatrimestreAnio, CancellationToken ct)
+    {
+        // SELECT de buscarClick de enviocorreo.pas: alumnos activos CURSANDO/RECURSANDO
+        // de la comisión (CUTUCO) en el cuatrimestre, con su mail. DISTINCT por alumno.
+        const string sql = """
+            SELECT DISTINCT A.COD_ALU                                    AS CodigoAlumno,
+                   TRIM(A.APELLIDO) || ', ' || TRIM(A.NOM_APE)           AS NombreCompleto,
+                   TRIM(A.MAIL)                                          AS Mail
+            FROM CURSADA C
+            LEFT OUTER JOIN ALUMNOS A ON A.COD_ALU = C.COD_ALU AND A.CARRE = C.CARRE
+            WHERE C.CUTUCO = @Cutuco AND C.CUA_ANIO = @CuaAnio
+              AND TRIM(C.CONDICION) IN ('CURSANDO', 'RECURSANDO')
+              AND A.CARRE = @Carre AND A.BAJA = 'N'
+            ORDER BY 2
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        var items = await connection.QueryAsync<AlumnoComisionCorreoDto>(new CommandDefinition(
+            sql,
+            new { Cutuco = cutuco, CuaAnio = cuatrimestreAnio, Carre = codigoCarrera },
+            cancellationToken: ct)).ConfigureAwait(false);
+
+        return items.AsList();
+    }
 }

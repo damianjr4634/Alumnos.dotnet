@@ -18,4 +18,12 @@ public interface IComisionesQuery
     /// </summary>
     Task<ComisionDetailDto?> ObtenerDetalleAsync(
         string codigoCarrera, short cutuco, string codigoMateria, string cuatrimestreAnio, CancellationToken ct);
+
+    /// <summary>
+    /// Alumnos CURSANDO/RECURSANDO de una comisión (CUTUCO) en un cuatrimestre, con su
+    /// mail, para el envío de correo por comisión (sucesor del SELECT de enviocorreo.pas).
+    /// Excluye alumnos de baja (BAJA='N').
+    /// </summary>
+    Task<IReadOnlyList<AlumnoComisionCorreoDto>> ListarAlumnosDeComisionAsync(
+        string codigoCarrera, short cutuco, string cuatrimestreAnio, CancellationToken ct);
 }

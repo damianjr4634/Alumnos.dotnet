@@ -92,6 +92,10 @@ public static class DependencyInjection
         services.AddScoped<IValidator<EnviarCorreoPruebaCommand>, EnviarCorreoPruebaValidator>();
         services.AddScoped<EnviarCorreoPruebaHandler>();
 
+        // Administración: correo por comisión (hito 10.4b). Un mensaje + copia de auditoría.
+        services.AddScoped<IValidator<EnviarCorreoComisionCommand>, EnviarCorreoComisionValidator>();
+        services.AddScoped<EnviarCorreoComisionHandler>();
+
         // Administración: ABM de profesores (hito 10.2). DOCENTES por EF (sin SP).
         services.AddScoped<IDocenteRepository, DocenteRepository>();
         services.AddScoped<IValidator<CrearDocenteCommand>, CrearDocenteValidator>();

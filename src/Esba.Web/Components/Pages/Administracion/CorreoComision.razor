@@ -1,0 +1,260 @@
+@page "/correo-comision"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Administracion
+@using Esba.Application.DTOs.Carreras
+@using Esba.Application.Features.Administracion
+@using Esba.Web.Seguridad
+@inject ICarrerasQuery Carreras
+@inject IComisionesQuery Comisiones
+@inject EnviarCorreoComisionHandler EnviarCorreo
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Correo por comisión</PageTitle>
+
+@* Envío de correo a los alumnos de una comisión (sucesor de enviocorreo.pas). Selección
+   de comisión + cuatrimestre, alumnos con/sin mail, y envío de un único mensaje con copia
+   interna de auditoría. Solo binding y llamadas a Application (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Correo por comisión</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Enviá un mensaje a los alumnos de una comisión</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="5" md="4">
+            <MudSelect T="string" @bind-Value="_carrera" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var carrera in _carreras)
+                {
+                    <MudSelectItem T="string" Value="@carrera.Codigo">@($"{carrera.Codigo} — {carrera.Nombre}")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_cuaAnio" Label="Cuat/Año (ej. 124)" MaxLength="3"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="BuscarComisiones"
+                       Disabled="@(string.IsNullOrWhiteSpace(_carrera) || _cuaAnio.Length != 3)">Buscar comisiones</MudButton>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="int?" @bind-Value="_comisionSeleccionada" Label="Comisión" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Disabled="@(_comisiones.Count == 0)">
+                @foreach (var comision in _comisiones)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)comision.Cutuco)">
+                        @($"{comision.Cutuco} — {comision.SiglaMateria ?? comision.CodigoMateria}")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+    @if (_comisiones.Count > 0)
+    {
+        <div class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Group"
+                       Disabled="@(_comisionSeleccionada is null || _cargando)" OnClick="CargarAlumnos">Cargar alumnos</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@if (_cargando)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+}
+else if (_alumnosCargados)
+{
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Outlined="true" Class="pa-3">
+                <div class="d-flex align-center mb-2">
+                    <MudText Typo="Typo.subtitle1">Alumnos con mail (@_conMail.Count)</MudText>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="MarcarTodos">Todos</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="DesmarcarTodos">Ninguno</MudButton>
+                </div>
+                @if (_conMail.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Ningún alumno de la comisión tiene mail cargado.</MudText>
+                }
+                @foreach (var alumno in _conMail)
+                {
+                    <MudCheckBox T="bool" Value="@_seleccionados.Contains(alumno.Mail!)" Dense="true"
+                                 ValueChanged="@(v => Alternar(alumno.Mail!, v))"
+                                 Label="@($"{alumno.NombreCompleto} — {alumno.Mail}")" />
+                }
+                @if (_sinMail.Count > 0)
+                {
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Sin mail (@_sinMail.Count): no se les puede enviar</MudText>
+                    @foreach (var alumno in _sinMail)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">• @alumno.NombreCompleto</MudText>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="7">
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudTextField @bind-Value="_cc" Label="CC (separar por ;)" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                <MudTextField @bind-Value="_cco" Label="CCO (separar por ;)" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                <MudTextField @bind-Value="_asunto" Label="Asunto" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" Class="mb-2" />
+                <MudTextField @bind-Value="_cuerpo" Label="Mensaje" Variant="Variant.Outlined" Lines="8" Class="mb-3" />
+                <div class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                               Disabled="@_enviando" OnClick="Enviar">
+                        @if (_enviando)
+                        {
+                            <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Enviando…</span>
+                        }
+                        else
+                        {
+                            <span>Enviar (@_seleccionados.Count)</span>
+                        }
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private IReadOnlyList<ComisionListItemDto> _comisiones = [];
+    private IReadOnlyList<AlumnoComisionCorreoDto> _conMail = [];
+    private IReadOnlyList<AlumnoComisionCorreoDto> _sinMail = [];
+    private readonly HashSet<string> _seleccionados = new(StringComparer.OrdinalIgnoreCase);
+
+    private string? _carrera;
+    private string _cuaAnio = string.Empty;
+    private int? _comisionSeleccionada;
+    private string _cc = string.Empty;
+    private string _cco = string.Empty;
+    private string _asunto = string.Empty;
+    private string _cuerpo = string.Empty;
+    private bool _cargando;
+    private bool _enviando;
+    private bool _alumnosCargados;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private async Task BuscarComisiones()
+    {
+        _alumnosCargados = false;
+        _comisionSeleccionada = null;
+        var pagina = await Comisiones.BuscarAsync(new ComisionesFiltro
+        {
+            CodigoCarrera = _carrera!,
+            CuatrimestreAnio = _cuaAnio,
+            Take = 500,
+        }, CancellationToken.None);
+        _comisiones = pagina.Items;
+    }
+
+    private async Task CargarAlumnos()
+    {
+        var comision = _comisiones.FirstOrDefault(c => c.Cutuco == _comisionSeleccionada);
+        if (comision is null)
+        {
+            return;
+        }
+
+        _cargando = true;
+        try
+        {
+            var alumnos = await Comisiones.ListarAlumnosDeComisionAsync(
+                comision.CodigoCarrera, comision.Cutuco, comision.CuatrimestreAnio, CancellationToken.None);
+
+            _conMail = alumnos.Where(a => a.TieneMail).ToList();
+            _sinMail = alumnos.Where(a => !a.TieneMail).ToList();
+            _seleccionados.Clear();
+            foreach (var alumno in _conMail)
+            {
+                _seleccionados.Add(alumno.Mail!);
+            }
+
+            _alumnosCargados = true;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void Alternar(string mail, bool seleccionado)
+    {
+        if (seleccionado)
+        {
+            _seleccionados.Add(mail);
+        }
+        else
+        {
+            _seleccionados.Remove(mail);
+        }
+    }
+
+    private void MarcarTodos()
+    {
+        foreach (var alumno in _conMail)
+        {
+            _seleccionados.Add(alumno.Mail!);
+        }
+    }
+
+    private void DesmarcarTodos() => _seleccionados.Clear();
+
+    private static IReadOnlyList<string> Separar(string texto) =>
+        texto.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private async Task Enviar()
+    {
+        _enviando = true;
+        try
+        {
+            var usuario = (await EstadoAutenticacion!).User;
+
+            var command = new EnviarCorreoComisionCommand
+            {
+                Para = _seleccionados.ToList(),
+                CopiaCarbon = Separar(_cc),
+                CopiaOculta = Separar(_cco),
+                Asunto = _asunto,
+                Cuerpo = _cuerpo,
+                UsuarioRemitente = usuario.Identity?.Name,
+            };
+
+            var resultado = await EnviarCorreo.HandleAsync(command, CancellationToken.None);
+
+            switch (resultado.Status)
+            {
+                case Esba.Domain.Common.OperationStatus.Error:
+                    Snackbar.Add(resultado.Message ?? "No se pudo enviar el correo.", MudBlazor.Severity.Error);
+                    break;
+                case Esba.Domain.Common.OperationStatus.Warning:
+                    Snackbar.Add(resultado.Message!, MudBlazor.Severity.Warning);
+                    break;
+                default:
+                    Snackbar.Add("Correo enviado.", MudBlazor.Severity.Success);
+                    break;
+            }
+        }
+        finally
+        {
+            _enviando = false;
+        }
+    }
+}

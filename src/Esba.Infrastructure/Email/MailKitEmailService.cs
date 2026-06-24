@@ -94,7 +94,23 @@ public sealed class MailKitEmailService : IEmailService
         }
 
         mime.Subject = mensaje.Asunto;
-        mime.Body = new TextPart(mensaje.EsHtml ? "html" : "plain") { Text = mensaje.Cuerpo };
+
+        var cuerpo = new BodyBuilder();
+        if (mensaje.EsHtml)
+        {
+            cuerpo.HtmlBody = mensaje.Cuerpo;
+        }
+        else
+        {
+            cuerpo.TextBody = mensaje.Cuerpo;
+        }
+
+        foreach (var adjunto in mensaje.Adjuntos)
+        {
+            cuerpo.Attachments.Add(adjunto.NombreArchivo, adjunto.Contenido, ContentType.Parse(adjunto.TipoContenido));
+        }
+
+        mime.Body = cuerpo.ToMessageBody();
         return mime;
     }
 

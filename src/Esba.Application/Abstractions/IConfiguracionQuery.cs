@@ -10,4 +10,10 @@ namespace Esba.Application.Abstractions;
 public interface IConfiguracionQuery
 {
     Task<IReadOnlyList<ParametroConfiguracionDto>> ListarAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Valor de un parámetro puntual (ej. Mail_EnvCopia). null si el parámetro no existe;
+    /// puede ser cadena vacía si existe sin valor.
+    /// </summary>
+    Task<string?> ObtenerValorAsync(string parame, CancellationToken ct);
 }
