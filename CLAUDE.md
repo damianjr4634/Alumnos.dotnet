@@ -98,7 +98,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 7 | **Asistencias**: carga de inasistencias por comisión (versión "nuevo"), wrappers `XXX_FALTAS_*`, planillas, pase a LIBRE (`TBL_FERIADOS` no existe en el esquema; el legacy no usa feriados) | ✅ 2026-06-15 |
 | 8 | **Exámenes — ABM de mesas + permisos**: ABM `MESAS` (wrapper `XXX_VALIDO_MESA`), `PERMEXA` permisos individuales y masivos (wrapper `XXX_MATERIAS_FINALES`). **Notas de finales y actas DIFERIDAS** (hito 14, por decisión 2026-06-15) | ✅ 2026-06-15 |
 | 9 | **Constancias y certificados**: primer reporte QuestPDF + wrappers `XXX_IMPRIME_*`/`XXX_PARRAFO_CONSTANCIA`, equivalencias (bachiller 9.3c + terciaria 9.3d) | ✅ 2026-06-20 (Constancia de Alumno Regular diferida a hito 10 por MailKit) |
-| 10 | **Administración**: ABM usuarios y permisos, cambio de contraseña forzado (`CAMPASS`) y blanqueo, profesores, configuración, correo por comisión (MailKit) | ⬜ |
+| 10 | **Administración**: ABM usuarios y permisos, cambio de contraseña forzado (`CAMPASS`) y blanqueo, profesores, configuración, correo por comisión (MailKit) | ✅ 2026-06-23 |
 | 11 | **Integración Web** (inscripciones/permisos web): confirmar vigencia con el usuario antes de migrar | ⬜ |
 | 12 | **Endurecimiento para producción**: usuario Firebird de mínimos privilegios + secretos fuera del repo, políticas de autorización por área (mapa de `BARRA_OPC`), validación de sesión única en middleware, Serilog completo, deploy | ⬜ |
 | 13 | **Fase 5 — retiro de SPs `XXX_*`**: portar PSQL a C# con tests de equivalencia, un SP por vez (empezar por los de mayor riesgo/uso) | ⬜ |
@@ -109,4 +109,6 @@ subida/cambio de foto del alumno (re-asignada a hito 12: binarios servidos por
 endpoint autenticado, §3.4 ⚪ — quedó fuera del alcance de componentes genéricos del hito 5)
 · descripciones de grupos de menú `CARRE_GRP`
 (hito 12) · normalización de `CURSADA.CONDICION` (hito 13, con el usuario) · preferencia de
-modo claro/oscuro persistida en BD (hito 10).
+modo claro/oscuro persistida en BD (re-asignada a hito 12, decisión 2026-06-23: quedó fuera
+del alcance funcional del hito 10) · adjuntar archivos y firma HTML inline por usuario en el
+correo por comisión (hito 12, la firma necesita assets de firma por usuario como la foto).
