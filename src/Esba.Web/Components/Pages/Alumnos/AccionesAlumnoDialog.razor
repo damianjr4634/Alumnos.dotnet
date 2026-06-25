@@ -1,0 +1,78 @@
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Domain.Enums
+@inject NavigationManager Navegacion
+
+@* Sucesor del panel ALUMNO SELECCIONADO de FrmEsba: las acciones sobre el alumno
+   elegido en el buscador. Antes vivía debajo de la grilla; ahora es modal para
+   evitar el scroll al pie. Se habilitan a medida que se migran sus pantallas. *@
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex align-center flex-wrap gap-4 mb-2">
+            <MudAvatar Color="Color.Primary" Size="Size.Large">
+                @($"{Alumno.Apellido?.FirstOrDefault()}{Alumno.Nombre?.FirstOrDefault()}")
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.h6">@Alumno.Apellido, @Alumno.Nombre</MudText>
+                <div class="d-flex align-center flex-wrap gap-2 mt-1">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@ColorEstado(Alumno)">@TextoEstado(Alumno)</MudChip>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @Alumno.Codigo — @Alumno.NombreCarrera (@Alumno.Modalidad)
+                    </MudText>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.Badge" OnClick="AbrirFicha">Ficha</MudButton>
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.MenuBook" OnClick="AbrirCursada">Inscripción de materias</MudButton>
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.AssignmentTurnedIn" OnClick="AbrirPermisos">Permisos de examen</MudButton>
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.Description" Disabled="true">Constancias</MudButton>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cerrar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public AlumnoListItemDto Alumno { get; set; } = default!;
+
+    private void AbrirFicha() =>
+        Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/ficha");
+
+    private void AbrirCursada() =>
+        Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/cursada");
+
+    private void AbrirPermisos() =>
+        Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/permisos");
+
+    private void Ir(string url)
+    {
+        MudDialog?.Close();
+        Navegacion.NavigateTo(url);
+    }
+
+    private static string TextoEstado(AlumnoListItemDto alumno) => alumno switch
+    {
+        { Baja: true } => "Baja",
+        { Estado: { } estado } => FichaAlumnoModel.Etiqueta(estado),
+        _ => "Sin estado",
+    };
+
+    private static Color ColorEstado(AlumnoListItemDto alumno) => alumno switch
+    {
+        { Baja: true } => Color.Error,
+        { Estado: EstadoAlumno.Cursando } => Color.Success,
+        { Estado: EstadoAlumno.Egresado } => Color.Info,
+        { Estado: EstadoAlumno.Pase } => Color.Warning,
+        _ => Color.Default,
+    };
+}

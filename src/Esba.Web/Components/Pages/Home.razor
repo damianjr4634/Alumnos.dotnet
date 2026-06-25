@@ -76,37 +76,6 @@
     </MudDataGrid>
 </MudPaper>
 
-@if (_seleccionado is not null)
-{
-    <MudPaper Outlined="true" Class="pa-4 mt-4">
-        <div class="d-flex align-center flex-wrap gap-4">
-            <MudAvatar Color="Color.Primary" Size="Size.Large">
-                @($"{_seleccionado.Apellido?.FirstOrDefault()}{_seleccionado.Nombre?.FirstOrDefault()}")
-            </MudAvatar>
-            <div>
-                <MudText Typo="Typo.overline" Class="mud-text-secondary">Alumno seleccionado</MudText>
-                <MudText Typo="Typo.h6">@_seleccionado.Apellido, @_seleccionado.Nombre</MudText>
-                <div class="d-flex align-center flex-wrap gap-2 mt-1">
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                             Color="@ColorEstado(_seleccionado)">@TextoEstado(_seleccionado)</MudChip>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                        @_seleccionado.Codigo — @_seleccionado.NombreCarrera (@_seleccionado.Modalidad)
-                    </MudText>
-                </div>
-            </div>
-            <MudSpacer />
-            @* Acciones sobre el alumno (sucesoras del panel ALUMNO SELECCIONADO de
-               FrmEsba): se habilitan a medida que se migran sus pantallas. *@
-            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-                <MudButton OnClick="AbrirFicha" StartIcon="@Icons.Material.Filled.Badge">Ficha</MudButton>
-                <MudButton OnClick="AbrirCursada" StartIcon="@Icons.Material.Filled.MenuBook">Inscripción de materias</MudButton>
-                <MudButton OnClick="AbrirPermisos" StartIcon="@Icons.Material.Filled.AssignmentTurnedIn">Permisos de examen</MudButton>
-                <MudButton Disabled="true">Constancias</MudButton>
-            </MudButtonGroup>
-        </div>
-    </MudPaper>
-}
-
 @code {
     private MudDataGrid<AlumnoListItemDto>? _grilla;
     private string? _texto;
@@ -146,8 +115,12 @@
     private Task BuscarSiEnter(KeyboardEventArgs e) =>
         e.Key == "Enter" ? Buscar() : Task.CompletedTask;
 
-    private void SeleccionarFila(DataGridRowClickEventArgs<AlumnoListItemDto> fila) =>
+    private async Task SeleccionarFila(DataGridRowClickEventArgs<AlumnoListItemDto> fila)
+    {
         _seleccionado = fila.Item;
+        var parametros = new DialogParameters<AccionesAlumnoDialog> { { x => x.Alumno, fila.Item } };
+        await DialogService.ShowAsync<AccionesAlumnoDialog>("Alumno seleccionado", parametros);
+    }
 
     private string ClaseFila(AlumnoListItemDto alumno, int _) =>
         alumno == _seleccionado ? "cursor-pointer esba-fila-seleccionada" : "cursor-pointer";
@@ -167,30 +140,6 @@
         { Estado: EstadoAlumno.Pase } => Color.Warning,
         _ => Color.Default,
     };
-
-    private void AbrirFicha()
-    {
-        if (_seleccionado is not null)
-        {
-            Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/ficha");
-        }
-    }
-
-    private void AbrirCursada()
-    {
-        if (_seleccionado is not null)
-        {
-            Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/cursada");
-        }
-    }
-
-    private void AbrirPermisos()
-    {
-        if (_seleccionado is not null)
-        {
-            Navegacion.NavigateTo($"/alumnos/{_seleccionado.CodigoCarrera}/{_seleccionado.Codigo}/permisos");
-        }
-    }
 
     private async Task NuevoAlumno()
     {
