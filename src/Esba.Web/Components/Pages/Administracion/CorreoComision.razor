@@ -28,12 +28,10 @@
 <MudPaper Outlined="true" Class="pa-4 mb-4">
     <MudGrid Spacing="2" Class="align-center">
         <MudItem xs="12" sm="5" md="4">
-            <MudSelect T="string" @bind-Value="_carrera" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
-                @foreach (var carrera in _carreras)
-                {
-                    <MudSelectItem T="string" Value="@carrera.Codigo">@($"{carrera.Codigo} — {carrera.Nombre}")</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
         </MudItem>
         <MudItem xs="6" sm="3" md="2">
             <MudTextField @bind-Value="_cuaAnio" Label="Cuat/Año (ej. 124)" MaxLength="3"
@@ -134,6 +132,7 @@ else if (_alumnosCargados)
     private IReadOnlyList<AlumnoComisionCorreoDto> _sinMail = [];
     private readonly HashSet<string> _seleccionados = new(StringComparer.OrdinalIgnoreCase);
 
+    private CarreraListItemDto? _carreraSel;
     private string? _carrera;
     private string _cuaAnio = string.Empty;
     private int? _comisionSeleccionada;
@@ -151,6 +150,25 @@ else if (_alumnosCargados)
         IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
         _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
     }
+
+    private void SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        _carrera = carrera?.Codigo;
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c => CoincideCarrera(c, texto));
+        return Task.FromResult(filtradas);
+    }
+
+    private static bool CoincideCarrera(CarreraListItemDto c, string texto) =>
+        c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+        || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false);
 
     private async Task BuscarComisiones()
     {

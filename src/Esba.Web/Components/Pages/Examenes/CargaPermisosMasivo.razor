@@ -35,13 +35,10 @@
 <MudPaper Outlined="true" Class="pa-4 mb-4">
     <MudGrid Spacing="2" Class="align-center">
         <MudItem xs="12" sm="6" md="4">
-            <MudSelect T="string" Value="_carrera" ValueChanged="CambiarCarrera" Label="Carrera"
-                       Variant="Variant.Outlined" Margin="Margin.Dense">
-                @foreach (var c in _carreras)
-                {
-                    <MudSelectItem T="string" Value="@c.Codigo">@($"{c.Codigo} — {c.Nombre}")</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Value="_carreraSel" ValueChanged="SeleccionarCarrera" Clearable="true"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
         </MudItem>
     </MudGrid>
 
@@ -54,13 +51,9 @@
                                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="MateriaFinalDto" Value="_materiaSel" ValueChanged="SeleccionarMateria" Label="Materia (puede rendir)"
-                           Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(_finales.Count == 0)">
-                    @foreach (var m in _finales)
-                    {
-                        <MudSelectItem T="MateriaFinalDto" Value="@m">@($"{m.CodigoMateria} — {m.Materia}")</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="MateriaFinalDto" Label="Materia (puede rendir)" Value="_materiaSel" ValueChanged="SeleccionarMateria"
+                                 SearchFunc="BuscarMateria" ToStringFunc="@(m => m is null ? "" : $"{m.CodigoMateria} — {m.Materia}")"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Disabled="@(_finales.Count == 0)" />
             </MudItem>
             <MudItem xs="8" sm="4" md="3">
                 <MudSelect T="MesaListItemDto" @bind-Value="_mesaSel" Label="Mesa"
@@ -117,6 +110,7 @@
     private IReadOnlyList<MesaListItemDto> _mesas = [];
     private readonly List<PendienteVm> _pendientes = [];
 
+    private CarreraListItemDto? _carreraSel;
     private string? _carrera;
     private AlumnoListItemDto? _alumnoSel;
     private MateriaFinalDto? _materiaSel;
@@ -130,6 +124,25 @@
         IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
         _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
     }
+
+    private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        await CambiarCarrera(carrera?.Codigo);
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c => CoincideCarrera(c, texto));
+        return Task.FromResult(filtradas);
+    }
+
+    private static bool CoincideCarrera(CarreraListItemDto c, string texto) =>
+        c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+        || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false);
 
     private async Task CambiarCarrera(string? carrera)
     {
@@ -176,6 +189,16 @@
 
         var todas = await MateriasFinales.ListarAsync(alumno.Codigo, _carrera, CancellationToken.None);
         _finales = todas.Where(m => m.PuedeRendir).ToList();
+    }
+
+    private Task<IEnumerable<MateriaFinalDto>> BuscarMateria(string? texto, CancellationToken ct)
+    {
+        IEnumerable<MateriaFinalDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _finales
+            : _finales.Where(m =>
+                m.CodigoMateria.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (m.Materia?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
     }
 
     private async Task SeleccionarMateria(MateriaFinalDto? materia)

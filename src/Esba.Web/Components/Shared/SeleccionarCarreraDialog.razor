@@ -7,12 +7,10 @@
 
 <MudDialog>
     <DialogContent>
-        <MudSelect T="string" @bind-Value="_carrera" Label="Carrera" Variant="Variant.Outlined">
-            @foreach (var carrera in _carreras)
-            {
-                <MudSelectItem Value="@carrera.Codigo">@carrera.Nombre</MudSelectItem>
-            }
-        </MudSelect>
+        <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined"
+                         Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                         SearchFunc="BuscarCarrera"
+                         ToStringFunc="@(c => c is null ? string.Empty : (c.Nombre ?? c.Codigo))" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
@@ -27,6 +25,7 @@
     [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
 
     private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private CarreraListItemDto? _carreraSel;
     private string? _carrera;
 
     protected override async Task OnInitializedAsync()
@@ -40,4 +39,23 @@
         var permisos = usuario.EsSupervisor() ? null : usuario.Permisos();
         _carreras = await CarrerasQuery.ListarParaMenuAsync(permisos, CancellationToken.None);
     }
+
+    private void SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        _carrera = carrera?.Codigo;
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c => CoincideCarrera(c, texto));
+        return Task.FromResult(filtradas);
+    }
+
+    private static bool CoincideCarrera(CarreraListItemDto c, string texto) =>
+        c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+        || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false);
 }

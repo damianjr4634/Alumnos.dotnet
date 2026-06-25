@@ -22,13 +22,11 @@
         }
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
-                <MudSelect T="string" @bind-Value="_codigoMateria" Label="Materia" Required="true"
-                           Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    @foreach (var materia in _materias)
-                    {
-                        <MudSelectItem T="string" Value="@materia.Codigo">@($"{materia.Codigo} — {materia.Sigla ?? materia.Nombre}")</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="MateriaListItemDto" Label="Materia" Required="true"
+                                 Value="_materiaSel" ValueChanged="SeleccionarMateria"
+                                 Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 SearchFunc="BuscarMateria"
+                                 ToStringFunc="@(m => m is null ? string.Empty : $"{m.Codigo} — {m.Sigla ?? m.Nombre}")" />
             </MudItem>
             <MudItem xs="6" sm="3">
                 <MudNumericField T="int" @bind-Value="_cutuco" Label="Comisión (CUTUCO)" Min="1" Max="999"
@@ -106,6 +104,7 @@
     private readonly List<DiaMarca> _dias = HorarioComision.Dias.Select(d => new DiaMarca { Dia = d }).ToList();
 
     private string? _codigoMateria;
+    private MateriaListItemDto? _materiaSel;
     private int _cutuco;
     private string _cuaAnio = string.Empty;
     private string? _codigoProfesor;
@@ -121,6 +120,7 @@
         if (Comision is { } c)
         {
             _codigoMateria = c.CodigoMateria;
+            _materiaSel = _materias.FirstOrDefault(x => x.Codigo == _codigoMateria);
             _cutuco = c.Cutuco;
             _cuaAnio = c.CuatrimestreAnio;
             _codigoProfesor = c.CodigoProfesor;
@@ -141,6 +141,25 @@
             _cuaAnio = await CuatrimestreVigente.ObtenerAsync(Carrera, CancellationToken.None) ?? string.Empty;
         }
     }
+
+    private Task<IEnumerable<MateriaListItemDto>> BuscarMateria(string? texto, CancellationToken ct)
+    {
+        IEnumerable<MateriaListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _materias
+            : _materias.Where(m => Coincide(m, texto));
+        return Task.FromResult(filtradas);
+    }
+
+    private void SeleccionarMateria(MateriaListItemDto? materia)
+    {
+        _materiaSel = materia;
+        _codigoMateria = materia?.Codigo;
+    }
+
+    private static bool Coincide(MateriaListItemDto m, string texto) =>
+        m.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+        || (m.Sigla?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+        || (m.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false);
 
     private async Task Guardar()
     {

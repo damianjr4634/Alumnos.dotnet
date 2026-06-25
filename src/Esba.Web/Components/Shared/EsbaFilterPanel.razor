@@ -53,6 +53,24 @@
     private IReadOnlyList<EsbaFilterOption> OpcionesDe(EsbaFilterField campo) =>
         _opciones.TryGetValue(campo.Clave, out var cargadas) ? cargadas : campo.Opciones ?? [];
 
+    private EsbaFilterOption? OpcionSeleccionada(EsbaFilterField campo) =>
+        _valores[campo.Clave] is string valor
+            ? OpcionesDe(campo).FirstOrDefault(o => o.Valor == valor)
+            : null;
+
+    private Task<IEnumerable<EsbaFilterOption>> BuscarOpcion(EsbaFilterField campo, string? texto)
+    {
+        IEnumerable<EsbaFilterOption> opciones = OpcionesDe(campo);
+        if (!string.IsNullOrWhiteSpace(texto))
+        {
+            opciones = opciones.Where(o =>
+                o.Etiqueta.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || o.Valor.Contains(texto, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return Task.FromResult(opciones);
+    }
+
     private RenderFragment RenderCampo(EsbaFilterField campo) => campo.Tipo switch
     {
         EsbaFilterKind.Texto => RenderTexto(campo),
@@ -79,15 +97,12 @@
         Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" Clearable="true"
         Error="@_faltantes.Contains(campo.Clave)" />;
 
-    private RenderFragment RenderSeleccion(EsbaFilterField campo) =>@<MudSelect T="string"
-        Value="@(_valores[campo.Clave] as string)" ValueChanged="@(v => _valores[campo.Clave] = v)"
+    private RenderFragment RenderSeleccion(EsbaFilterField campo) =>@<MudAutocomplete T="EsbaFilterOption"
+        Value="@OpcionSeleccionada(campo)" ValueChanged="@(o => _valores[campo.Clave] = o?.Valor)"
+        SearchFunc="@((texto, ct) => BuscarOpcion(campo, texto))"
+        ToStringFunc="@(o => o?.Etiqueta ?? string.Empty)"
         Label="@Etiqueta(campo)" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-        Error="@_faltantes.Contains(campo.Clave)">
-        @foreach (var opcion in OpcionesDe(campo))
-        {
-            <MudSelectItem T="string" Value="@opcion.Valor">@opcion.Etiqueta</MudSelectItem>
-        }
-    </MudSelect>;
+        Error="@_faltantes.Contains(campo.Clave)" />;
 
     private RenderFragment RenderMultiSeleccion(EsbaFilterField campo) =>@<MudSelect T="string" MultiSelection="true"
         SelectedValues="@MultiValores(campo)" SelectedValuesChanged="@(v => _valores[campo.Clave] = v.ToList())"
