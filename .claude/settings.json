@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(isql -u SYSDBA -p masterkey /pool/firebird/esba.gdb)",
+      "Bash(grep -E \"\\\\.cs$\")",
+      "Bash(xargs sed -n '1,30p')",
+      "Bash(git restore *)",
+      "Bash(uuidgen)",
+      "Bash(dotnet tool *)",
+      "WebSearch",
+      "WebFetch(domain:www.mudblazor.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
