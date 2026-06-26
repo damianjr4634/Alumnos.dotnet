@@ -16,7 +16,4 @@ public sealed record GenerarConstanciaCommand
 
     /// <summary>Destinatario de la constancia ("para ser presentado ante: …").</summary>
     public string? AnteQuien { get; init; }
-
-    /// <summary>Si se compone el membrete institucional en el PDF (checkbox CBmembrete legacy).</summary>
-    public bool IncluirMembrete { get; init; } = true;
 }

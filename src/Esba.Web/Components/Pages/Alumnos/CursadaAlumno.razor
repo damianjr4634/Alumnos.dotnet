@@ -52,7 +52,7 @@ else
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
                            Class="mr-2" Target="_blank"
-                           Href="@($"/constancias/alumno/equivalencia-bachiller?carre={Carre}&cod={Codigo}&membrete=true")">
+                           Href="@($"/constancias/alumno/equivalencia-bachiller?carre={Carre}&cod={Codigo}")">
                     Imprimir equivalencia
                 </MudButton>
             }
@@ -224,7 +224,7 @@ else
         if (resultado is { Canceled: false, Data: string cuatrimestres } && !string.IsNullOrWhiteSpace(cuatrimestres))
         {
             var url = $"/constancias/alumno/equivalencia-terciaria?carre={Uri.EscapeDataString(Carre)}" +
-                      $"&cod={Uri.EscapeDataString(Codigo)}&cuatrimestres={Uri.EscapeDataString(cuatrimestres)}&membrete=true";
+                      $"&cod={Uri.EscapeDataString(Codigo)}&cuatrimestres={Uri.EscapeDataString(cuatrimestres)}";
             await JS.InvokeVoidAsync("open", url, "_blank");
         }
     }

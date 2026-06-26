@@ -34,8 +34,6 @@ public sealed record EquivalenciaBachillerModel
     /// <summary>Cuerpo a dos columnas (materias de la carrera marcadas con equivalencia).</summary>
     public IReadOnlyList<LineaEquivalenciaBachillerDto> Lineas { get; init; } = [];
 
-    public bool IncluirMembrete { get; init; }
-
     /// <summary>INSTITUT de la carrera (membrete).</summary>
     public string? Instituto { get; init; }
 

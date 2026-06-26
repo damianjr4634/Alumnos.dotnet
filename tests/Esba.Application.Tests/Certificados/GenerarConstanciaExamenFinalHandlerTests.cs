@@ -31,7 +31,7 @@ public class GenerarConstanciaExamenFinalHandlerTests
     {
         SembrarMateria("APROBADA");
 
-        var resultado = await Handler().GenerarPdfAsync("123", "TER", "07", "Universidad X", true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("123", "TER", "07", "Universidad X", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
         Assert.NotNull(resultado.Value);
@@ -46,7 +46,7 @@ public class GenerarConstanciaExamenFinalHandlerTests
     {
         SembrarMateria("CURSANDO");
 
-        var resultado = await Handler().GenerarPdfAsync("123", "TER", "07", "Universidad X", true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("123", "TER", "07", "Universidad X", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         _reporte.DidNotReceive().GenerarConstanciaAlumno(Arg.Any<ConstanciaAlumnoModel>());
@@ -57,7 +57,7 @@ public class GenerarConstanciaExamenFinalHandlerTests
     {
         SembrarMateria("APROBADA");
 
-        var resultado = await Handler().GenerarPdfAsync("123", "TER", "99", "Universidad X", true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("123", "TER", "99", "Universidad X", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         await _parrafo.DidNotReceive().ObtenerAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -68,7 +68,7 @@ public class GenerarConstanciaExamenFinalHandlerTests
     {
         SembrarMateria("APROBADA");
 
-        var resultado = await Handler().GenerarPdfAsync("123", "TER", "07", "  ", true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("123", "TER", "07", "  ", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         await _materias.DidNotReceive().ListarAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());

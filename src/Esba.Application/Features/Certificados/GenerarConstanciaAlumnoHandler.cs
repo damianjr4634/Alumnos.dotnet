@@ -159,7 +159,6 @@ public sealed class GenerarConstanciaAlumnoHandler
             ],
             Secretaria = carrera.Secretaria,
             Rector = carrera.Rector,
-            IncluirMembrete = command.IncluirMembrete,
             Instituto = carrera.Instituto,
             Caracteristica = carrera.Caracteristica,
             NombreCarrera = carrera.Nombre,

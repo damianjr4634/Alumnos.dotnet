@@ -16,11 +16,10 @@ public class ConstanciaAnaliticoPdfServiceTests
     private static ConstanciaAnaliticoPdfService Crear() =>
         new(Options.Create(new InstitucionSettings { Nombre = "ESBA", Caracteristica = "A-781" }));
 
-    private static ConstanciaMateriasAprobadasModel Modelo(bool incluirMembrete) => new()
+    private static ConstanciaMateriasAprobadasModel Modelo() => new()
     {
         Introduccion = "En Buenos Aires a los 18 días del mes de junio de 2026 …",
         AnteQuien = "Quien corresponda",
-        IncluirMembrete = incluirMembrete,
         Secretaria = "Secretaria Test",
         Rector = "Rectora Test",
         Filas =
@@ -32,12 +31,10 @@ public class ConstanciaAnaliticoPdfServiceTests
         ],
     };
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void GenerarMateriasAprobadas_ConFilasMixtas_ProduceUnPdf(bool incluirMembrete)
+    [Fact]
+    public void GenerarMateriasAprobadas_ConFilasMixtas_ProduceUnPdf()
     {
-        var pdf = Crear().GenerarMateriasAprobadas(Modelo(incluirMembrete));
+        var pdf = Crear().GenerarMateriasAprobadas(Modelo());
 
         Assert.NotEmpty(pdf);
         // Firma de archivo PDF ("%PDF").
@@ -47,7 +44,7 @@ public class ConstanciaAnaliticoPdfServiceTests
     [Fact]
     public void GenerarMateriasAprobadas_SinFilas_ProduceUnPdf()
     {
-        var modelo = Modelo(incluirMembrete: true) with { Filas = [] };
+        var modelo = Modelo() with { Filas = [] };
 
         var pdf = Crear().GenerarMateriasAprobadas(modelo);
 

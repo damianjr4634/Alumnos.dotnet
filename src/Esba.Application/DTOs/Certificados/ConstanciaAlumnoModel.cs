@@ -35,9 +35,6 @@ public sealed record ConstanciaAlumnoModel
     /// <summary>Nombre del rector/a que firma.</summary>
     public string? Rector { get; init; }
 
-    /// <summary>Si se compone el membrete institucional.</summary>
-    public bool IncluirMembrete { get; init; }
-
     /// <summary>Nombre del instituto emisor (membrete).</summary>
     public string? Instituto { get; init; }
 

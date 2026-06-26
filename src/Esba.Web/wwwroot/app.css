@@ -28,6 +28,15 @@
     background-color: var(--mud-palette-primary-hover) !important;
 }
 
+/* Encabezado de grupo (cuatrimestre) del analítico: tinte tenue de la marca para
+   despegarlo de la alternancia gris/blanco de las filas, con barra de acento a la
+   izquierda. Distinto del primary-hover de la fila seleccionada. Theme-aware. */
+.esba-grupo-cuatrim {
+    background-color: rgba(var(--mud-palette-primary-rgb), 0.09);
+    border-left: 3px solid var(--mud-palette-primary);
+    font-weight: 600;
+}
+
 /* Accesibilidad: sin animaciones para quien las desactivó en el sistema. */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

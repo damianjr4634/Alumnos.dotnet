@@ -34,7 +34,7 @@ public sealed class ResolucionEquivalenciaTerciariaPdfService : IResolucionEquiv
     {
         ArgumentNullException.ThrowIfNull(model);
 
-        var membrete = model.IncluirMembrete ? CargarMembrete(_institucion.MembreteResolucionPath) : null;
+        var membrete = CargarMembrete(_institucion.MembreteResolucionPath);
         var fecha = $"Buenos Aires, {model.Fecha.Day} de {TextoCastellano.MesEnLetras(model.Fecha.Month)} de {model.Fecha.Year}";
 
         var documento = Document.Create(contenedor =>

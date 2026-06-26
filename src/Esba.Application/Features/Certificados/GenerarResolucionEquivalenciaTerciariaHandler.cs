@@ -39,7 +39,6 @@ public sealed class GenerarResolucionEquivalenciaTerciariaHandler
         string codigoAlumno,
         string codigoCarrera,
         string? cuatrimestres,
-        bool incluirMembrete,
         CancellationToken ct)
     {
         var cuats = ResolucionEquivalenciaFormatter.ParsearCuatrimestres(cuatrimestres);
@@ -82,7 +81,6 @@ public sealed class GenerarResolucionEquivalenciaTerciariaHandler
                     m.MateriaOrigen, m.CarreraOrigen, m.InstitutoOrigen, m.Docente))
                 .ToArray(),
             Rector = carrera?.Rector,
-            IncluirMembrete = incluirMembrete,
         };
 
         return Result.Ok(_reporte.GenerarResolucionTerciaria(model));

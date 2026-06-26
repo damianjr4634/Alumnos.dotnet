@@ -39,7 +39,6 @@ public sealed class GenerarConstanciaMateriasAprobadasHandler
         string codigoAlumno,
         string codigoCarrera,
         string? anteQuien,
-        bool incluirMembrete,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(anteQuien))
@@ -82,7 +81,6 @@ public sealed class GenerarConstanciaMateriasAprobadasHandler
             Introduccion = ComponerIntroduccion(alumno, carrera),
             Filas = filas,
             AnteQuien = anteQuien.Trim(),
-            IncluirMembrete = incluirMembrete,
             Instituto = carrera.Instituto,
             Caracteristica = carrera.Caracteristica,
             Secretaria = carrera.Secretaria,

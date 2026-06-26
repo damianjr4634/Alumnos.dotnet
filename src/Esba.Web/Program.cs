@@ -94,7 +94,6 @@ app.MapGet("/constancias/alumno", async (
     string tipo,
     string? ante,
     bool conf,
-    bool membrete,
     GenerarConstanciaAlumnoHandler handler,
     CancellationToken ct) =>
 {
@@ -109,7 +108,6 @@ app.MapGet("/constancias/alumno", async (
         CodigoAlumno = cod,
         Tipo = tipoConstancia,
         AnteQuien = ante,
-        IncluirMembrete = membrete,
     };
 
     var resultado = await handler.GenerarPdfAsync(command, conf, ct);
@@ -128,7 +126,6 @@ app.MapGet("/constancias/alumno/regular", async (
     string carre,
     string cod,
     string? ante,
-    bool membrete,
     GenerarConstanciaRegularHandler handler,
     CancellationToken ct) =>
 {
@@ -137,7 +134,6 @@ app.MapGet("/constancias/alumno/regular", async (
         CodigoCarrera = carre,
         CodigoAlumno = cod,
         AnteQuien = ante,
-        IncluirMembrete = membrete,
     };
 
     var resultado = await handler.GenerarPdfAsync(command, ct);
@@ -156,11 +152,10 @@ app.MapGet("/constancias/alumno/materias-aprobadas", async (
     string carre,
     string cod,
     string? ante,
-    bool membrete,
     GenerarConstanciaMateriasAprobadasHandler handler,
     CancellationToken ct) =>
 {
-    var resultado = await handler.GenerarPdfAsync(cod, carre, ante, membrete, ct);
+    var resultado = await handler.GenerarPdfAsync(cod, carre, ante, ct);
     if (!resultado.IsSuccess || resultado.Value is null)
     {
         return Results.BadRequest(resultado.Message ?? "No se pudo generar la constancia.");
@@ -176,11 +171,10 @@ app.MapGet("/constancias/alumno/examen-final", async (
     string cod,
     string codmat,
     string? ante,
-    bool membrete,
     GenerarConstanciaExamenFinalHandler handler,
     CancellationToken ct) =>
 {
-    var resultado = await handler.GenerarPdfAsync(cod, carre, codmat, ante, membrete, ct);
+    var resultado = await handler.GenerarPdfAsync(cod, carre, codmat, ante, ct);
     if (!resultado.IsSuccess || resultado.Value is null)
     {
         return Results.BadRequest(resultado.Message ?? "No se pudo generar la constancia.");
@@ -195,11 +189,10 @@ app.MapGet("/constancias/alumno/examen-final", async (
 app.MapGet("/constancias/alumno/equivalencia-bachiller", async (
     string carre,
     string cod,
-    bool membrete,
     GenerarEquivalenciaBachillerHandler handler,
     CancellationToken ct) =>
 {
-    var resultado = await handler.GenerarPdfAsync(cod, carre, membrete, ct);
+    var resultado = await handler.GenerarPdfAsync(cod, carre, ct);
     if (!resultado.IsSuccess || resultado.Value is null)
     {
         return Results.BadRequest(resultado.Message ?? "No se pudo generar la equivalencia.");
@@ -215,11 +208,10 @@ app.MapGet("/constancias/alumno/equivalencia-terciaria", async (
     string carre,
     string cod,
     string? cuatrimestres,
-    bool membrete,
     GenerarResolucionEquivalenciaTerciariaHandler handler,
     CancellationToken ct) =>
 {
-    var resultado = await handler.GenerarPdfAsync(cod, carre, cuatrimestres, membrete, ct);
+    var resultado = await handler.GenerarPdfAsync(cod, carre, cuatrimestres, ct);
     if (!resultado.IsSuccess || resultado.Value is null)
     {
         return Results.BadRequest(resultado.Message ?? "No se pudo generar la resolución.");

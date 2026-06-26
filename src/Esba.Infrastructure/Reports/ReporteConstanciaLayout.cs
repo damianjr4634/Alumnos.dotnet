@@ -5,48 +5,29 @@ using QuestPDF.Infrastructure;
 namespace Esba.Infrastructure.Reports;
 
 /// <summary>
-/// Piezas de maqueta compartidas por los reportes de constancia (membrete, firmas y
-/// carga de logo). Evita duplicar el encabezado/pie entre la constancia de texto
-/// (<see cref="ConstanciaPdfService"/>) y la constancia tabular de materias
-/// (<see cref="ConstanciaAnaliticoPdfService"/>). Las firmas van como texto (A4),
+/// Piezas de maqueta compartidas por los reportes de constancia (papel membretado y
+/// firmas). El papel membretado (JPG A4 "membrete_con_direccion.jpg") se compone como
+/// fondo de página, igual en todas las constancias. Las firmas van como texto (A4),
 /// según la decisión de normalización del hito 9.2 (firmas-imagen diferidas a hito 12).
 /// </summary>
 internal static class ReporteConstanciaLayout
 {
     public const string ColorPrimario = "#1E40AF";
 
-    /// <summary>Membrete institucional: logo opcional + nombre/característica/dirección.</summary>
-    public static void Membrete(IContainer contenedor, InstitucionSettings institucion, string? instituto, string? caracteristica, byte[]? logo)
+    /// <summary>
+    /// Lee el JPG del papel membretado (A4). Resuelve rutas relativas contra el directorio
+    /// de ejecución. null si no está configurado o el archivo no existe (la constancia sale
+    /// sin fondo, para impresión sobre papel preimpreso).
+    /// </summary>
+    public static byte[]? CargarFondo(string? path)
     {
-        var nombre = PrimeroNoVacio(instituto, institucion.Nombre);
-        var caract = PrimeroNoVacio(caracteristica, institucion.Caracteristica);
-
-        contenedor.BorderBottom(1).BorderColor(ColorPrimario).PaddingBottom(6).Row(row =>
+        if (string.IsNullOrWhiteSpace(path))
         {
-            if (logo is not null)
-            {
-                row.ConstantItem(2, Unit.Centimetre).Image(logo).FitArea();
-                row.Spacing(10);
-            }
+            return null;
+        }
 
-            row.RelativeItem().Column(col =>
-            {
-                if (!string.IsNullOrWhiteSpace(nombre))
-                {
-                    col.Item().Text(nombre).FontSize(13).Bold().FontColor(ColorPrimario);
-                }
-
-                if (!string.IsNullOrWhiteSpace(caract))
-                {
-                    col.Item().Text(caract).FontSize(9);
-                }
-
-                if (!string.IsNullOrWhiteSpace(institucion.Direccion))
-                {
-                    col.Item().Text(institucion.Direccion).FontSize(9).FontColor(Colors.Grey.Darken1);
-                }
-            });
-        });
+        var ruta = Path.IsPathRooted(path) ? path : Path.Combine(Directory.GetCurrentDirectory(), path);
+        return File.Exists(ruta) ? File.ReadAllBytes(ruta) : null;
     }
 
     /// <summary>Firmas de las autoridades como texto (nombre + cargo) con el sello al medio.</summary>
@@ -69,13 +50,4 @@ internal static class ReporteConstanciaLayout
             });
         });
     }
-
-    public static byte[]? CargarLogo(InstitucionSettings institucion)
-    {
-        var path = institucion.LogoPath;
-        return !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? File.ReadAllBytes(path) : null;
-    }
-
-    private static string PrimeroNoVacio(string? a, string? b) =>
-        !string.IsNullOrWhiteSpace(a) ? a!.Trim() : (b ?? string.Empty).Trim();
 }

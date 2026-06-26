@@ -20,9 +20,6 @@ public sealed record ConstanciaMateriasAprobadasModel
     /// <summary>Destinatario ("Para ser presentada ante: …").</summary>
     public string? AnteQuien { get; init; }
 
-    /// <summary>Si se compone el membrete institucional en el PDF.</summary>
-    public bool IncluirMembrete { get; init; }
-
     /// <summary>Nombre del instituto emisor (membrete).</summary>
     public string? Instituto { get; init; }
 

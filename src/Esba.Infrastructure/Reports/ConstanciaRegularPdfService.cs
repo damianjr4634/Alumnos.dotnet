@@ -32,7 +32,7 @@ public sealed class ConstanciaRegularPdfService : IConstanciaRegularReportServic
     {
         ArgumentNullException.ThrowIfNull(model);
 
-        var membrete = model.IncluirMembrete ? CargarMembrete(_institucion.MembreteConstanciaRegularPath) : null;
+        var membrete = CargarMembrete(_institucion.MembreteConstanciaRegularPath);
 
         var documento = Document.Create(contenedor =>
         {

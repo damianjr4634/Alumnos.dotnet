@@ -12,7 +12,4 @@ public sealed record GenerarConstanciaRegularCommand
 
     /// <summary>Ante quién se presenta la constancia.</summary>
     public string? AnteQuien { get; init; }
-
-    /// <summary>Si se compone el membrete institucional de fondo.</summary>
-    public bool IncluirMembrete { get; init; } = true;
 }

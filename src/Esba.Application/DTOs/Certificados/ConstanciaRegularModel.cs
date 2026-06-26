@@ -24,7 +24,4 @@ public sealed record ConstanciaRegularModel
 
     /// <summary>Nombre del rector/a que firma.</summary>
     public string? Rector { get; init; }
-
-    /// <summary>Si se compone el membrete institucional de fondo (membrete_con_direccion.jpg, A4).</summary>
-    public bool IncluirMembrete { get; init; }
 }

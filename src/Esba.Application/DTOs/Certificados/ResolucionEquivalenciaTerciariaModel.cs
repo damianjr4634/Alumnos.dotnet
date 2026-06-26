@@ -25,7 +25,4 @@ public sealed record ResolucionEquivalenciaTerciariaModel
 
     /// <summary>Nombre del Rector/a (firma al pie).</summary>
     public string? Rector { get; init; }
-
-    /// <summary>true para dibujar el papel membretado (JPG) de fondo.</summary>
-    public bool IncluirMembrete { get; init; }
 }

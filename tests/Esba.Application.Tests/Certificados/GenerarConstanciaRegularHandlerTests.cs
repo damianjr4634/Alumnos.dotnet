@@ -23,7 +23,6 @@ public class GenerarConstanciaRegularHandlerTests
         CodigoCarrera = "ABC",
         CodigoAlumno = "12345",
         AnteQuien = "quien corresponda",
-        IncluirMembrete = true,
     };
 
     private void ConfigurarCarreraYCuatrimestre()

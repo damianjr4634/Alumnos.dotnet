@@ -33,7 +33,7 @@ public class GenerarResolucionEquivalenciaTerciariaHandlerTests
     {
         Sembrar(materias: 3);
 
-        var resultado = await Handler().GenerarPdfAsync("DNI1", "37414", "2,3", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI1", "37414", "2,3", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
         _reporte.Received(1).GenerarResolucionTerciaria(Arg.Is<ResolucionEquivalenciaTerciariaModel>(m =>
@@ -45,7 +45,7 @@ public class GenerarResolucionEquivalenciaTerciariaHandlerTests
     {
         Sembrar();
 
-        var resultado = await Handler().GenerarPdfAsync("DNI1", "37414", "  ", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI1", "37414", "  ", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         await _carrerasMeta.DidNotReceive().ObtenerTipoAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -56,7 +56,7 @@ public class GenerarResolucionEquivalenciaTerciariaHandlerTests
     {
         Sembrar(tipo: "BAC");
 
-        var resultado = await Handler().GenerarPdfAsync("DNI1", "BAC", "1", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI1", "BAC", "1", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         await _equivalencias.DidNotReceive().ListarMateriasAsync(
@@ -68,7 +68,7 @@ public class GenerarResolucionEquivalenciaTerciariaHandlerTests
     {
         Sembrar(materias: 0);
 
-        var resultado = await Handler().GenerarPdfAsync("DNI1", "37414", "9", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI1", "37414", "9", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         _reporte.DidNotReceive().GenerarResolucionTerciaria(Arg.Any<ResolucionEquivalenciaTerciariaModel>());

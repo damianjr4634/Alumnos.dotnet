@@ -127,7 +127,6 @@ public sealed class GenerarConstanciaRegularHandler
             LineaSubvencion = ConstanciaRegularFormatter.LineaSubvencion(carrera.Tipo),
             Secretaria = carrera.Secretaria,
             Rector = carrera.Rector,
-            IncluirMembrete = command.IncluirMembrete,
         };
 
         return _reporte.GenerarConstanciaRegular(model);

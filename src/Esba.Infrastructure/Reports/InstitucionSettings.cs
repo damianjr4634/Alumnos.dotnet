@@ -41,4 +41,12 @@ public sealed class InstitucionSettings
     /// constanciaalumnoregular.pas. Si está vacía o no existe, la constancia se imprime sin fondo.
     /// </summary>
     public string? MembreteConstanciaRegularPath { get; set; }
+
+    /// <summary>
+    /// Ruta (absoluta o relativa al directorio de ejecución) al papel membretado JPG (A4) de
+    /// las demás constancias de impresión: constancia de alumno, materias aprobadas, examen
+    /// final y equivalencia bachiller. Es el mismo "membrete_con_direccion.jpg". Si está vacía
+    /// o no existe, se imprimen sin fondo (para papel preimpreso).
+    /// </summary>
+    public string? MembreteConstanciaPath { get; set; }
 }

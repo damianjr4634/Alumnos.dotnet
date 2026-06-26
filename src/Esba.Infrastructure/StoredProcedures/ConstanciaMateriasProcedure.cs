@@ -38,7 +38,11 @@ public sealed class ConstanciaMateriasProcedure : IConstanciaMateriasProcedure
                    TRIM(ANUAL)    AS Anual,
                    TRIM(ACTINT)   AS ActividadInterna,
                    TRIM(ACTDEGP)  AS ActividadDgegp,
-                   TRIM(EXIMDESC) AS EximidoDescripcion
+                   TRIM(EXIMDESC) AS EximidoDescripcion,
+                   TRIM(HTMLCOLOR) AS HtmlColor,
+                   TRIM(HTMLFONTCOLOR) AS HtmlFontColor,
+                   COLOR          AS ColorFondo,
+                   FONTCOLOR      AS ColorFuente
             FROM XXX_CONSTANCIA_TERCIARIA(@CodAlu, @Carre)
             """;
 

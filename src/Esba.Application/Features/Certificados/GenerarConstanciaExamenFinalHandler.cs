@@ -41,7 +41,6 @@ public sealed class GenerarConstanciaExamenFinalHandler
         string codigoCarrera,
         string codigoMateria,
         string? anteQuien,
-        bool incluirMembrete,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(anteQuien))
@@ -82,7 +81,6 @@ public sealed class GenerarConstanciaExamenFinalHandler
             NotasLegales = [NotaLegal],
             Secretaria = carrera.Secretaria,
             Rector = carrera.Rector,
-            IncluirMembrete = incluirMembrete,
             Instituto = carrera.Instituto,
             Caracteristica = carrera.Caracteristica,
             NombreCarrera = carrera.Nombre,

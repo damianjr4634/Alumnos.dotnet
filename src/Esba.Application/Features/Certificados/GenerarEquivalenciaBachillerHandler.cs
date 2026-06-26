@@ -33,7 +33,6 @@ public sealed class GenerarEquivalenciaBachillerHandler
     public async Task<Result<byte[]>> GenerarPdfAsync(
         string codigoAlumno,
         string codigoCarrera,
-        bool incluirMembrete,
         CancellationToken ct)
     {
         var encabezado = await _carreras
@@ -64,7 +63,6 @@ public sealed class GenerarEquivalenciaBachillerHandler
                 encabezado.DocumentoAC, encabezado.Instituto, encabezado.Colegio, encabezado.PlanDescripcion),
             MostrarNotaAdReferendum = EquivalenciaBachillerFormatter.EsTituloEnTramite(encabezado.DocumentoAC),
             Lineas = lineas,
-            IncluirMembrete = incluirMembrete,
             Instituto = encabezado.InstitutoEmisor,
             Caracteristica = encabezado.CaracteristicaEmisor,
         };

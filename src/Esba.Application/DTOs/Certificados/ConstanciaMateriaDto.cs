@@ -39,4 +39,16 @@ public sealed record ConstanciaMateriaDto
 
     /// <summary>EXIMDESC: descripción de la eximición (se imprime en la condición cuando CONDICION='EXIMIDO').</summary>
     public string? EximidoDescripcion { get; init; }
+
+    /// <summary>HTMLCOLOR: color de fondo de la fila en formato CSS que calcula el SP (vacío en la rama ADM y en bases sin TBL_COLOR.HTMLCODE cargado).</summary>
+    public string? HtmlColor { get; init; }
+
+    /// <summary>HTMLFONTCOLOR: color de fuente de la fila en formato CSS que calcula el SP.</summary>
+    public string? HtmlFontColor { get; init; }
+
+    /// <summary>COLOR: color de fondo como TColor de la VCL (entero 0x00BBGGRR); fallback cuando HTMLCOLOR viene vacío.</summary>
+    public int? ColorFondo { get; init; }
+
+    /// <summary>FONTCOLOR: color de fuente como TColor de la VCL; fallback cuando HTMLFONTCOLOR viene vacío.</summary>
+    public int? ColorFuente { get; init; }
 }

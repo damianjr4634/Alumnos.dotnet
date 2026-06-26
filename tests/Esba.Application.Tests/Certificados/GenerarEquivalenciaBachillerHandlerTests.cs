@@ -42,7 +42,7 @@ public class GenerarEquivalenciaBachillerHandlerTests
     {
         SembrarEncabezado(Encabezado(tipo: "BAC", ac: "A", actint: "0000103"));
 
-        var resultado = await Handler().GenerarPdfAsync("DNI123", "BAC", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI123", "BAC", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
         Assert.NotNull(resultado.Value);
@@ -55,7 +55,7 @@ public class GenerarEquivalenciaBachillerHandlerTests
     {
         SembrarEncabezado(Encabezado(ac: "C"));
 
-        await Handler().GenerarPdfAsync("DNI123", "BAC", incluirMembrete: true, CancellationToken.None);
+        await Handler().GenerarPdfAsync("DNI123", "BAC", CancellationToken.None);
 
         _reporte.Received(1).GenerarEquivalenciaBachiller(Arg.Is<EquivalenciaBachillerModel>(m => m.MostrarNotaAdReferendum));
     }
@@ -66,7 +66,7 @@ public class GenerarEquivalenciaBachillerHandlerTests
         _carreras.ObtenerEncabezadoEquivalenciaBachillerAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((EncabezadoEquivalenciaBachillerDto?)null);
 
-        var resultado = await Handler().GenerarPdfAsync("DNI123", "BAC", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI123", "BAC", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         _reporte.DidNotReceive().GenerarEquivalenciaBachiller(Arg.Any<EquivalenciaBachillerModel>());
@@ -77,7 +77,7 @@ public class GenerarEquivalenciaBachillerHandlerTests
     {
         SembrarEncabezado(Encabezado(tipo: "TER"));
 
-        var resultado = await Handler().GenerarPdfAsync("DNI123", "TER", incluirMembrete: true, CancellationToken.None);
+        var resultado = await Handler().GenerarPdfAsync("DNI123", "TER", CancellationToken.None);
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         await _lineas.DidNotReceive().ListarLineasAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());

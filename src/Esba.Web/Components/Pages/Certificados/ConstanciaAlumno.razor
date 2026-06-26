@@ -66,8 +66,6 @@ else
                     <MudTextField @bind-Value="_anteQuien" Label="Para ser presentado ante"
                                   MaxLength="150" Required="true" Immediate="true"
                                   RequiredError="Indique ante quién se presenta la constancia." />
-                    <MudCheckBox @bind-Value="_incluirMembrete" Color="Color.Primary" Class="mt-3"
-                                 Label="Incluir membrete institucional" />
                 </MudItem>
 
                 <MudItem xs="12" Class="d-flex justify-end gap-2 flex-wrap">
@@ -125,7 +123,7 @@ else
                 <MudTh></MudTh>
             </HeaderContent>
             <GroupHeaderTemplate>
-                <MudTh Class="mud-table-cell-custom-group" colspan="6">
+                <MudTh Class="mud-table-cell-custom-group esba-grupo-cuatrim" colspan="6">
                     @TextoCastellano.CuatrimestreEnLetras(Convert.ToInt32(context.Key)) Cuatrimestre
                 </MudTh>
             </GroupHeaderTemplate>
@@ -139,8 +137,17 @@ else
                     }
                 </MudTd>
                 <MudTd DataLabel="Condición">
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                             Color="@CondicionMateriaColor.Para(context.Condicion)">@context.Condicion</MudChip>
+                    @{ var estiloChip = ColorCondicionMateria.EstiloChip(context); }
+                    @if (estiloChip is not null)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                 Style="@estiloChip">@context.Condicion</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@CondicionMateriaColor.Para(context.Condicion)">@context.Condicion</MudChip>
+                    }
                 </MudTd>
                 <MudTd DataLabel="Nota" Class="d-none d-md-table-cell">@FormatearNota(context.Nota)</MudTd>
                 <MudTd DataLabel="Fecha" Class="d-none d-md-table-cell">
@@ -176,8 +183,7 @@ else
     private bool _generando;
 
     private TipoConstancia _tipo = TipoConstancia.CertificadoEnTramite;
-    private string _anteQuien = string.Empty;
-    private bool _incluirMembrete = true;
+    private string _anteQuien = "Quien corresponda.";
 
     private readonly TableGroupDefinition<ConstanciaMateriaDto> _agrupacionPorCuatrimestre = new()
     {
@@ -255,7 +261,6 @@ else
         CodigoAlumno = Codigo,
         Tipo = _tipo,
         AnteQuien = _anteQuien,
-        IncluirMembrete = _incluirMembrete,
     };
 
     // Constancia de Alumno Regular (hito 10.4a): exige "ante quién"; el servidor revalida
@@ -279,7 +284,6 @@ else
                 CodigoCarrera = Carre,
                 CodigoAlumno = Codigo,
                 AnteQuien = _anteQuien,
-                IncluirMembrete = _incluirMembrete,
             };
 
             var chequeo = await ConstanciaRegularHandler.ValidarAsync(command, CancellationToken.None);
@@ -291,8 +295,7 @@ else
 
             var url = $"/constancias/alumno/regular?carre={Uri.EscapeDataString(Carre)}" +
                       $"&cod={Uri.EscapeDataString(Codigo)}" +
-                      $"&ante={Uri.EscapeDataString(_anteQuien)}" +
-                      $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
+                      $"&ante={Uri.EscapeDataString(_anteQuien)}";
 
             await JS.InvokeVoidAsync("open", url, "_blank");
         }
@@ -323,7 +326,6 @@ else
                 CodigoCarrera = Carre,
                 CodigoAlumno = Codigo,
                 AnteQuien = _anteQuien,
-                IncluirMembrete = _incluirMembrete,
             };
 
             var resultado = await ConstanciaRegularHandler.EnviarPorMailAsync(command, CancellationToken.None);
@@ -360,8 +362,7 @@ else
         {
             var url = $"/constancias/alumno/materias-aprobadas?carre={Uri.EscapeDataString(Carre)}" +
                       $"&cod={Uri.EscapeDataString(Codigo)}" +
-                      $"&ante={Uri.EscapeDataString(_anteQuien)}" +
-                      $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
+                      $"&ante={Uri.EscapeDataString(_anteQuien)}";
 
             await JS.InvokeVoidAsync("open", url, "_blank");
         }
@@ -391,8 +392,7 @@ else
             var url = $"/constancias/alumno/examen-final?carre={Uri.EscapeDataString(Carre)}" +
                       $"&cod={Uri.EscapeDataString(Codigo)}" +
                       $"&codmat={Uri.EscapeDataString(materia.CodigoMateria ?? string.Empty)}" +
-                      $"&ante={Uri.EscapeDataString(_anteQuien)}" +
-                      $"&membrete={_incluirMembrete.ToString().ToLowerInvariant()}";
+                      $"&ante={Uri.EscapeDataString(_anteQuien)}";
 
             await JS.InvokeVoidAsync("open", url, "_blank");
         }
@@ -408,8 +408,7 @@ else
                   $"&cod={Uri.EscapeDataString(command.CodigoAlumno)}" +
                   $"&tipo={command.Tipo}" +
                   $"&ante={Uri.EscapeDataString(command.AnteQuien ?? string.Empty)}" +
-                  $"&conf={confirmar.ToString().ToLowerInvariant()}" +
-                  $"&membrete={command.IncluirMembrete.ToString().ToLowerInvariant()}";
+                  $"&conf={confirmar.ToString().ToLowerInvariant()}";
 
         await JS.InvokeVoidAsync("open", url, "_blank");
     }

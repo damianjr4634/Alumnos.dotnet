@@ -36,7 +36,7 @@ public sealed class EquivalenciaBachillerPdfService : IEquivalenciaBachillerRepo
     {
         ArgumentNullException.ThrowIfNull(model);
 
-        var logo = ReporteConstanciaLayout.CargarLogo(_institucion);
+        var membrete = ReporteConstanciaLayout.CargarFondo(_institucion.MembreteConstanciaPath);
         var fecha = $"Buenos Aires, {model.Fecha.Day} de {TextoCastellano.MesEnLetras(model.Fecha.Month)} de {model.Fecha.Year}";
 
         var documento = Document.Create(contenedor =>
@@ -44,16 +44,17 @@ public sealed class EquivalenciaBachillerPdfService : IEquivalenciaBachillerRepo
             contenedor.Page(pagina =>
             {
                 pagina.Size(PageSizes.A4);
-                pagina.Margin(2.5f, Unit.Centimetre);
+                // El membrete trae su propio encabezado/pie: el cuerpo arranca más abajo.
+                pagina.MarginVertical(membrete is not null ? 4.5f : 2.5f, Unit.Centimetre);
+                pagina.MarginHorizontal(2.5f, Unit.Centimetre);
                 pagina.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
 
-                if (model.IncluirMembrete)
+                if (membrete is not null)
                 {
-                    pagina.Header().Element(c =>
-                        ReporteConstanciaLayout.Membrete(c, _institucion, model.Instituto, model.Caracteristica, logo));
+                    pagina.Background().Image(membrete).FitArea();
                 }
 
-                pagina.Content().PaddingTop(model.IncluirMembrete ? 12 : 0).Column(col =>
+                pagina.Content().Column(col =>
                 {
                     col.Spacing(6);
 
