@@ -255,3 +255,45 @@ con el resto de 9.2.
 
 9.2a/b/c entregados. **Falta 9.3 (Equivalencias)** y la Constancia de Alumno Regular (depende de
 MailKit, hito 10) para cerrar el hito 9 completo: la fila 9 de `CLAUDE.md` §6 sigue ⬜.
+
+---
+
+# Revisión 2026-06-26 — colores del SP + membrete obligatorio (commit `0e4eea4`)
+
+Ajustes pedidos por el usuario sobre el hito 9 ya cerrado. **Revierten dos decisiones
+documentadas más arriba**; se dejan registradas acá, no se borran las viejas.
+
+## A. Colores del analítico: ahora del SP (supera 9.2a §1 y la fila `DbMateriasDrawColumnCell`)
+
+- **Antes** (9.2a): el color de condición se derivaba como color **semántico del tema**
+  (§4.5), descartando a propósito el RGB del SP ("los colores del SP `COLOR`/`HTMLCOLOR`
+  **no** se replican").
+- **Ahora**: el chip de la columna Condición se pinta con `HTMLCOLOR` (fondo) y
+  `HTMLFONTCOLOR` (fuente) que devuelve `XXX_CONSTANCIA_TERCIARIA`. Fallback a los `TColor`
+  enteros `COLOR`/`FONTCOLOR` (`0x00BBGGRR` → `#RRGGBB`) cuando el HTML viene vacío: la rama
+  ADM del SP no setea los HTML y `TBL_COLOR.HTMLCODE` está NULL en la base de desarrollo. Si
+  el SP no asigna color (fondo blanco "normal") cae al chip semántico anterior, para no romper
+  el modo oscuro (§4.5).
+- Artefactos: `ConstanciaMateriaDto` (+`HtmlColor`/`HtmlFontColor`/`ColorFondo`/`ColorFuente`),
+  `ConstanciaMateriasProcedure` (SELECT ampliado), `ColorCondicionMateria` (Web/Components/Shared).
+  `CursadaAlumno.razor` sigue con el chip semántico (`CondicionMateriaColor`): solo se cambió la
+  constancia. Separador de cuatrimestre con tinte tenue de marca (`.esba-grupo-cuatrim` en `app.css`).
+
+## B. Membrete obligatorio y unificado al JPG (supera 9.1 §3 y 9.2b membrete de texto)
+
+- **Antes**: membrete opcional (checkbox `IncluirMembrete`, default true) y, en la constancia
+  de alumno / materias aprobadas / equivalencia bachiller, era un **membrete de texto**
+  data-driven (`ReporteConstanciaLayout.Membrete` + logo). Solo Constancia Regular y Resolución
+  usaban el JPG `membrete_con_direccion.jpg` de fondo.
+- **Ahora**: el membrete es **obligatorio** (se erradicó el flag `IncluirMembrete` de punta a
+  punta: UI, endpoints, commands, models, handlers) y **todas** las constancias de impresión usan
+  el mismo JPG de fondo. Nueva config `Institucion:MembreteConstanciaPath`. Se quitó el membrete
+  de texto y el logo de `ReporteConstanciaLayout` (sin uso); cargador de fondo compartido `CargarFondo`.
+- Pendiente del usuario 9.1 §5 ("logo + dirección del membrete para fidelidad") **queda saldado**:
+  ya no aplica, el membrete es la imagen oficial.
+
+## Verificación
+
+- `dotnet build` → 0 warnings. `dotnet test` → verde (439).
+- Render del JPG verificado con un PDF real del analítico (la imagen se embebe: PDF con fondo
+  >20 KB mayor que sin fondo).
