@@ -32,7 +32,7 @@
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
                        StartIcon="@Icons.Material.Filled.AssignmentTurnedIn" OnClick="AbrirPermisos">Permisos de examen</MudButton>
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
-                       StartIcon="@Icons.Material.Filled.Description" Disabled="true">Constancias</MudButton>
+                       StartIcon="@Icons.Material.Filled.Description" OnClick="AbrirConstancias">Constancias</MudButton>
         </div>
     </DialogContent>
     <DialogActions>
@@ -53,6 +53,9 @@
 
     private void AbrirPermisos() =>
         Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/permisos");
+
+    private void AbrirConstancias() =>
+        Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/constancia");
 
     private void Ir(string url)
     {
