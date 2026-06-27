@@ -51,10 +51,15 @@ public sealed record FilaCargaFinalResuelta
 public interface ICargaFinalRepository
 {
     /// <summary>Confirma todas las filas en una sola transacción. Devuelve cuántas se procesaron.</summary>
+    /// <param name="consumirPermiso">
+    /// true (por mesa, XXX_MESAS): al aprobar borra el permiso de PERMEXA.
+    /// false (por alumno, XXX_CARGA_FINAL): conserva el permiso.
+    /// </param>
     Task<int> ConfirmarAsync(
         string codigoCarrera,
         int mesa,
         int codigoUsuario,
+        bool consumirPermiso,
         IReadOnlyList<FilaCargaFinalResuelta> filas,
         CancellationToken ct);
 }

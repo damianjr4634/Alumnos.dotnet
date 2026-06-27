@@ -15,4 +15,11 @@ public interface ICargaFinalCandidatosQuery
     /// </param>
     Task<IReadOnlyList<CargaFinalAlumnoDto>> ObtenerAsync(
         int mesa, string codigoCarrera, string tipoExamen, CancellationToken ct);
+
+    /// <summary>
+    /// Candidatos de un solo alumno: todos sus permisos de examen (de cualquier
+    /// mesa) ⨝ CURSADA. Sucesor del SELECT de NotasExamenFinal.FormCreate.
+    /// </summary>
+    Task<IReadOnlyList<CargaFinalAlumnoDto>> ObtenerPorAlumnoAsync(
+        string codigoCarrera, string codigoAlumno, CancellationToken ct);
 }

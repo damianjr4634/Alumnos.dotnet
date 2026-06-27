@@ -146,7 +146,7 @@ public class CargaFinalEquivalenciaTests
         };
 
         await CargaFinalRepository.ConfirmarFilasAsync(
-            connection, tx, c.Carre, MesaPrueba, UsuarioPrueba, [fila], CancellationToken.None);
+            connection, tx, c.Carre, MesaPrueba, UsuarioPrueba, consumirPermiso: true, [fila], CancellationToken.None);
 
         var resultado = await CapturarAsync(connection, tx, c);
         await tx.RollbackAsync(CancellationToken.None);

@@ -75,7 +75,8 @@ public sealed class ConfirmarCargaNotasFinalHandler
         }
 
         var procesadas = await _repositorio.ConfirmarAsync(
-            command.CodigoCarrera, command.Mesa, command.CodigoUsuario, resueltas, ct).ConfigureAwait(false);
+            command.CodigoCarrera, command.Mesa, command.CodigoUsuario,
+            command.ConsumirPermiso, resueltas, ct).ConfigureAwait(false);
 
         return Result.Ok(procesadas);
     }

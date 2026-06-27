@@ -13,7 +13,8 @@ public sealed class CargaNotasFinalValidator : AbstractValidator<CargaNotasFinal
     public CargaNotasFinalValidator()
     {
         RuleFor(c => c.CodigoCarrera).NotEmpty().WithMessage("La carrera es obligatoria.");
-        RuleFor(c => c.Mesa).GreaterThan(0).WithMessage("La mesa es obligatoria.");
+        RuleFor(c => c.Mesa).GreaterThan(0).When(c => c.ConsumirPermiso)
+            .WithMessage("La mesa es obligatoria.");
         RuleFor(c => c.TipoCarrera).NotEmpty().WithMessage("Falta el tipo de carrera.");
         RuleFor(c => c.CodigoUsuario).GreaterThan(0).WithMessage("Usuario inválido.");
         RuleFor(c => c.Filas).NotEmpty().WithMessage("No hay notas para grabar.");

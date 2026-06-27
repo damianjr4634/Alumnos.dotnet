@@ -1,0 +1,299 @@
+@page "/alumnos/{Carre}/{Codigo}/notas-finales"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.DTOs.Examenes
+@using Esba.Application.Features.Examenes
+@using Esba.Domain.Examenes
+@using Esba.Web.Seguridad
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IAlumnosQuery AlumnosQuery
+@inject ICarrerasQuery Carreras
+@inject ICargaFinalCandidatosQuery Candidatos
+@inject ConfirmarCargaNotasFinalHandler Confirmar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Notas de Finales del Alumno</PageTitle>
+
+@* Carga de notas de finales de UN alumno (sucesora de NotasExamenFinal.pas):
+   sus permisos de examen ⨝ cursada. A diferencia de la carga por mesa, el
+   permiso NO se consume al aprobar (XXX_CARGA_FINAL). Sin SQL ni lógica de
+   negocio (§2.1); la condición la calcula CalculoCondicionFinal. *@
+
+@if (_noEncontrado)
+{
+    <MudAlert Severity="MudBlazor.Severity.Warning">El alumno no existe.</MudAlert>
+}
+else if (_alumno is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                           Href="@($"/alumnos/{Carre}/{Codigo}/permisos")" aria-label="Volver a permisos" />
+            <div>
+                <MudText Typo="Typo.h5">@_alumno.Apellido, @_alumno.Nombre</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Notas de finales — Carrera @Carre — @Codigo</MudText>
+            </div>
+            <MudSpacer />
+            @if (_filas.Count > 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Inventory2"
+                           Disabled="@_guardando" OnClick="PasarAArchivos">Pasar a archivos</MudButton>
+            }
+        </div>
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-2">
+        <MudTable T="FilaVm" Items="_filas" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Materia</MudTh>
+                <MudTh>Mesa</MudTh>
+                <MudTh>Condición</MudTh>
+                <MudTh>Nota</MudTh>
+                <MudTh>Fecha</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Libro/Acta</MudTh>
+                <MudTh>Resultado</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Materia">
+                    @(context.SiglaMateria ?? context.CodigoMateria)
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Class="ml-2">
+                        @context.NumeroFinal° llamado
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Mesa">@context.Mesa</MudTd>
+                <MudTd DataLabel="Condición">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">
+                        @context.CondicionActual
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Nota">
+                    <MudNumericField T="decimal?" @bind-Value="context.NotaActual" Min="0" Max="10"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:90px"
+                                     Immediate="true" HideSpinButtons="true" />
+                </MudTd>
+                <MudTd DataLabel="Fecha">
+                    <MudDatePicker @bind-Date="context.FechaActual" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Style="max-width:140px" />
+                </MudTd>
+                <MudTd DataLabel="Libro/Acta" Class="d-none d-md-table-cell">
+                    <MudTextField @bind-Value="context.ActaActual" MaxLength="10" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Style="max-width:110px" />
+                </MudTd>
+                <MudTd DataLabel="Resultado">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@(context.TieneNota ? Color.Success : Color.Default)">
+                        @CondicionResultante(context)
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">El alumno no tiene permisos de examen para cargar.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string Codigo { get; set; } = string.Empty;
+
+    private AlumnoDetailDto? _alumno;
+    private bool _noEncontrado;
+    private bool _esTerciaria;
+    private bool _guardando;
+    private readonly List<FilaVm> _filas = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _alumno = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo, CancellationToken.None);
+        _noEncontrado = _alumno is null;
+        if (_alumno is null)
+        {
+            return;
+        }
+
+        var tipo = (await Carreras.ObtenerTipoAsync(Carre, CancellationToken.None))?.Trim().ToUpperInvariant();
+        _esTerciaria = tipo == "TER";
+
+        _filas.Clear();
+        var candidatos = await Candidatos.ObtenerPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+        foreach (var c in candidatos)
+        {
+            _filas.Add(FilaVm.Desde(c));
+        }
+    }
+
+    private string CondicionResultante(FilaVm fila)
+    {
+        if (!fila.TieneNota)
+        {
+            return "—";
+        }
+
+        var resultado = _esTerciaria
+            ? CalculoCondicionFinal.Terciaria(
+                new NotaFinal(fila.Nota1, ComoFecha(fila.Fecha1), fila.Acta1),
+                new NotaFinal(fila.Nota2, ComoFecha(fila.Fecha2), fila.Acta2),
+                new NotaFinal(fila.Nota3, ComoFecha(fila.Fecha3), fila.Acta3),
+                fila.CondicionActual)
+            : CalculoCondicionFinal.Bachiller(
+                new NotaFinal(fila.Nota1, ComoFecha(fila.Fecha1), fila.Acta1),
+                fila.CondicionActual);
+
+        return resultado.AprobóAlAnalitico ? $"{resultado.Condicion} ✓" : resultado.Condicion;
+    }
+
+    private async Task PasarAArchivos()
+    {
+        var aCargar = _filas.Where(f => f.TieneNota).ToList();
+        if (aCargar.Count == 0)
+        {
+            Snackbar.Add("No cargaste ninguna nota.", MudBlazor.Severity.Info);
+            return;
+        }
+
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Notas de finales",
+            $"¿Pasar {aCargar.Count} nota(s) a los archivos? Esta operación actualiza el analítico y no se deshace.",
+            yesText: "Pasar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        _guardando = true;
+        try
+        {
+            var command = new CargaNotasFinalCommand
+            {
+                CodigoCarrera = Carre,
+                Mesa = 0,
+                TipoCarrera = _esTerciaria ? "TER" : "BAC",
+                CodigoUsuario = codusu.Value,
+                ConsumirPermiso = false, // por alumno (XXX_CARGA_FINAL): no se consume el permiso
+                Filas = aCargar.Select(f => new NotaFinalAlumnoInput
+                {
+                    CodigoAlumno = f.CodigoAlumno,
+                    CodigoMateria = f.CodigoMateria,
+                    CondicionActual = f.CondicionActual,
+                    Nota1 = f.Nota1,
+                    Fecha1 = ComoFecha(f.Fecha1),
+                    Acta1 = f.Acta1,
+                    Nota2 = f.Nota2,
+                    Fecha2 = ComoFecha(f.Fecha2),
+                    Acta2 = f.Acta2,
+                    Nota3 = f.Nota3,
+                    Fecha3 = ComoFecha(f.Fecha3),
+                    Acta3 = f.Acta3,
+                }).ToList(),
+            };
+
+            var resultado = await Confirmar.HandleAsync(command, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add($"Se pasaron {resultado.Value} nota(s) a los archivos.", MudBlazor.Severity.Success);
+                await OnParametersSetAsync();
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudieron pasar las notas.", MudBlazor.Severity.Error);
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private static DateOnly? ComoFecha(DateTime? fecha) => fecha is { } f ? DateOnly.FromDateTime(f) : null;
+
+    /// <summary>Fila editable; misma semántica que en la carga por mesa (el llamado vigente NUMFIN es el editable).</summary>
+    private sealed class FilaVm
+    {
+        public required string CodigoAlumno { get; init; }
+
+        public required string CodigoMateria { get; init; }
+
+        public string? SiglaMateria { get; init; }
+
+        public int Mesa { get; init; }
+
+        public required string CondicionActual { get; init; }
+
+        public int NumeroFinal { get; init; }
+
+        public decimal? Nota1 { get; set; }
+
+        public DateTime? Fecha1 { get; set; }
+
+        public string? Acta1 { get; set; }
+
+        public decimal? Nota2 { get; set; }
+
+        public DateTime? Fecha2 { get; set; }
+
+        public string? Acta2 { get; set; }
+
+        public decimal? Nota3 { get; set; }
+
+        public DateTime? Fecha3 { get; set; }
+
+        public string? Acta3 { get; set; }
+
+        public bool TieneNota => Nota1 is > 0 || Nota2 is > 0 || Nota3 is > 0;
+
+        public decimal? NotaActual
+        {
+            get => NumeroFinal switch { 2 => Nota2, 3 => Nota3, _ => Nota1 };
+            set { switch (NumeroFinal) { case 2: Nota2 = value; break; case 3: Nota3 = value; break; default: Nota1 = value; break; } }
+        }
+
+        public DateTime? FechaActual
+        {
+            get => NumeroFinal switch { 2 => Fecha2, 3 => Fecha3, _ => Fecha1 };
+            set { switch (NumeroFinal) { case 2: Fecha2 = value; break; case 3: Fecha3 = value; break; default: Fecha1 = value; break; } }
+        }
+
+        public string? ActaActual
+        {
+            get => NumeroFinal switch { 2 => Acta2, 3 => Acta3, _ => Acta1 };
+            set { switch (NumeroFinal) { case 2: Acta2 = value; break; case 3: Acta3 = value; break; default: Acta1 = value; break; } }
+        }
+
+        public static FilaVm Desde(CargaFinalAlumnoDto c) => new()
+        {
+            CodigoAlumno = c.CodigoAlumno,
+            CodigoMateria = c.CodigoMateria,
+            SiglaMateria = c.SiglaMateria,
+            Mesa = c.Mesa,
+            CondicionActual = c.Condicion?.Trim() ?? string.Empty,
+            NumeroFinal = c.NumeroFinal is >= 1 and <= 3 ? c.NumeroFinal : 1,
+            Nota1 = c.NotaFinal1,
+            Fecha1 = ComoDateTime(c.FechaFinal1),
+            Acta1 = c.ActaFinal1,
+            Nota2 = c.NotaFinal2,
+            Fecha2 = ComoDateTime(c.FechaFinal2),
+            Acta2 = c.ActaFinal2,
+            Nota3 = c.NotaFinal3,
+            Fecha3 = ComoDateTime(c.FechaFinal3),
+            Acta3 = c.ActaFinal3,
+        };
+
+        private static DateTime? ComoDateTime(DateOnly? fecha) => fecha?.ToDateTime(TimeOnly.MinValue);
+    }
+}

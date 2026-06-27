@@ -51,5 +51,11 @@ public sealed record CargaNotasFinalCommand
 
     public required int CodigoUsuario { get; init; }
 
+    /// <summary>
+    /// true (por mesa, XXX_MESAS): al aprobar se borra el permiso consumido de PERMEXA.
+    /// false (por alumno, XXX_CARGA_FINAL): el permiso se conserva.
+    /// </summary>
+    public bool ConsumirPermiso { get; init; } = true;
+
     public IReadOnlyList<NotaFinalAlumnoInput> Filas { get; init; } = [];
 }

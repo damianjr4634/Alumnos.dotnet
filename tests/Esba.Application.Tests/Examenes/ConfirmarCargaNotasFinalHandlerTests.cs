@@ -40,7 +40,7 @@ public class ConfirmarCargaNotasFinalHandlerTests
 
         Assert.Equal(OperationStatus.Error, resultado.Status);
         await _repositorio.DidNotReceive().ConfirmarAsync(
-            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<bool>(),
             Arg.Any<IReadOnlyList<FilaCargaFinalResuelta>>(), Arg.Any<CancellationToken>());
     }
 
@@ -57,7 +57,7 @@ public class ConfirmarCargaNotasFinalHandlerTests
     public async Task Confirmar_Terciaria_ResuelveCondicionYAnalitico()
     {
         IReadOnlyList<FilaCargaFinalResuelta>? capturadas = null;
-        _repositorio.ConfirmarAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+        _repositorio.ConfirmarAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<bool>(),
                 Arg.Do<IReadOnlyList<FilaCargaFinalResuelta>>(f => capturadas = f), Arg.Any<CancellationToken>())
             .Returns(1);
 
@@ -77,7 +77,7 @@ public class ConfirmarCargaNotasFinalHandlerTests
     public async Task Confirmar_Bachiller_MarcaNoTerciariaYMapeaCondicion()
     {
         IReadOnlyList<FilaCargaFinalResuelta>? capturadas = null;
-        _repositorio.ConfirmarAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+        _repositorio.ConfirmarAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<bool>(),
                 Arg.Do<IReadOnlyList<FilaCargaFinalResuelta>>(f => capturadas = f), Arg.Any<CancellationToken>())
             .Returns(1);
 
@@ -87,5 +87,42 @@ public class ConfirmarCargaNotasFinalHandlerTests
         Assert.False(fila.EsTerciaria);
         Assert.Equal("LIBRE", fila.NuevaCondicion);
         Assert.Equal(8m, fila.NotaAnalitico);
+    }
+
+    [Fact]
+    public async Task Confirmar_PorMesa_ConsumeElPermiso()
+    {
+        bool? consumir = null;
+        _repositorio.ConfirmarAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+                Arg.Do<bool>(b => consumir = b), Arg.Any<IReadOnlyList<FilaCargaFinalResuelta>>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+
+        await CrearHandler().HandleAsync(Comando("TER", Fila("REGULAR", 7)), CancellationToken.None);
+
+        Assert.True(consumir);
+    }
+
+    [Fact]
+    public async Task Confirmar_PorAlumno_SinMesa_NoConsumeElPermiso()
+    {
+        bool? consumir = null;
+        _repositorio.ConfirmarAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+                Arg.Do<bool>(b => consumir = b), Arg.Any<IReadOnlyList<FilaCargaFinalResuelta>>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+
+        var comando = new CargaNotasFinalCommand
+        {
+            CodigoCarrera = "TEC",
+            Mesa = 0,                  // por alumno no hay mesa
+            TipoCarrera = "TER",
+            CodigoUsuario = 1,
+            ConsumirPermiso = false,
+            Filas = [Fila("REGULAR", 7)],
+        };
+
+        var resultado = await CrearHandler().HandleAsync(comando, CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        Assert.False(consumir);
     }
 }

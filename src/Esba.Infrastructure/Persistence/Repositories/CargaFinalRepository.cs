@@ -89,6 +89,7 @@ public sealed class CargaFinalRepository : ICargaFinalRepository
         string codigoCarrera,
         int mesa,
         int codigoUsuario,
+        bool consumirPermiso,
         IReadOnlyList<FilaCargaFinalResuelta> filas,
         CancellationToken ct)
     {
@@ -103,7 +104,7 @@ public sealed class CargaFinalRepository : ICargaFinalRepository
         try
         {
             var procesadas = await ConfirmarFilasAsync(
-                connection, transaccion, codigoCarrera, mesa, codigoUsuario, filas, ct).ConfigureAwait(false);
+                connection, transaccion, codigoCarrera, mesa, codigoUsuario, consumirPermiso, filas, ct).ConfigureAwait(false);
             await transaccion.CommitAsync(ct).ConfigureAwait(false);
             return procesadas;
         }
@@ -125,6 +126,7 @@ public sealed class CargaFinalRepository : ICargaFinalRepository
         string codigoCarrera,
         int mesa,
         int codigoUsuario,
+        bool consumirPermiso,
         IReadOnlyList<FilaCargaFinalResuelta> filas,
         CancellationToken ct)
     {
@@ -169,11 +171,15 @@ public sealed class CargaFinalRepository : ICargaFinalRepository
                     var datos = await connection.QueryFirstAsync<DatosAnalitico>(new CommandDefinition(
                         SqlDatosAnalitico, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
 
-                    await connection.ExecuteAsync(new CommandDefinition(
-                        SqlBorraPermiso,
-                        new { Mesa = mesa, clave.Carre, clave.CodAlu },
-                        transaccion,
-                        cancellationToken: ct)).ConfigureAwait(false);
+                    // Por mesa (XXX_MESAS) se consume el permiso; por alumno (XXX_CARGA_FINAL) no.
+                    if (consumirPermiso)
+                    {
+                        await connection.ExecuteAsync(new CommandDefinition(
+                            SqlBorraPermiso,
+                            new { Mesa = mesa, clave.Carre, clave.CodAlu },
+                            transaccion,
+                            cancellationToken: ct)).ConfigureAwait(false);
+                    }
 
                     await connection.ExecuteAsync(new CommandDefinition(
                         SqlMueveAHistorico,
