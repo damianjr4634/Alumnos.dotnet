@@ -20,4 +20,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- El test de equivalencia (4.B) ejecuta el volcado bajo una transacción que
+         revierte; necesita el seam interno del repositorio de carga de finales. -->
+    <InternalsVisibleTo Include="Esba.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

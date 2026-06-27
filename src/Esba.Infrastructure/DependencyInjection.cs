@@ -189,6 +189,13 @@ public static class DependencyInjection
         services.AddScoped<EliminarPermisoExamenHandler>();
         services.AddScoped<GuardarPermisosMasivoHandler>();
 
+        // Exámenes: carga de notas de finales por mesa y comisión (hito 14).
+        // Porta XXX_MESAS a C# sin staging; el cálculo de condición es de dominio.
+        services.AddScoped<ICargaFinalCandidatosQuery, CargaFinalCandidatosQuery>();
+        services.AddScoped<ICargaFinalRepository, CargaFinalRepository>();
+        services.AddScoped<IValidator<CargaNotasFinalCommand>, CargaNotasFinalValidator>();
+        services.AddScoped<ConfirmarCargaNotasFinalHandler>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();

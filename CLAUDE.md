@@ -102,7 +102,7 @@ Documentos de mapeo/trazabilidad por hito en `docs/migracion/`.
 | 11 | **Integración Web** (inscripciones/permisos web): ~~confirmar vigencia~~ — **FUERA DE ALCANCE** (decisión 2026-06-23): no se migra, se rehará de cero en otro proyecto | ⤬ |
 | 12 | **Endurecimiento para producción**: usuario Firebird de mínimos privilegios + secretos fuera del repo, políticas de autorización por área (mapa de `BARRA_OPC`), validación de sesión única en middleware, Serilog completo, deploy | ⬜ |
 | 13 | **Fase 5 — retiro de SPs `XXX_*`**: portar PSQL a C# con tests de equivalencia, un SP por vez (empezar por los de mayor riesgo/uso) | ⬜ |
-| 14 | **Notas de finales y actas** (diferido del hito 8): carga de notas de final por mesa/comisión y actas (mesas, A-REGULAR, reincorporación). ⚠️ `XXX_CARGA_FINAL` lee de la tabla staging compartida `"$$$PERMEXA"` (estado global por usuario, anti-patrón §2.3): decidir entre portar el cálculo de condición/analítico a C# (preferido) o replicar el staging con `// TODO-migrar` | ⬜ |
+| 14 | **Notas de finales y actas** (diferido del hito 8): carga de notas de final por mesa/comisión ✅ 2026-06-26 (decisión: portado a C# **sin staging** — `XXX_MESAS`/`XXX_CARGA_FINAL` reescritos en `CargaFinalRepository` + `CalculoCondicionFinal`, el buffer `"$$$PERMEXA"` se reemplaza por estado del componente; test de equivalencia contra `XXX_MESAS` en verde). **Pendiente:** actas (mesas, A-REGULAR, reincorporación) y la variante de carga **por-alumno** (`NotasExamenFinal.pas`, reusa el servicio de dominio + el handler de commit) | 🟡 parcial |
 
 **Deuda transversal registrada** (resolver dentro del hito que la toque, no dejar crecer):
 subida/cambio de foto del alumno (re-asignada a hito 12: binarios servidos por
@@ -112,3 +112,12 @@ endpoint autenticado, §3.4 ⚪ — quedó fuera del alcance de componentes gen�
 modo claro/oscuro persistida en BD (re-asignada a hito 12, decisión 2026-06-23: quedó fuera
 del alcance funcional del hito 10) · adjuntar archivos y firma HTML inline por usuario en el
 correo por comisión (hito 12, la firma necesita assets de firma por usuario como la foto).
+
+## gstack
+Use /browse from gstack for all web browsing. Never use mcp__claude-in-chrome__* tools.
+Available skills: /office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review,
+/design-consultation, /design-shotgun, /design-html, /review, /ship, /land-and-deploy,
+/canary, /benchmark, /browse, /open-gstack-browser, /qa, /qa-only, /design-review,
+/setup-browser-cookies, /setup-deploy, /setup-gbrain, /sync-gbrain, /retro, /investigate,
+/document-release, /document-generate, /codex, /cso, /autoplan, /pair-agent, /careful, /freeze,
+/guard, /unfreeze, /gstack-upgrade, /learn.

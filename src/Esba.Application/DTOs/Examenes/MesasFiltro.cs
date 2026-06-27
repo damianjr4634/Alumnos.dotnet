@@ -8,6 +8,9 @@ public sealed record MesasFiltro
 {
     public required string CodigoCarrera { get; init; }
 
+    /// <summary>MESA: filtra por número de mesa (opcional; el operador la identifica por número).</summary>
+    public int? Mesa { get; init; }
+
     /// <summary>COD_MAT: filtra por una materia (opcional).</summary>
     public string? CodigoMateria { get; init; }
 

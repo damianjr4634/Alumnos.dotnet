@@ -119,6 +119,12 @@ public sealed class MesasQuery : IMesasQuery
         var condiciones = new List<string> { "M.CARRE = @Carre" };
         parametros.Add("Carre", filtro.CodigoCarrera);
 
+        if (filtro.Mesa is { } mesa)
+        {
+            condiciones.Add("M.MESA = @MesaNum");
+            parametros.Add("MesaNum", mesa);
+        }
+
         if (!string.IsNullOrWhiteSpace(filtro.CodigoMateria))
         {
             condiciones.Add("M.COD_MAT = @Mat");
