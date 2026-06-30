@@ -9,7 +9,20 @@
       "Bash(dotnet tool *)",
       "WebSearch",
       "WebFetch(domain:www.mudblazor.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(npm init *)",
+      "Bash(PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright-core)",
+      "Bash(node -e \"const{chromium}=require\\('playwright-core'\\);console.log\\('module ok'\\)\")",
+      "Bash(node drive.mjs)",
+      "Bash(node drive2.mjs)",
+      "Bash(pkill -f \"Esba.Web\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5164/login)",
+      "Bash(node dbg-mesa.mjs)",
+      "Bash(node drive3.mjs)",
+      "Bash(node drive4.mjs)",
+      "Bash(curl -s -o /dev/null -w \"app: %{http_code}\\\\n\" http://localhost:5164/login)"
     ]
   }
 }
