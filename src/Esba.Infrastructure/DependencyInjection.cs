@@ -135,6 +135,8 @@ public static class DependencyInjection
         services.AddScoped<ConfirmarRegularizacionHandler>();
         services.AddScoped<IValidator<ConfirmarRegularizacionBachilleratoCommand>, ConfirmarRegularizacionBachilleratoValidator>();
         services.AddScoped<ConfirmarRegularizacionBachilleratoHandler>();
+        services.AddScoped<IValidator<ConfirmarRegularizacion333Command>, ConfirmarRegularizacion333Validator>();
+        services.AddScoped<ConfirmarRegularizacion333Handler>();
 
         // Académica: alta de equivalencias (hito 9.3b).
         services.AddScoped<IAnaliticoRepository, AnaliticoRepository>();

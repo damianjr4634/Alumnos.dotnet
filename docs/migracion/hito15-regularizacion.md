@@ -1,7 +1,7 @@
-# Hito 15 — Regularización de materias (terciarias + bachillerato)
+# Hito 15 — Regularización de materias (terciarias + bachillerato + secundario)
 
-**Estado:** 🟡 parcial — terciarias ✅ 2026-06-30; bachillerato ✅ 2026-07-01. Secundario
-(333/650) y CNA quedan para incrementos siguientes.
+**Estado:** 🟡 parcial — terciarias ✅ 2026-06-30; bachillerato ✅ y secundario 333/650 ✅
+2026-07-01. Solo resta CNA (`CNA`/`197916`).
 **Etapas cubiertas:** 1 (queries), 2 (dominio + handler + validador), 3 (páginas + menú/acción),
 4 (tests unitarios + equivalencia).
 **Documentos rectores:** `migration_improvements.md` §1.2, §1.3, §2.1, §2.3, §2.4.
@@ -68,22 +68,47 @@ terciarias); la rama BAC del commit **no persiste TP_EVA3/PROM** en CURSADA (se 
 legacy); el analítico lleva la condición real (`REGULAR`) y la fecha del operador (FECHA1),
 no la de TBL_CUAT.
 
+## 4.bis Secundario 333/650 (incremento 3, 2026-07-01)
+
+Alcance: los planes **333 y 650** (`CARRERA.TIPO ∈ {BAC,BAD}` con `CARRE IN ('333','650')`;
+el router los manda a `_333`). Régimen **trimestral** (3 trimestres) con exámenes de
+diciembre y marzo; **sin faltas ni CONSEJO**.
+
+La lógica **activa** de `XXX_REGULARIZACION_MAT_333` (el bloque PROM/DICIEMBRE/MARZO estaba
+comentado) decide por el **2° trimestre** (`TP_EVA2`): ≥6 → REGULAR (nota = 2° trim); si no
+alcanza (o ambos trimestres ausentes) evalúa **diciembre** y **marzo** → REGULAR / PREVIA /
+ENPROCESO; si no, mantiene la condición de origen. La nota al analítico (`NOTAFIN`) es la del
+2° trimestre, diciembre o marzo, con su fecha (`NOTAFIN_FECHA`).
+
+| Legacy | Artefacto .NET | Notas |
+|---|---|---|
+| `XXX_REGULARIZACION_MAT_333` (condición) | `CalculoCondicionRegularizacion333` (Domain) | Port 1:1 de la lógica activa + flag `FaltaFecha` (= FERRCOD=2: dic/mar aprueban sin su fecha). |
+| Rama 333/650 de `XXX_REGULARIZACION` (commit) | `RegularizacionRepository.Confirmar333Async` | UPDATE CURSADA (3 trim + dic/mar + fechas); si REGULAR → CURSADA_HST (con CONDANT, dic/mar, NOTAFIN) + DELETE + ANALITIC (nota NOTAFIN, fecha NOTAFIN_FECHA). |
+| Botón "A previa" (333/650) | Acción "A previa" por fila → `ForzarPrevia` | Fuerza CONDICION=PREVIA y marca marzo pendiente (NOTAMAR=99), sin ladder. |
+
+**Particularidades:** un diciembre en 99 (99 ≥ 6) queda REGULAR con nota 99 — quirk del SP,
+replicado. La columna PROM y otras de pass-through no se re-escriben en el UPDATE (el
+operador no las edita en esta pantalla); la equivalencia lo confirma poblando el staging
+con los valores actuales de CURSADA.
+
 ## 5. Verificación
 
 - `dotnet build` → **0 warnings**.
-- `dotnet test` → **538 verdes**: Domain 188 (+16 terciario, +16 bachillerato),
-  Application 253 (+5 terciario, +7 bachillerato), Integration 97 (+1 condición terciaria,
-  +1 condición bachillerato, +3 equivalencia del commit).
+- `dotnet test` → **553 verdes**: Domain 196 (terciario +16, bachillerato +16, secundario +8),
+  Application 258 (terciario +5, bachillerato +7, secundario +5), Integration 99 (condición
+  terciario/bachillerato/secundario + equivalencia del commit terciario/BAC/333).
 - Equivalencia de **condición** (Firebird real):
   - `CalculoCondicionRegularizacionTerciaria` vs `XXX_REGULARIZACION_MAT_TERC` (6 escenarios).
   - `CalculoCondicionRegularizacionBachiller` vs `XXX_REGULARIZACION_MAT_BAC` + `_POSTVAL`
     (9 escenarios de notas/faltas + CONSEJO + CONSEJO/Regular), poblando `"$$$CURSADA"`
     con los derivados TP_EVA3/FINAL1 y comparando condición y nota final.
+  - `CalculoCondicionRegularizacion333` vs `XXX_REGULARIZACION_MAT_333` (7 escenarios de
+    2° trimestre / diciembre / marzo), comparando condición, NOTAFIN y su fecha.
 - Equivalencia del **commit** (`RegularizacionCommitEquivalenciaTests`, 2026-07-01): corre cada
   volcado por dos caminos (SP `XXX_REGULARIZACION` sobre `"$$$CURSADA"` vs seam C#
   `ConfirmarFilas*Async` directo), cada uno en su transacción revertida, y compara el efecto en
   CURSADA/CURSADA_HST/ANALITIC. Cubre: terciaria PROMOCIONA (materia `561/16`), bachillerato
-  REGULAR y bachillerato no-aprobado (update-only).
+  REGULAR, bachillerato no-aprobado (update-only) y secundario 333/650 REGULAR (materia `650`).
   - **Hallazgo corregido:** la rama TER de `XXX_REGULARIZACION` deja `CURSADA_HST.CONDANT` en
     NULL (a diferencia de la rama BAC, que sí guarda la condición previa) — el port del
     incremento 1 la escribía. Se alineó `RegularizacionRepository` al SP para lograr paridad.
@@ -93,9 +118,7 @@ no la de TBL_CUAT.
 
 ## 6. Pendiente (próximos incrementos)
 
-- **Secundario 333/650** (`_333`, 3 trimestres + exámenes dic/mar) y **CNA** (`_BAC` de faltas
-  sin notas: `TIPO=BAC` pero no corre `_POSTVAL`; "solo nota final"). También `197916` (`TIPO=BAD`,
-  solo faltas) queda a definir.
+- **CNA** (`CNA`, `TIPO=BAC` pero no corre `_POSTVAL`: solo faltas, "solo nota final") y
+  `197916` (`TIPO=BAD`, solo faltas): regla exacta a confirmar antes de migrar.
 - **Autocompletado de faltas** desde `XXX_CONT_FALTAS` (asistencias) cuando CURSADA está en 0:
-  hoy las faltas se leen de CURSADA y el usuario las edita, en ambas ramas. // TODO-migrar prefill.
-- **Botones "A previa"** del formulario por-alumno (333/650): fuera del alcance de bachillerato.
+  hoy las faltas se leen de CURSADA y el usuario las edita, en las tres ramas. // TODO-migrar prefill.

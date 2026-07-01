@@ -46,11 +46,11 @@
     </MudGrid>
 </MudPaper>
 
-@if (_carreraSel is not null && !_esTerciaria && !_esBachillerato)
+@if (_carreraSel is not null && !_esTerciaria && !_esBachillerato && !_esSecundario)
 {
     <MudAlert Severity="Severity.Info">
-        La regularización de esta carrera (secundario 333/650 o CNA) se migra en un incremento posterior.
-        Por ahora está disponible para carreras terciarias y de bachillerato.
+        La regularización de esta carrera (CNA) se migra en un incremento posterior.
+        Por ahora está disponible para carreras terciarias, de bachillerato y secundario (333/650).
     </MudAlert>
 }
 else if (_cargando)
@@ -65,6 +65,10 @@ else if (_buscado && _esBachillerato)
 {
     <RegularizacionEditorBachiller CodigoCarrera="@_carreraSel!.Codigo" Filas="_filasBac" OnConfirmado="Buscar" />
 }
+else if (_buscado && _esSecundario)
+{
+    <RegularizacionEditor333 CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas333" OnConfirmado="Buscar" />
+}
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
@@ -73,6 +77,7 @@ else if (_buscado && _esBachillerato)
     private CarreraListItemDto? _carreraSel;
     private bool _esTerciaria;
     private bool _esBachillerato;
+    private bool _esSecundario;
     private short? _cutuco;
     private string? _cuatrimestre;
     private string? _codMateria;
@@ -80,9 +85,10 @@ else if (_buscado && _esBachillerato)
     private bool _buscado;
     private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
     private IReadOnlyList<RegularizacionBachilleratoDto> _filasBac = [];
+    private IReadOnlyList<Regularizacion333Dto> _filas333 = [];
 
     private bool PuedeBuscar =>
-        _carreraSel is not null && (_esTerciaria || _esBachillerato) && _cutuco is > 0
+        _carreraSel is not null && (_esTerciaria || _esBachillerato || _esSecundario) && _cutuco is > 0
         && !string.IsNullOrWhiteSpace(_cuatrimestre) && !string.IsNullOrWhiteSpace(_codMateria);
 
     protected override async Task OnInitializedAsync()
@@ -98,14 +104,17 @@ else if (_buscado && _esBachillerato)
         _buscado = false;
         _filas = [];
         _filasBac = [];
+        _filas333 = [];
         _esTerciaria = false;
         _esBachillerato = false;
+        _esSecundario = false;
         if (carrera is not null)
         {
             var tipo = (await Carreras.ObtenerTipoAsync(carrera.Codigo, CancellationToken.None))?.Trim().ToUpperInvariant();
             _esTerciaria = tipo == "TER";
-            // Solo la carrera 'BAC' corre el ladder de notas (_POSTVAL); CNA/secundario van aparte.
+            // Solo la carrera 'BAC' corre el ladder de notas (_POSTVAL); CNA va aparte.
             _esBachillerato = string.Equals(carrera.Codigo, "BAC", StringComparison.OrdinalIgnoreCase);
+            _esSecundario = carrera.Codigo is "333" or "650";
         }
     }
 
@@ -143,6 +152,12 @@ else if (_buscado && _esBachillerato)
                 _filasBac = await Regularizacion.ObtenerBachilleratoPorComisionAsync(
                     _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
                 cantidad = _filasBac.Count;
+            }
+            else if (_esSecundario)
+            {
+                _filas333 = await Regularizacion.Obtener333PorComisionAsync(
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                cantidad = _filas333.Count;
             }
 
             _buscado = true;

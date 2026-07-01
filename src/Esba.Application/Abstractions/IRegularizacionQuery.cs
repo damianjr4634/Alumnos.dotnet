@@ -30,4 +30,15 @@ public interface IRegularizacionQuery
     /// </summary>
     Task<IReadOnlyList<RegularizacionBachilleratoDto>> ObtenerBachilleratoPorComisionAsync(
         string codigoCarrera, short cutuco, string cuatrimestreAnio, string codigoMateria, CancellationToken ct);
+
+    /// <summary>Todas las cursadas de secundario (333/650) de un alumno (variante por alumno).</summary>
+    Task<IReadOnlyList<Regularizacion333Dto>> Obtener333PorAlumnoAsync(
+        string codigoCarrera, string codigoAlumno, CancellationToken ct);
+
+    /// <summary>
+    /// Cursadas de secundario (333/650) de una comisión-materia-cuatrimestre aún no
+    /// regularizadas (variante por comisión): excluye CONDICION 'REGULAR' y alumnos de baja.
+    /// </summary>
+    Task<IReadOnlyList<Regularizacion333Dto>> Obtener333PorComisionAsync(
+        string codigoCarrera, short cutuco, string cuatrimestreAnio, string codigoMateria, CancellationToken ct);
 }
