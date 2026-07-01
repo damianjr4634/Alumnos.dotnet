@@ -118,7 +118,28 @@ public sealed record FilaRegularizacion333Resuelta
 }
 
 /// <summary>
-/// Volcado de la regularización de materias (porta las ramas TER, BAC y 333/650 del SP
+/// Una materia de CNA ya resuelta (condición derivada de la nota final) lista para
+/// volcarse. El commit usa la rama BAC de XXX_REGULARIZACION.
+/// </summary>
+public sealed record FilaRegularizacionCnaResuelta
+{
+    public required string CodigoAlumno { get; init; }
+
+    public required string CodigoMateria { get; init; }
+
+    public required string CuatrimestreAnio { get; init; }
+
+    public required string NuevaCondicion { get; init; }
+
+    /// <summary>Nota final (CURSADA.FINAL1 y NOTA_MAT del analítico si queda REGULAR).</summary>
+    public decimal NotaFinal { get; init; }
+
+    /// <summary>Fecha del examen final (CURSADA.FECHA1 y FEC_FINAL del analítico).</summary>
+    public DateTime? Fecha { get; init; }
+}
+
+/// <summary>
+/// Volcado de la regularización de materias (porta las ramas TER, BAC, 333/650 y CNA del SP
 /// XXX_REGULARIZACION a C#, sin el staging "$$$CURSADA"). Todas las filas se procesan
 /// en una sola transacción.
 /// </summary>
@@ -151,5 +172,16 @@ public interface IRegularizacionRepository
         string codigoCarrera,
         int codigoUsuario,
         IReadOnlyList<FilaRegularizacion333Resuelta> filas,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Vuelca la regularización de CNA (rama BAC del commit): UPDATE CURSADA (nota final,
+    /// fecha y condición) y, si queda REGULAR, la mueve a CURSADA_HST e inserta en ANALITIC
+    /// (nota FINAL1, fecha FECHA1). Devuelve la cantidad de filas procesadas.
+    /// </summary>
+    Task<int> ConfirmarCnaAsync(
+        string codigoCarrera,
+        int codigoUsuario,
+        IReadOnlyList<FilaRegularizacionCnaResuelta> filas,
         CancellationToken ct);
 }

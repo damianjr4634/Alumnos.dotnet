@@ -45,11 +45,14 @@ else
     {
         <RegularizacionEditor333 CodigoCarrera="@Carre" Filas="_filas333" OnConfirmado="Recargar" />
     }
+    else if (_esCna)
+    {
+        <RegularizacionEditorCna CodigoCarrera="@Carre" Filas="_filasCna" OnConfirmado="Recargar" />
+    }
     else
     {
         <MudAlert Severity="Severity.Info">
-            La regularización de esta carrera (CNA) se migra en un incremento posterior.
-            Por ahora está disponible para carreras terciarias, de bachillerato y secundario (333/650).
+            La regularización de esta carrera todavía no está disponible en el sistema nuevo.
         </MudAlert>
     }
 }
@@ -64,9 +67,11 @@ else
     private bool _esTerciaria;
     private bool _esBachillerato;
     private bool _esSecundario;
+    private bool _esCna;
     private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
     private IReadOnlyList<RegularizacionBachilleratoDto> _filasBac = [];
     private IReadOnlyList<Regularizacion333Dto> _filas333 = [];
+    private IReadOnlyList<RegularizacionCnaDto> _filasCna = [];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -84,6 +89,7 @@ else
         _esTerciaria = tipo == "TER";
         _esBachillerato = string.Equals(Carre, "BAC", StringComparison.OrdinalIgnoreCase);
         _esSecundario = Carre is "333" or "650";
+        _esCna = string.Equals(Carre, "CNA", StringComparison.OrdinalIgnoreCase);
         await Recargar();
     }
 
@@ -100,6 +106,10 @@ else
         else if (_esSecundario)
         {
             _filas333 = await Regularizacion.Obtener333PorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+        }
+        else if (_esCna)
+        {
+            _filasCna = await Regularizacion.ObtenerCnaPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
         }
     }
 }

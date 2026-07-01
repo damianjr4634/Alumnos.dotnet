@@ -41,4 +41,15 @@ public interface IRegularizacionQuery
     /// </summary>
     Task<IReadOnlyList<Regularizacion333Dto>> Obtener333PorComisionAsync(
         string codigoCarrera, short cutuco, string cuatrimestreAnio, string codigoMateria, CancellationToken ct);
+
+    /// <summary>Todas las cursadas de CNA de un alumno (variante por alumno).</summary>
+    Task<IReadOnlyList<RegularizacionCnaDto>> ObtenerCnaPorAlumnoAsync(
+        string codigoCarrera, string codigoAlumno, CancellationToken ct);
+
+    /// <summary>
+    /// Cursadas de CNA de una comisión-materia-cuatrimestre aún no regularizadas (variante
+    /// por comisión): excluye CONDICION 'REGULAR' y alumnos dados de baja.
+    /// </summary>
+    Task<IReadOnlyList<RegularizacionCnaDto>> ObtenerCnaPorComisionAsync(
+        string codigoCarrera, short cutuco, string cuatrimestreAnio, string codigoMateria, CancellationToken ct);
 }

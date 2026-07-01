@@ -1,7 +1,8 @@
-# Hito 15 — Regularización de materias (terciarias + bachillerato + secundario)
+# Hito 15 — Regularización de materias (todas las variantes)
 
-**Estado:** 🟡 parcial — terciarias ✅ 2026-06-30; bachillerato ✅ y secundario 333/650 ✅
-2026-07-01. Solo resta CNA (`CNA`/`197916`).
+**Estado:** ✅ — terciarias ✅ 2026-06-30; bachillerato, secundario 333/650 y CNA ✅
+2026-07-01, con equivalencia de condición y de commit contra los SP. Queda como deuda
+transversal el prefill de faltas (`XXX_CONT_FALTAS`) y a confirmar la carrera `197916`.
 **Etapas cubiertas:** 1 (queries), 2 (dominio + handler + validador), 3 (páginas + menú/acción),
 4 (tests unitarios + equivalencia).
 **Documentos rectores:** `migration_improvements.md` §1.2, §1.3, §2.1, §2.3, §2.4.
@@ -91,12 +92,28 @@ replicado. La columna PROM y otras de pass-through no se re-escriben en el UPDAT
 operador no las edita en esta pantalla); la equivalencia lo confirma poblando el staging
 con los valores actuales de CURSADA.
 
+## 4.ter CNA (incremento 5, 2026-07-01)
+
+Alcance: la carrera **`CNA`**. Es la variante más simple: **no usa ningún SP** de
+condición — el formulario legacy (`GrabaMateriaCNAClick`) la decide en el cliente por la
+**nota final** que carga el operador. El volcado usa la **rama BAC** del commit (CNA es
+`CARRERA.TIPO='BAC'`).
+
+| Legacy | Artefacto .NET | Notas |
+|---|---|---|
+| `GrabaMateriaCNAClick` (condición client-side) | `CalculoCondicionRegularizacionCna` (Domain) | nota ≥ 7 → REGULAR; ≥ 1 → RECURSA; si no → CURSANDO. Fecha obligatoria (validación). |
+| Rama BAC de `XXX_REGULARIZACION` (commit) | `RegularizacionRepository.ConfirmarCnaAsync` | UPDATE CURSADA (solo FINAL1/FECHA1/CONDICION, como el .pas); si REGULAR → CURSADA_HST + DELETE + ANALITIC (nota FINAL1, fecha FECHA1). Reusa el histórico/analítico de BAC. |
+
+**Nota:** `197916` (`TIPO=BAD`) queda **fuera de alcance**: su solapa/flujo no es deducible
+del código (el router lo manda a `_BAC` de faltas, pero no corre `_POSTVAL`, con lo que nunca
+regularizaría por notas). Requiere confirmación funcional antes de migrarlo.
+
 ## 5. Verificación
 
 - `dotnet build` → **0 warnings**.
-- `dotnet test` → **553 verdes**: Domain 196 (terciario +16, bachillerato +16, secundario +8),
-  Application 258 (terciario +5, bachillerato +7, secundario +5), Integration 99 (condición
-  terciario/bachillerato/secundario + equivalencia del commit terciario/BAC/333).
+- `dotnet test` → **567 verdes**: Domain 205 (terciario +16, bachillerato +16, secundario +8,
+  CNA +9), Application 262 (terciario +5, bachillerato +7, secundario +5, CNA +4), Integration
+  100 (condición terciario/bachillerato/secundario + equivalencia del commit terciario/BAC/333/CNA).
 - Equivalencia de **condición** (Firebird real):
   - `CalculoCondicionRegularizacionTerciaria` vs `XXX_REGULARIZACION_MAT_TERC` (6 escenarios).
   - `CalculoCondicionRegularizacionBachiller` vs `XXX_REGULARIZACION_MAT_BAC` + `_POSTVAL`
@@ -108,7 +125,8 @@ con los valores actuales de CURSADA.
   volcado por dos caminos (SP `XXX_REGULARIZACION` sobre `"$$$CURSADA"` vs seam C#
   `ConfirmarFilas*Async` directo), cada uno en su transacción revertida, y compara el efecto en
   CURSADA/CURSADA_HST/ANALITIC. Cubre: terciaria PROMOCIONA (materia `561/16`), bachillerato
-  REGULAR, bachillerato no-aprobado (update-only) y secundario 333/650 REGULAR (materia `650`).
+  REGULAR, bachillerato no-aprobado (update-only), secundario 333/650 REGULAR (materia `650`)
+  y CNA REGULAR (rama BAC).
   - **Hallazgo corregido:** la rama TER de `XXX_REGULARIZACION` deja `CURSADA_HST.CONDANT` en
     NULL (a diferencia de la rama BAC, que sí guarda la condición previa) — el port del
     incremento 1 la escribía. Se alineó `RegularizacionRepository` al SP para lograr paridad.
@@ -116,9 +134,8 @@ con los valores actuales de CURSADA.
     inferí­a más corto que el código de 3 chars dentro de `SUBSTRING`); se tipó con `CAST(... AS
     VARCHAR(10))`. Afectaba al volcado terciario a analítico (nunca antes ejercido contra la base).
 
-## 6. Pendiente (próximos incrementos)
+## 6. Pendiente (deuda transversal)
 
-- **CNA** (`CNA`, `TIPO=BAC` pero no corre `_POSTVAL`: solo faltas, "solo nota final") y
-  `197916` (`TIPO=BAD`, solo faltas): regla exacta a confirmar antes de migrar.
 - **Autocompletado de faltas** desde `XXX_CONT_FALTAS` (asistencias) cuando CURSADA está en 0:
-  hoy las faltas se leen de CURSADA y el usuario las edita, en las tres ramas. // TODO-migrar prefill.
+  hoy las faltas se leen de CURSADA y el usuario las edita, en las ramas que las usan. // TODO-migrar prefill.
+- **Carrera `197916`** (`TIPO=BAD`): flujo no deducible del código; a confirmar con el usuario.

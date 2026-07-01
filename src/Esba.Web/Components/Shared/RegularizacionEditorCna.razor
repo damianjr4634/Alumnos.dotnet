@@ -1,0 +1,183 @@
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ConfirmarRegularizacionCnaHandler Confirmar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Grilla editable de regularización de CNA: solo nota final + fecha. La condición se
+   deriva de la nota (≥7 REGULAR, ≥1 RECURSA, si no CURSANDO) y el volcado lo hace el
+   servidor (§2.1). Sucesora de la solapa CNA de RegularizacionDeMaterias_nuevo.pas. *@
+
+<MudPaper Outlined="true" Class="pa-2">
+    <MudTable T="FilaVm" Items="_filas" Dense="true" Hover="true" Striped="true" Elevation="0">
+        <HeaderContent>
+            <MudTh Class="d-none d-md-table-cell">Alumno</MudTh>
+            <MudTh>Materia</MudTh>
+            <MudTh>Condición</MudTh>
+            <MudTh>Nota final</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Resultante</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Alumno" Class="d-none d-md-table-cell">@context.Apellido, @context.Nombre</MudTd>
+            <MudTd DataLabel="Materia">@(context.SiglaMateria ?? context.CodigoMateria)</MudTd>
+            <MudTd DataLabel="Condición">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@context.CondicionActual</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Nota final">
+                <MudNumericField T="decimal?" @bind-Value="context.NotaFinal" Min="0" Max="10" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:90px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Fecha">
+                <MudDatePicker @bind-Date="context.Fecha" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Style="max-width:160px" Editable="true" />
+            </MudTd>
+            <MudTd DataLabel="Resultante">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorResultante(context)">
+                    @Resultante(context)
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No hay materias para regularizar.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (_filas.Count > 0)
+    {
+        <div class="d-flex align-center justify-end gap-4 pa-2">
+            @if (HayFaltaFecha)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Warning">Cargá la fecha del examen en todas las filas.</MudText>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@(_procesando || HayFaltaFecha)" OnClick="Procesar">Procesar regularización</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter, EditorRequired] public string CodigoCarrera { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<RegularizacionCnaDto> Filas { get; set; } = [];
+
+    [Parameter] public EventCallback OnConfirmado { get; set; }
+
+    private readonly List<FilaVm> _filas = [];
+    private bool _procesando;
+
+    private bool HayFaltaFecha => _filas.Any(f => f.Fecha is null);
+
+    protected override void OnParametersSet()
+    {
+        _filas.Clear();
+        _filas.AddRange(Filas.Select(FilaVm.Desde));
+    }
+
+    private string Resultante(FilaVm f)
+    {
+        var condicion = ConfirmarRegularizacionCnaHandler.Resolver(f.NotaFinal);
+        return condicion == "REGULAR" ? $"{condicion} ✓" : condicion;
+    }
+
+    private Color ColorResultante(FilaVm f) =>
+        ConfirmarRegularizacionCnaHandler.Resolver(f.NotaFinal) switch
+        {
+            "REGULAR" => Color.Success,
+            "RECURSA" => Color.Error,
+            _ => Color.Default,
+        };
+
+    private async Task Procesar()
+    {
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", Severity.Error);
+            return;
+        }
+
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Regularización",
+            $"¿Procesar la regularización de {_filas.Count} materia(s)? Las que queden REGULAR pasan al analítico y no se deshace.",
+            yesText: "Procesar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        _procesando = true;
+        try
+        {
+            var command = new ConfirmarRegularizacionCnaCommand
+            {
+                CodigoCarrera = CodigoCarrera,
+                CodigoUsuario = codusu.Value,
+                Filas = _filas.Select(f => f.AInput()).ToList(),
+            };
+
+            var resultado = await Confirmar.HandleAsync(command, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add($"Se regularizaron {resultado.Value} materia(s).", Severity.Success);
+                await OnConfirmado.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudo procesar la regularización.", Severity.Error);
+            }
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private sealed class FilaVm
+    {
+        public required string CodigoAlumno { get; init; }
+
+        public string? Apellido { get; init; }
+
+        public string? Nombre { get; init; }
+
+        public required string CodigoMateria { get; init; }
+
+        public string? SiglaMateria { get; init; }
+
+        public required string CuatrimestreAnio { get; init; }
+
+        public string? CondicionActual { get; init; }
+
+        public decimal? NotaFinal { get; set; }
+
+        public DateTime? Fecha { get; set; }
+
+        public NotaCursadoCnaInput AInput() => new()
+        {
+            CodigoAlumno = CodigoAlumno,
+            CodigoMateria = CodigoMateria,
+            CuatrimestreAnio = CuatrimestreAnio,
+            CondicionActual = CondicionActual,
+            NotaFinal = NotaFinal,
+            Fecha = Fecha,
+        };
+
+        public static FilaVm Desde(RegularizacionCnaDto d) => new()
+        {
+            CodigoAlumno = d.CodigoAlumno,
+            Apellido = d.Apellido,
+            Nombre = d.Nombre,
+            CodigoMateria = d.CodigoMateria,
+            SiglaMateria = d.SiglaMateria,
+            CuatrimestreAnio = d.CuatrimestreAnio,
+            CondicionActual = d.Condicion?.Trim() ?? string.Empty,
+            NotaFinal = d.NotaFinal,
+            Fecha = d.Fecha ?? DateTime.Today,
+        };
+    }
+}

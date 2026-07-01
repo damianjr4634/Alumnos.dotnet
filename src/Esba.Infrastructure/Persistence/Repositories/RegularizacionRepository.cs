@@ -512,6 +512,125 @@ public sealed class RegularizacionRepository : IRegularizacionRepository
         return procesadas;
     }
 
+    // --- CNA (rama BAC de XXX_REGULARIZACION; solo nota final) ------------------------
+
+    // CNA solo edita nota final, fecha y condición (GrabaMateriaCNAClick). El resto de las
+    // columnas queda como está; el histórico (rama BAC) las copia de CURSADA.
+    private const string SqlUpdateCursadaCna = """
+        UPDATE CURSADA SET FINAL1 = @Final1, FECHA1 = @Fecha, CONDICION = @Condicion, USUARIO = @Usuario
+        WHERE CARRE = @Carre AND COD_ALU = @CodAlu AND COD_MAT = @CodMat AND CUA_ANIO = @CuaAnio
+        """;
+
+    public async Task<int> ConfirmarCnaAsync(
+        string codigoCarrera,
+        int codigoUsuario,
+        IReadOnlyList<FilaRegularizacionCnaResuelta> filas,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(filas);
+        if (filas.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        await using var transaccion = (FbTransaction)await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var procesadas = await ConfirmarFilasCnaAsync(
+                connection, transaccion, codigoCarrera, codigoUsuario, filas, ct).ConfigureAwait(false);
+            await transaccion.CommitAsync(ct).ConfigureAwait(false);
+            return procesadas;
+        }
+        catch
+        {
+            await transaccion.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Coreografía del volcado de CNA (rama BAC de XXX_REGULARIZACION, actualizando solo la
+    /// nota final) sobre una transacción provista. Seam interno del test de equivalencia (4.B).
+    /// </summary>
+    internal static async Task<int> ConfirmarFilasCnaAsync(
+        FbConnection connection,
+        FbTransaction transaccion,
+        string codigoCarrera,
+        int codigoUsuario,
+        IReadOnlyList<FilaRegularizacionCnaResuelta> filas,
+        CancellationToken ct)
+    {
+        var usuario = codigoUsuario.ToString(CultureInfo.InvariantCulture);
+
+        var procesadas = 0;
+        foreach (var fila in filas)
+        {
+            var clave = new { Carre = codigoCarrera, CodAlu = fila.CodigoAlumno, CodMat = fila.CodigoMateria };
+            var cuaAnio = fila.CuatrimestreAnio.Replace("/", string.Empty, StringComparison.Ordinal).Trim();
+            var esRegular = string.Equals(fila.NuevaCondicion, "REGULAR", StringComparison.Ordinal);
+
+            var condAnt = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+                SqlCondicionPrevia, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                SqlUpdateCursadaCna,
+                new
+                {
+                    clave.Carre,
+                    clave.CodAlu,
+                    clave.CodMat,
+                    CuaAnio = cuaAnio,
+                    Final1 = fila.NotaFinal,
+                    Fecha = fila.Fecha,
+                    Condicion = fila.NuevaCondicion,
+                    Usuario = usuario,
+                },
+                transaccion,
+                cancellationToken: ct)).ConfigureAwait(false);
+
+            if (esRegular)
+            {
+                var datos = await connection.QueryFirstAsync<DatosAnalitico>(new CommandDefinition(
+                    SqlDatosAnalitico, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
+
+                // Rama BAC: mismo histórico y analítico que bachillerato.
+                await connection.ExecuteAsync(new CommandDefinition(
+                    SqlMueveAHistoricoBac,
+                    new { clave.Carre, clave.CodAlu, clave.CodMat, CondAnt = condAnt },
+                    transaccion,
+                    cancellationToken: ct)).ConfigureAwait(false);
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    SqlBorraCursada, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    SqlInsertaAnaliticoBac,
+                    new
+                    {
+                        clave.CodAlu,
+                        clave.CodMat,
+                        clave.Carre,
+                        datos.Apellido,
+                        CuaAnio = cuaAnio,
+                        NotaAna = fila.NotaFinal,
+                        FechaAna = fila.Fecha,
+                        datos.Matriz,
+                        Condicion = fila.NuevaCondicion,
+                        datos.Instituto,
+                        datos.Caracteristica,
+                        Usuario = usuario,
+                    },
+                    transaccion,
+                    cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            procesadas++;
+        }
+
+        return procesadas;
+    }
+
     private sealed record DatosAnalitico(
         string? Apellido,
         string? Matriz,
