@@ -196,6 +196,16 @@ public static class DependencyInjection
         services.AddScoped<IValidator<CargaNotasFinalCommand>, CargaNotasFinalValidator>();
         services.AddScoped<ConfirmarCargaNotasFinalHandler>();
 
+        // Exámenes: actas de examen (hito 14). Reportes de lectura (PDF Oficio + Excel)
+        // por comisión (A/REGULAR, Reincorporación, Exámenes) y volante por mesa.
+        services.AddScoped<IActasQuery, ActasQuery>();
+        services.AddScoped<IActaReportService, ActaPdfService>();
+        services.AddSingleton<IActaExcelService, ActaExcelService>();
+        services.AddScoped<IValidator<GenerarActaComisionCommand>, GenerarActaComisionValidator>();
+        services.AddScoped<IValidator<GenerarActaMesaCommand>, GenerarActaMesaValidator>();
+        services.AddScoped<GenerarActaComisionHandler>();
+        services.AddScoped<GenerarActaMesaHandler>();
+
         // Exportación de listados (hito 5): genéricos para EsbaListView. Sin estado.
         services.AddSingleton<IExcelExportService, ClosedXmlExportService>();
         services.AddSingleton<IPdfExportService, QuestPdfExportService>();

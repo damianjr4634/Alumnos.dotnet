@@ -1,0 +1,121 @@
+@page "/examenes/actas/comision"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Carreras
+@using Esba.Domain.Examenes
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Actas por comisión</PageTitle>
+
+@* Filtros de las actas por comisión (sucesoras de lstactasARegular.pas,
+   lstactasreincorporacion.pas y lstactasexamenes.pas). Solo markup, binding y
+   apertura del endpoint que genera el PDF/Excel (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Actas por comisión</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Acta volante de A/REGULAR, reincorporación o exámenes</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="TipoActaComision" @bind-Value="_tipo" Label="Tipo de acta" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="TipoActaComision" Value="TipoActaComision.ARegular">Alumnos A/REGULAR</MudSelectItem>
+                <MudSelectItem T="TipoActaComision" Value="TipoActaComision.Reincorporacion">Reincorporación</MudSelectItem>
+                <MudSelectItem T="TipoActaComision" Value="TipoActaComision.Examenes">Exámenes (cursando/recursando)</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_cuatrimestre" Label="Cuatrimestre (ej. 1/24)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="1">
+            <MudNumericField T="short?" @bind-Value="_cutuco" Label="Comisión" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" HideSpinButtons="true" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_codMateria" Label="Materia (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   Disabled="@(!PuedeGenerar)" OnClick="@(() => Abrir("comision", excel: false))">Ver PDF</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.GridOn"
+                   Disabled="@(!PuedeGenerar)" OnClick="@(() => Abrir("comision", excel: true))">Exportar Excel</MudButton>
+    </div>
+</MudPaper>
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary">
+    La comisión y la materia son opcionales: en blanco lista todas las del cuatrimestre. El acta sale en hoja Oficio
+    con columnas de calificación en blanco para completar a mano.
+</MudText>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private TipoActaComision _tipo = TipoActaComision.ARegular;
+    private CarreraListItemDto? _carreraSel;
+    private string? _cuatrimestre;
+    private short? _cutuco;
+    private string? _codMateria;
+
+    private bool PuedeGenerar => _carreraSel is not null && !string.IsNullOrWhiteSpace(_cuatrimestre);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private void SeleccionarCarrera(CarreraListItemDto? carrera) => _carreraSel = carrera;
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private async Task Abrir(string _, bool excel)
+    {
+        if (!PuedeGenerar)
+        {
+            Snackbar.Add("Elegí carrera y cuatrimestre.", Severity.Warning);
+            return;
+        }
+
+        var url = (excel ? "/actas/comision/excel" : "/actas/comision")
+            + $"?tipo={_tipo}"
+            + $"&carre={Uri.EscapeDataString(_carreraSel!.Codigo)}"
+            + $"&cua={Uri.EscapeDataString(_cuatrimestre!)}";
+
+        if (_cutuco is > 0)
+        {
+            url += $"&cutuco={_cutuco}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(_codMateria))
+        {
+            url += $"&codmat={Uri.EscapeDataString(_codMateria)}";
+        }
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+}

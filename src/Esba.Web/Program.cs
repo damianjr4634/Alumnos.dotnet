@@ -1,7 +1,10 @@
 using Esba.Application.DTOs.Certificados;
+using Esba.Application.DTOs.Examenes;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Certificados;
+using Esba.Application.Features.Examenes;
 using Esba.Domain.Enums;
+using Esba.Domain.Examenes;
 using Esba.Infrastructure;
 using Esba.Web.Components;
 using Esba.Web.Seguridad;
@@ -218,6 +221,73 @@ app.MapGet("/constancias/alumno/equivalencia-terciaria", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
+}).RequireAuthorization();
+
+// Actas de examen por comisión (hito 14): A/REGULAR, Reincorporación o Exámenes.
+// PDF Oficio inline (sucesor de lstactasARegular/lstactasreincorporacion/lstactasexamenes).
+const string ExcelMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+static GenerarActaComisionCommand ArmarComandoComision(
+    TipoActaComision tipo, string carre, string cua, short? cutuco, string? codmat) => new()
+{
+    Tipo = tipo,
+    CodigoCarrera = carre,
+    CuatrimestreAnio = cua,
+    Cutuco = cutuco,
+    CodigoMateria = string.IsNullOrWhiteSpace(codmat) ? null : codmat,
+};
+
+app.MapGet("/actas/comision", async (
+    string tipo, string carre, string cua, short? cutuco, string? codmat,
+    GenerarActaComisionHandler handler, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<TipoActaComision>(tipo, ignoreCase: true, out var tipoActa))
+    {
+        return Results.BadRequest("Tipo de acta inválido.");
+    }
+
+    var resultado = await handler.GenerarPdfAsync(ArmarComandoComision(tipoActa, carre, cua, cutuco, codmat), ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
+}).RequireAuthorization();
+
+app.MapGet("/actas/comision/excel", async (
+    string tipo, string carre, string cua, short? cutuco, string? codmat,
+    GenerarActaComisionHandler handler, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<TipoActaComision>(tipo, ignoreCase: true, out var tipoActa))
+    {
+        return Results.BadRequest("Tipo de acta inválido.");
+    }
+
+    var resultado = await handler.GenerarExcelAsync(ArmarComandoComision(tipoActa, carre, cua, cutuco, codmat), ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, ExcelMime, $"acta_{tipo.ToLowerInvariant()}.xlsx")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
+}).RequireAuthorization();
+
+// Acta volante por mesa (hito 14): PDF Oficio inline + Excel (sucesor de lstactasMesas).
+app.MapGet("/actas/mesa", async (
+    string carre, int mesa, string tipoExamen,
+    GenerarActaMesaHandler handler, CancellationToken ct) =>
+{
+    var command = new GenerarActaMesaCommand { CodigoCarrera = carre, Mesa = mesa, TipoExamen = tipoExamen };
+    var resultado = await handler.GenerarPdfAsync(command, ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
+}).RequireAuthorization();
+
+app.MapGet("/actas/mesa/excel", async (
+    string carre, int mesa, string tipoExamen,
+    GenerarActaMesaHandler handler, CancellationToken ct) =>
+{
+    var command = new GenerarActaMesaCommand { CodigoCarrera = carre, Mesa = mesa, TipoExamen = tipoExamen };
+    var resultado = await handler.GenerarExcelAsync(command, ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, ExcelMime, $"acta_mesa_{mesa}.xlsx")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
 }).RequireAuthorization();
 
 app.Run();

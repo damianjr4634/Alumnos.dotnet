@@ -1,0 +1,145 @@
+@page "/examenes/actas/mesa"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Carreras
+@using Esba.Application.DTOs.Examenes
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IMesasQuery Mesas
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Actas volantes de mesa</PageTitle>
+
+@* Filtros del acta volante de mesa (sucesora de lstactasMesas.pas). Solo markup,
+   binding y apertura del endpoint que genera el PDF/Excel (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Actas volantes de mesa</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Acta de los alumnos con permiso para una mesa de examen</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="5">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudAutocomplete T="MesaListItemDto" Label="Mesa" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_mesaSel" ValueChanged="SeleccionarMesa"
+                             SearchFunc="BuscarMesa" Disabled="@(_carreraSel is null)"
+                             ToStringFunc="@(m => m is null ? string.Empty : $"Mesa {m.NumeroMesa} — {m.SiglaMateria ?? m.CodigoMateria}")" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" @bind-Value="_tipoExamen" Label="Tipo de examen" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Disabled="@(_tiposExamen.Count == 0)">
+                @foreach (var tipo in _tiposExamen)
+                {
+                    <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   Disabled="@(!PuedeGenerar)" OnClick="@(() => Abrir(excel: false))">Ver PDF</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.GridOn"
+                   Disabled="@(!PuedeGenerar)" OnClick="@(() => Abrir(excel: true))">Exportar Excel</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private List<string> _tiposExamen = [];
+    private CarreraListItemDto? _carreraSel;
+    private string? _carrera;
+    private MesaListItemDto? _mesaSel;
+    private string? _tipoExamen;
+
+    private bool PuedeGenerar => _mesaSel is not null && !string.IsNullOrWhiteSpace(_tipoExamen);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        _carrera = carrera?.Codigo;
+        _mesaSel = null;
+
+        if (_carrera is null)
+        {
+            _tiposExamen = [];
+            _tipoExamen = null;
+            return;
+        }
+
+        // Tipos de examen según la carrera, igual que la carga de notas de finales
+        // (XXX_MESAS_ALUMNOS usa el mismo parámetro de tipo).
+        var tipo = (await Carreras.ObtenerTipoAsync(_carrera, CancellationToken.None))?.Trim().ToUpperInvariant();
+        _tiposExamen = tipo == "TER"
+            ? ["FINAL"]
+            : ["LIBRES", "PREVIOS", "DICIEMBRE", "MARZO", "P/EQUIVALEN"];
+        _tipoExamen = _tiposExamen[0];
+    }
+
+    private void SeleccionarMesa(MesaListItemDto? mesa) => _mesaSel = mesa;
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private async Task<IEnumerable<MesaListItemDto>> BuscarMesa(string? texto, CancellationToken ct)
+    {
+        if (_carrera is null)
+        {
+            return [];
+        }
+
+        var esNumero = int.TryParse(texto, out var numeroMesa);
+        var pagina = await Mesas.BuscarAsync(new MesasFiltro
+        {
+            CodigoCarrera = _carrera,
+            Mesa = esNumero ? numeroMesa : null,
+            Texto = esNumero || string.IsNullOrWhiteSpace(texto) ? null : texto,
+            Take = 50,
+        }, ct);
+        return pagina.Items;
+    }
+
+    private async Task Abrir(bool excel)
+    {
+        if (!PuedeGenerar)
+        {
+            Snackbar.Add("Elegí mesa y tipo de examen.", Severity.Warning);
+            return;
+        }
+
+        var url = (excel ? "/actas/mesa/excel" : "/actas/mesa")
+            + $"?carre={Uri.EscapeDataString(_carrera!)}"
+            + $"&mesa={_mesaSel!.NumeroMesa}"
+            + $"&tipoExamen={Uri.EscapeDataString(_tipoExamen!)}";
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+}
