@@ -126,6 +126,13 @@ public static class DependencyInjection
         services.AddScoped<ModificarInscripcionHandler>();
         services.AddScoped<EliminarInscripcionHandler>();
 
+        // Académica: regularización de materias terciarias (hito 15). Porta a C# el
+        // cálculo de condición (_TERC) y el commit (XXX_REGULARIZACION), sin "$$$CURSADA".
+        services.AddScoped<IRegularizacionQuery, RegularizacionQuery>();
+        services.AddScoped<IRegularizacionRepository, RegularizacionRepository>();
+        services.AddScoped<IValidator<ConfirmarRegularizacionCommand>, ConfirmarRegularizacionValidator>();
+        services.AddScoped<ConfirmarRegularizacionHandler>();
+
         // Académica: alta de equivalencias (hito 9.3b).
         services.AddScoped<IAnaliticoRepository, AnaliticoRepository>();
         services.AddScoped<IValidacionMateriaProcedure, ValidacionMateriaProcedure>();

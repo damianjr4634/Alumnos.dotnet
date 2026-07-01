@@ -1,0 +1,235 @@
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ConfirmarRegularizacionHandler Confirmar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Grilla editable de regularización, compartida por las variantes por-alumno y
+   por-comisión. Solo markup, binding y estado de presentación; la condición la
+   calcula el dominio (vía el handler) y el volcado el servidor (§2.1). *@
+
+<MudPaper Outlined="true" Class="pa-2">
+    <MudTable T="FilaVm" Items="_filas" Dense="true" Hover="true" Striped="true" Elevation="0">
+        <HeaderContent>
+            <MudTh Class="d-none d-md-table-cell">Alumno</MudTh>
+            <MudTh>Materia</MudTh>
+            <MudTh>Condición</MudTh>
+            <MudTh>1° Parc.</MudTh>
+            <MudTh>2° Parc.</MudTh>
+            <MudTh>Recup.</MudTh>
+            <MudTh Class="d-none d-lg-table-cell">Hs.</MudTh>
+            <MudTh Class="d-none d-lg-table-cell">Inasist.</MudTh>
+            <MudTh Class="d-none d-lg-table-cell">Justif.</MudTh>
+            <MudTh>Resultante</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Alumno" Class="d-none d-md-table-cell">@context.Apellido, @context.Nombre</MudTd>
+            <MudTd DataLabel="Materia">@(context.SiglaMateria ?? context.CodigoMateria)</MudTd>
+            <MudTd DataLabel="Condición">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@context.CondicionActual</MudChip>
+            </MudTd>
+            <MudTd DataLabel="1° Parc.">
+                <MudNumericField T="decimal?" @bind-Value="context.TpEva" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="2° Parc.">
+                <MudNumericField T="decimal?" @bind-Value="context.TpEva2" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Recup.">
+                <MudNumericField T="decimal?" @bind-Value="context.Recuperatorio" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Hs." Class="d-none d-lg-table-cell">
+                <MudNumericField T="int?" @bind-Value="context.TotalHoras" Min="0" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Inasist." Class="d-none d-lg-table-cell">
+                <MudNumericField T="int?" @bind-Value="context.Inasistencias" Min="0" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Justif." Class="d-none d-lg-table-cell">
+                <MudNumericField T="int?" @bind-Value="context.Justificadas" Min="0" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Resultante">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorResultante(context)">
+                    @Resultante(context)
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No hay materias para regularizar.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (_filas.Count > 0)
+    {
+        <div class="d-flex justify-end pa-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@_procesando" OnClick="Procesar">Procesar regularización</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter, EditorRequired] public string CodigoCarrera { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<RegularizacionCursadaDto> Filas { get; set; } = [];
+
+    /// <summary>Se invoca tras un procesamiento exitoso, para que el host recargue.</summary>
+    [Parameter] public EventCallback OnConfirmado { get; set; }
+
+    private readonly List<FilaVm> _filas = [];
+    private decimal _notaPromocion;
+    private bool _procesando;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _notaPromocion = await Confirmar.ObtenerNotaPromocionAsync(CancellationToken.None);
+        _filas.Clear();
+        _filas.AddRange(Filas.Select(FilaVm.Desde));
+    }
+
+    private CalculoResultado Calcular(FilaVm f) =>
+        ConfirmarRegularizacionHandler.Resolver(f.AInput(), _notaPromocion) is var r
+            ? new CalculoResultado(r.Condicion, r.VaAlAnalitico)
+            : default;
+
+    private string Resultante(FilaVm f)
+    {
+        var r = Calcular(f);
+        return r.VaAlAnalitico ? $"{r.Condicion} ✓" : r.Condicion;
+    }
+
+    private Color ColorResultante(FilaVm f)
+    {
+        var r = Calcular(f);
+        return r.Condicion switch
+        {
+            "REGULAR" or "PROMOCIONA" or "FINAL" => Color.Success,
+            "RECURSA" or "LIBRE" => Color.Error,
+            "REINCORPORA" => Color.Warning,
+            _ => Color.Default,
+        };
+    }
+
+    private async Task Procesar()
+    {
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", Severity.Error);
+            return;
+        }
+
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Regularización",
+            $"¿Procesar la regularización de {_filas.Count} materia(s)? Las que aprueben directo pasan al analítico y no se deshace.",
+            yesText: "Procesar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        _procesando = true;
+        try
+        {
+            var command = new ConfirmarRegularizacionCommand
+            {
+                CodigoCarrera = CodigoCarrera,
+                CodigoUsuario = codusu.Value,
+                Filas = _filas.Select(f => f.AInput()).ToList(),
+            };
+
+            var resultado = await Confirmar.HandleAsync(command, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add($"Se regularizaron {resultado.Value} materia(s).", Severity.Success);
+                await OnConfirmado.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudo procesar la regularización.", Severity.Error);
+            }
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private readonly record struct CalculoResultado(string Condicion, bool VaAlAnalitico);
+
+    private sealed class FilaVm
+    {
+        public required string CodigoAlumno { get; init; }
+
+        public string? Apellido { get; init; }
+
+        public string? Nombre { get; init; }
+
+        public required string CodigoMateria { get; init; }
+
+        public string? SiglaMateria { get; init; }
+
+        public required string CuatrimestreAnio { get; init; }
+
+        public string? CondicionActual { get; init; }
+
+        public bool MateriaPromociona { get; init; }
+
+        public bool MateriaApruebaSinFinal { get; init; }
+
+        public decimal? TpEva { get; set; }
+
+        public decimal? TpEva2 { get; set; }
+
+        public decimal? Recuperatorio { get; set; }
+
+        public int? TotalHoras { get; set; }
+
+        public int? Inasistencias { get; set; }
+
+        public int? Justificadas { get; set; }
+
+        public NotaCursadoInput AInput() => new()
+        {
+            CodigoAlumno = CodigoAlumno,
+            CodigoMateria = CodigoMateria,
+            CuatrimestreAnio = CuatrimestreAnio,
+            CondicionActual = CondicionActual,
+            TpEva = TpEva,
+            TpEva2 = TpEva2,
+            Recuperatorio = Recuperatorio,
+            TotalHoras = (short?)TotalHoras,
+            Inasistencias = (short?)Inasistencias,
+            Justificadas = (short?)Justificadas,
+            MateriaPromociona = MateriaPromociona,
+            MateriaApruebaSinFinal = MateriaApruebaSinFinal,
+        };
+
+        public static FilaVm Desde(RegularizacionCursadaDto d) => new()
+        {
+            CodigoAlumno = d.CodigoAlumno,
+            Apellido = d.Apellido,
+            Nombre = d.Nombre,
+            CodigoMateria = d.CodigoMateria,
+            SiglaMateria = d.SiglaMateria,
+            CuatrimestreAnio = d.CuatrimestreAnio,
+            CondicionActual = d.Condicion?.Trim() ?? string.Empty,
+            MateriaPromociona = d.MateriaPromociona,
+            MateriaApruebaSinFinal = d.MateriaApruebaSinFinal,
+            TpEva = d.TpEva,
+            TpEva2 = d.TpEva2,
+            Recuperatorio = d.Recuperatorio,
+            TotalHoras = d.TotalHoras,
+            Inasistencias = d.Inasistencias,
+            Justificadas = d.Justificadas,
+        };
+    }
+}

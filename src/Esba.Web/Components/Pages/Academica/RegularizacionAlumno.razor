@@ -1,0 +1,78 @@
+@page "/alumnos/{Carre}/{Codigo}/regularizacion"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Alumnos
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IAlumnosQuery AlumnosQuery
+@inject ICarrerasQuery Carreras
+@inject IRegularizacionQuery Regularizacion
+
+<PageTitle>ESBA — Regularización del alumno</PageTitle>
+
+@* Regularización de las materias de UN alumno (sucesora de RegularizacionDeMaterias_nuevo.pas).
+   Solo terciarias en este incremento; el estado de edición vive en RegularizacionEditor. *@
+
+@if (_noEncontrado)
+{
+    <MudAlert Severity="Severity.Warning">El alumno no existe.</MudAlert>
+}
+else if (_alumno is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <div class="d-flex align-center flex-wrap gap-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                           Href="@($"/alumnos/{Carre}/{Codigo}/cursada")" aria-label="Volver a la cursada" />
+            <div>
+                <MudText Typo="Typo.h5">@_alumno.Apellido, @_alumno.Nombre</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Regularización — Carrera @Carre — @Codigo</MudText>
+            </div>
+        </div>
+    </MudPaper>
+
+    @if (!_esTerciaria)
+    {
+        <MudAlert Severity="Severity.Info">
+            La regularización de esta carrera (bachillerato/secundario) se migra en un incremento posterior.
+            Por ahora está disponible para carreras terciarias.
+        </MudAlert>
+    }
+    else
+    {
+        <RegularizacionEditor CodigoCarrera="@Carre" Filas="_filas" OnConfirmado="Recargar" />
+    }
+}
+
+@code {
+    [Parameter] public string Carre { get; set; } = string.Empty;
+
+    [Parameter] public string Codigo { get; set; } = string.Empty;
+
+    private AlumnoDetailDto? _alumno;
+    private bool _noEncontrado;
+    private bool _esTerciaria;
+    private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _alumno = await AlumnosQuery.ObtenerDetalleAsync(Carre, Codigo, CancellationToken.None);
+        _noEncontrado = _alumno is null;
+        if (_alumno is null)
+        {
+            return;
+        }
+
+        var tipo = (await Carreras.ObtenerTipoAsync(Carre, CancellationToken.None))?.Trim().ToUpperInvariant();
+        _esTerciaria = tipo == "TER";
+        if (_esTerciaria)
+        {
+            await Recargar();
+        }
+    }
+
+    private async Task Recargar() =>
+        _filas = await Regularizacion.ObtenerPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+}

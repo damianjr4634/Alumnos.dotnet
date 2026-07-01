@@ -1,0 +1,137 @@
+@page "/academica/regularizacion-comision"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Carreras
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IRegularizacionQuery Regularizacion
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Regularización por comisión</PageTitle>
+
+@* Regularización en lote de una comisión (sucesora de RegularizacionDeMateriasXComision_nuevo.pas).
+   Solo terciarias en este incremento. *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Regularización por comisión</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Carga las notas del cursado de todos los alumnos de una comisión</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="4">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudNumericField T="short?" @bind-Value="_cutuco" Label="Comisión" Variant="Variant.Outlined"
+                             Margin="Margin.Dense" Min="0" HideSpinButtons="true" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_cuatrimestre" Label="Cuatrimestre (ej. 1/24)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_codMateria" Label="Materia" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Search"
+                       Disabled="@(!PuedeBuscar || _cargando)" OnClick="Buscar">Buscar</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_carreraSel is not null && !_esTerciaria)
+{
+    <MudAlert Severity="Severity.Info">
+        La regularización de esta carrera (bachillerato/secundario) se migra en un incremento posterior.
+        Por ahora está disponible para carreras terciarias.
+    </MudAlert>
+}
+else if (_cargando)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+}
+else if (_buscado)
+{
+    <RegularizacionEditor CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas" OnConfirmado="Buscar" />
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private CarreraListItemDto? _carreraSel;
+    private bool _esTerciaria;
+    private short? _cutuco;
+    private string? _cuatrimestre;
+    private string? _codMateria;
+    private bool _cargando;
+    private bool _buscado;
+    private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
+
+    private bool PuedeBuscar =>
+        _carreraSel is not null && _esTerciaria && _cutuco is > 0
+        && !string.IsNullOrWhiteSpace(_cuatrimestre) && !string.IsNullOrWhiteSpace(_codMateria);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        _buscado = false;
+        _filas = [];
+        _esTerciaria = false;
+        if (carrera is not null)
+        {
+            var tipo = (await Carreras.ObtenerTipoAsync(carrera.Codigo, CancellationToken.None))?.Trim().ToUpperInvariant();
+            _esTerciaria = tipo == "TER";
+        }
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private async Task Buscar()
+    {
+        if (!PuedeBuscar)
+        {
+            Snackbar.Add("Completá carrera, comisión, cuatrimestre y materia.", Severity.Warning);
+            return;
+        }
+
+        _cargando = true;
+        try
+        {
+            _filas = await Regularizacion.ObtenerPorComisionAsync(
+                _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+            _buscado = true;
+            if (_filas.Count == 0)
+            {
+                Snackbar.Add("No hay alumnos sin regularizar para esos filtros.", Severity.Info);
+            }
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

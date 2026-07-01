@@ -32,6 +32,8 @@
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
                        StartIcon="@Icons.Material.Filled.AssignmentTurnedIn" OnClick="AbrirPermisos">Permisos de examen</MudButton>
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.FactCheck" OnClick="AbrirRegularizacion">Regularización</MudButton>
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
                        StartIcon="@Icons.Material.Filled.Grading" OnClick="AbrirNotasFinales">Notas de finales</MudButton>
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
                        StartIcon="@Icons.Material.Filled.Description" OnClick="AbrirConstancias">Constancias</MudButton>
@@ -55,6 +57,9 @@
 
     private void AbrirPermisos() =>
         Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/permisos");
+
+    private void AbrirRegularizacion() =>
+        Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/regularizacion");
 
     private void AbrirNotasFinales() =>
         Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/notas-finales");
