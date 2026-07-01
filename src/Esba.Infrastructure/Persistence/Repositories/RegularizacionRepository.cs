@@ -204,6 +204,161 @@ public sealed class RegularizacionRepository : IRegularizacionRepository
         return procesadas;
     }
 
+    // --- Bachillerato (rama BAC de XXX_REGULARIZACION) -------------------------------
+
+    // La rama BAC persiste además REGULAR, FECHA1 y FINAL1 (no TP_EVA3/PROM).
+    private const string SqlUpdateCursadaBac = """
+        UPDATE CURSADA SET TP_EVA = @TpEva, TP_EVA2 = @TpEva2, RECUP = @Recup, CONDICION = @Condicion,
+                           TOT_HORAS = @TotHoras, INASIST = @Inasist, JUSTIF = @Justif,
+                           REGULAR = @Regular, FECHA1 = @Fecha, FINAL1 = @Final1, USUARIO = @Usuario
+        WHERE CARRE = @Carre AND COD_ALU = @CodAlu AND COD_MAT = @CodMat AND CUA_ANIO = @CuaAnio
+        """;
+
+    // CURSADA_HST de la rama BAC: sin FACTFIN* (INDICE lo pone el trigger CURSADA_HST_BIU0).
+    private const string SqlMueveAHistoricoBac = """
+        INSERT INTO CURSADA_HST (COD_ALU, APELLIDO, CARRE, CUTUCO, COD_MAT, CUA_ANIO, TP_EVA, RECUP, TP_EVA2, RECUP2,
+                                 REGULAR, TOT_HORAS, INASIST, JUSTIF, CONDICION, FINAL1, FECHA1, FINAL2, FECHA2,
+                                 FINAL3, FECHA3, FINAL4, FECHA4, MATRIZ, INSTITUT, CARAC, ACTINT, ACTDGE, ACTSNE,
+                                 NREG, COLEGIO, "PLAN", A_C, DEFINE, TP_EVA3, PROM, USUARIO, FEC_EVA1,
+                                 FEC_EVA2, FEC_EVA3, FAL_EVA1, FAL_EVA2, FAL_EVA3, CONDANT)
+        SELECT COD_ALU, APELLIDO, CARRE, CUTUCO, COD_MAT, CUA_ANIO, TP_EVA, RECUP, TP_EVA2, RECUP2,
+               REGULAR, TOT_HORAS, INASIST, JUSTIF, CONDICION, FINAL1, FECHA1, FINAL2, FECHA2,
+               FINAL3, FECHA3, FINAL4, FECHA4, MATRIZ, INSTITUT, CARAC, ACTINT, ACTDGE, ACTSNE,
+               NREG, COLEGIO, "PLAN", A_C, DEFINE, TP_EVA3, PROM, USUARIO, FEC_EVA1,
+               FEC_EVA2, FEC_EVA3, FAL_EVA1, FAL_EVA2, FAL_EVA3, @CondAnt
+        FROM CURSADA
+        WHERE CARRE = @Carre AND COD_ALU = @CodAlu AND COD_MAT = @CodMat
+        """;
+
+    // La rama BAC inserta ANALITIC con la CONDICION real (REGULAR), nota FINAL1 y fecha FECHA1
+    // (no la fecha de promoción de TBL_CUAT como terciarias). Sin FACTFIN.
+    private const string SqlInsertaAnaliticoBac = """
+        INSERT INTO ANALITIC (COD_ALU, APELLIDO, COD_MAT, CUA_ANIO, NOTA_MAT, FEC_FINAL, MATRIZ, CONDICION,
+                              INSTITUT, CARAC, ACTINT, ACTDGE, ACTSNE, CARRE, COLEGIO, "PLAN", A_C, NREG, USUARIO)
+        VALUES (@CodAlu, @Apellido, @CodMat, @CuaAnio, @NotaAna, @FechaAna, @Matriz, @Condicion,
+                @Instituto, @Caracteristica, NULL, NULL, NULL, @Carre, NULL, NULL, NULL, NULL, @Usuario)
+        """;
+
+    public async Task<int> ConfirmarBachilleratoAsync(
+        string codigoCarrera,
+        int codigoUsuario,
+        IReadOnlyList<FilaRegularizacionBachilleratoResuelta> filas,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(filas);
+        if (filas.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        await using var transaccion = (FbTransaction)await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var procesadas = await ConfirmarFilasBachilleratoAsync(
+                connection, transaccion, codigoCarrera, codigoUsuario, filas, ct).ConfigureAwait(false);
+            await transaccion.CommitAsync(ct).ConfigureAwait(false);
+            return procesadas;
+        }
+        catch
+        {
+            await transaccion.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Coreografía del volcado de bachillerato (porta la rama BAC de XXX_REGULARIZACION)
+    /// sobre una transacción provista. Seam interno del test de equivalencia (4.B), que la
+    /// corre dentro de una transacción que luego revierte para no mutar la base.
+    /// </summary>
+    internal static async Task<int> ConfirmarFilasBachilleratoAsync(
+        FbConnection connection,
+        FbTransaction transaccion,
+        string codigoCarrera,
+        int codigoUsuario,
+        IReadOnlyList<FilaRegularizacionBachilleratoResuelta> filas,
+        CancellationToken ct)
+    {
+        var usuario = codigoUsuario.ToString(CultureInfo.InvariantCulture);
+
+        var procesadas = 0;
+        foreach (var fila in filas)
+        {
+            var clave = new { Carre = codigoCarrera, CodAlu = fila.CodigoAlumno, CodMat = fila.CodigoMateria };
+            var cuaAnio = fila.CuatrimestreAnio.Replace("/", string.Empty, StringComparison.Ordinal).Trim();
+            var esRegular = string.Equals(fila.NuevaCondicion, "REGULAR", StringComparison.Ordinal);
+
+            // 1. Condición previa (para CURSADA_HST.CONDANT), antes del UPDATE.
+            var condAnt = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
+                SqlCondicionPrevia, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
+
+            // 2. UPDATE CURSADA con las notas del cursado, la nota definitiva y la condición nueva.
+            await connection.ExecuteAsync(new CommandDefinition(
+                SqlUpdateCursadaBac,
+                new
+                {
+                    clave.Carre,
+                    clave.CodAlu,
+                    clave.CodMat,
+                    CuaAnio = cuaAnio,
+                    TpEva = fila.TpEva,
+                    TpEva2 = fila.TpEva2,
+                    Recup = fila.Recuperatorio,
+                    TotHoras = fila.TotalHoras,
+                    Inasist = fila.Inasistencias,
+                    Justif = fila.Justificadas,
+                    Regular = fila.NotaRegular,
+                    Fecha = fila.Fecha,
+                    Final1 = fila.NotaFinal,
+                    Condicion = fila.NuevaCondicion,
+                    Usuario = usuario,
+                },
+                transaccion,
+                cancellationToken: ct)).ConfigureAwait(false);
+
+            // 3. Si la materia queda REGULAR, mover a histórico + analítico (nota FINAL1, fecha FECHA1).
+            if (esRegular)
+            {
+                var datos = await connection.QueryFirstAsync<DatosAnalitico>(new CommandDefinition(
+                    SqlDatosAnalitico, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    SqlMueveAHistoricoBac,
+                    new { clave.Carre, clave.CodAlu, clave.CodMat, CondAnt = condAnt },
+                    transaccion,
+                    cancellationToken: ct)).ConfigureAwait(false);
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    SqlBorraCursada, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    SqlInsertaAnaliticoBac,
+                    new
+                    {
+                        clave.CodAlu,
+                        clave.CodMat,
+                        clave.Carre,
+                        datos.Apellido,
+                        CuaAnio = cuaAnio,
+                        NotaAna = fila.NotaFinal,
+                        FechaAna = fila.Fecha,
+                        datos.Matriz,
+                        Condicion = fila.NuevaCondicion,
+                        datos.Instituto,
+                        datos.Caracteristica,
+                        Usuario = usuario,
+                    },
+                    transaccion,
+                    cancellationToken: ct)).ConfigureAwait(false);
+            }
+
+            procesadas++;
+        }
+
+        return procesadas;
+    }
+
     private sealed record DatosAnalitico(
         string? Apellido,
         string? Matriz,

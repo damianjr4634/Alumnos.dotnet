@@ -33,16 +33,20 @@ else
         </div>
     </MudPaper>
 
-    @if (!_esTerciaria)
+    @if (_esTerciaria)
     {
-        <MudAlert Severity="Severity.Info">
-            La regularización de esta carrera (bachillerato/secundario) se migra en un incremento posterior.
-            Por ahora está disponible para carreras terciarias.
-        </MudAlert>
+        <RegularizacionEditor CodigoCarrera="@Carre" Filas="_filas" OnConfirmado="Recargar" />
+    }
+    else if (_esBachillerato)
+    {
+        <RegularizacionEditorBachiller CodigoCarrera="@Carre" Filas="_filasBac" OnConfirmado="Recargar" />
     }
     else
     {
-        <RegularizacionEditor CodigoCarrera="@Carre" Filas="_filas" OnConfirmado="Recargar" />
+        <MudAlert Severity="Severity.Info">
+            La regularización de esta carrera (secundario 333/650 o CNA) se migra en un incremento posterior.
+            Por ahora está disponible para carreras terciarias y de bachillerato.
+        </MudAlert>
     }
 }
 
@@ -54,7 +58,9 @@ else
     private AlumnoDetailDto? _alumno;
     private bool _noEncontrado;
     private bool _esTerciaria;
+    private bool _esBachillerato;
     private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
+    private IReadOnlyList<RegularizacionBachilleratoDto> _filasBac = [];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -65,14 +71,24 @@ else
             return;
         }
 
+        // Rama de regularización. Terciarias: CARRERA.TIPO='TER'. Bachillerato: la carrera
+        // 'BAC' — es la única para la que corre el ladder de notas _POSTVAL (su guard
+        // CARRE='BAC'); las demás BAC/BAD (CNA, secundario 333/650) se migran aparte.
         var tipo = (await Carreras.ObtenerTipoAsync(Carre, CancellationToken.None))?.Trim().ToUpperInvariant();
         _esTerciaria = tipo == "TER";
-        if (_esTerciaria)
-        {
-            await Recargar();
-        }
+        _esBachillerato = string.Equals(Carre, "BAC", StringComparison.OrdinalIgnoreCase);
+        await Recargar();
     }
 
-    private async Task Recargar() =>
-        _filas = await Regularizacion.ObtenerPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+    private async Task Recargar()
+    {
+        if (_esTerciaria)
+        {
+            _filas = await Regularizacion.ObtenerPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+        }
+        else if (_esBachillerato)
+        {
+            _filasBac = await Regularizacion.ObtenerBachilleratoPorAlumnoAsync(Carre, Codigo, CancellationToken.None);
+        }
+    }
 }

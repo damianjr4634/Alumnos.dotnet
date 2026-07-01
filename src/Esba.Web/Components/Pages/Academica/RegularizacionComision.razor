@@ -46,20 +46,24 @@
     </MudGrid>
 </MudPaper>
 
-@if (_carreraSel is not null && !_esTerciaria)
+@if (_carreraSel is not null && !_esTerciaria && !_esBachillerato)
 {
     <MudAlert Severity="Severity.Info">
-        La regularización de esta carrera (bachillerato/secundario) se migra en un incremento posterior.
-        Por ahora está disponible para carreras terciarias.
+        La regularización de esta carrera (secundario 333/650 o CNA) se migra en un incremento posterior.
+        Por ahora está disponible para carreras terciarias y de bachillerato.
     </MudAlert>
 }
 else if (_cargando)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
 }
-else if (_buscado)
+else if (_buscado && _esTerciaria)
 {
     <RegularizacionEditor CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas" OnConfirmado="Buscar" />
+}
+else if (_buscado && _esBachillerato)
+{
+    <RegularizacionEditorBachiller CodigoCarrera="@_carreraSel!.Codigo" Filas="_filasBac" OnConfirmado="Buscar" />
 }
 
 @code {
@@ -68,15 +72,17 @@ else if (_buscado)
     private IReadOnlyList<CarreraListItemDto> _carreras = [];
     private CarreraListItemDto? _carreraSel;
     private bool _esTerciaria;
+    private bool _esBachillerato;
     private short? _cutuco;
     private string? _cuatrimestre;
     private string? _codMateria;
     private bool _cargando;
     private bool _buscado;
     private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
+    private IReadOnlyList<RegularizacionBachilleratoDto> _filasBac = [];
 
     private bool PuedeBuscar =>
-        _carreraSel is not null && _esTerciaria && _cutuco is > 0
+        _carreraSel is not null && (_esTerciaria || _esBachillerato) && _cutuco is > 0
         && !string.IsNullOrWhiteSpace(_cuatrimestre) && !string.IsNullOrWhiteSpace(_codMateria);
 
     protected override async Task OnInitializedAsync()
@@ -91,11 +97,15 @@ else if (_buscado)
         _carreraSel = carrera;
         _buscado = false;
         _filas = [];
+        _filasBac = [];
         _esTerciaria = false;
+        _esBachillerato = false;
         if (carrera is not null)
         {
             var tipo = (await Carreras.ObtenerTipoAsync(carrera.Codigo, CancellationToken.None))?.Trim().ToUpperInvariant();
             _esTerciaria = tipo == "TER";
+            // Solo la carrera 'BAC' corre el ladder de notas (_POSTVAL); CNA/secundario van aparte.
+            _esBachillerato = string.Equals(carrera.Codigo, "BAC", StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -121,10 +131,22 @@ else if (_buscado)
         _cargando = true;
         try
         {
-            _filas = await Regularizacion.ObtenerPorComisionAsync(
-                _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+            var cantidad = 0;
+            if (_esTerciaria)
+            {
+                _filas = await Regularizacion.ObtenerPorComisionAsync(
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                cantidad = _filas.Count;
+            }
+            else if (_esBachillerato)
+            {
+                _filasBac = await Regularizacion.ObtenerBachilleratoPorComisionAsync(
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                cantidad = _filasBac.Count;
+            }
+
             _buscado = true;
-            if (_filas.Count == 0)
+            if (cantidad == 0)
             {
                 Snackbar.Add("No hay alumnos sin regularizar para esos filtros.", Severity.Info);
             }

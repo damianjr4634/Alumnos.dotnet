@@ -1,0 +1,309 @@
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@using Esba.Domain.Academica
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ConfirmarRegularizacionBachilleratoHandler Confirmar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Grilla editable de regularización de bachillerato, compartida por las variantes
+   por-alumno y por-comisión. Suma la nota "a regular", la fecha y —cuando las faltas
+   dejan al alumno en CONSEJO— un selector inline (Consejo/Regular/Libre). Solo markup,
+   binding y estado de presentación; la condición la calcula el dominio (vía el handler)
+   y el volcado el servidor (§2.1). *@
+
+<MudPaper Outlined="true" Class="pa-2">
+    <MudTable T="FilaVm" Items="_filas" Dense="true" Hover="true" Striped="true" Elevation="0">
+        <HeaderContent>
+            <MudTh Class="d-none d-md-table-cell">Alumno</MudTh>
+            <MudTh>Materia</MudTh>
+            <MudTh>Condición</MudTh>
+            <MudTh>1° Bim.</MudTh>
+            <MudTh>2° Bim.</MudTh>
+            <MudTh>Recup.</MudTh>
+            <MudTh>A reg.</MudTh>
+            <MudTh Class="d-none d-lg-table-cell">Hs.</MudTh>
+            <MudTh Class="d-none d-lg-table-cell">Inasist.</MudTh>
+            <MudTh Class="d-none d-lg-table-cell">Fecha</MudTh>
+            <MudTh>Resultante</MudTh>
+            <MudTh aria-label="Acciones"></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Alumno" Class="d-none d-md-table-cell">@context.Apellido, @context.Nombre</MudTd>
+            <MudTd DataLabel="Materia">@(context.SiglaMateria ?? context.CodigoMateria)</MudTd>
+            <MudTd DataLabel="Condición">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@context.CondicionActual</MudChip>
+            </MudTd>
+            <MudTd DataLabel="1° Bim.">
+                <MudNumericField T="decimal?" @bind-Value="context.TpEva" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
+            </MudTd>
+            <MudTd DataLabel="2° Bim.">
+                <MudNumericField T="decimal?" @bind-Value="context.TpEva2" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
+            </MudTd>
+            <MudTd DataLabel="Recup.">
+                <MudNumericField T="decimal?" @bind-Value="context.Recuperatorio" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
+            </MudTd>
+            <MudTd DataLabel="A reg.">
+                <MudNumericField T="decimal?" @bind-Value="context.NotaRegular" Min="0" Max="99" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
+            </MudTd>
+            <MudTd DataLabel="Hs." Class="d-none d-lg-table-cell">
+                <MudNumericField T="int?" @bind-Value="context.TotalHoras" Min="0" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
+            </MudTd>
+            <MudTd DataLabel="Inasist." Class="d-none d-lg-table-cell">
+                <MudNumericField T="int?" @bind-Value="context.Inasistencias" Min="0" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
+            </MudTd>
+            <MudTd DataLabel="Fecha" Class="d-none d-lg-table-cell">
+                <MudDatePicker @bind-Date="context.Fecha" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Style="max-width:150px" Editable="true" />
+            </MudTd>
+            <MudTd DataLabel="Resultante">
+                @if (RequiereDecision(context) && !context.ForzarLibre)
+                {
+                    <MudSelect T="string" @bind-Value="context.Paso" Label="En consejo…" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Style="min-width:130px" Dense="true">
+                        <MudSelectItem T="string" Value="@("Consejo")">Consejo</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Regular")">Regular</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Libre")">Libre</MudSelectItem>
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorResultante(context)">
+                        @Resultante(context)
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Acciones">
+                @if (PuedePasarALibre(context))
+                {
+                    <MudTooltip Text="@(context.ForzarLibre ? "Deshacer pase a Libre" : "Pasar a Libre")">
+                        <MudIconButton Size="Size.Small"
+                                       Icon="@(context.ForzarLibre ? Icons.Material.Filled.Undo : Icons.Material.Filled.Block)"
+                                       Color="@(context.ForzarLibre ? Color.Default : Color.Error)"
+                                       aria-label="Pasar la materia a Libre"
+                                       OnClick="@(() => context.ForzarLibre = !context.ForzarLibre)" />
+                    </MudTooltip>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No hay materias para regularizar.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (_filas.Count > 0)
+    {
+        <div class="d-flex align-center justify-end gap-4 pa-2">
+            @if (HayConsejoSinResolver)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Warning">
+                    Resolvé las materias en CONSEJO antes de procesar.
+                </MudText>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@(_procesando || HayConsejoSinResolver)" OnClick="Procesar">Procesar regularización</MudButton>
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter, EditorRequired] public string CodigoCarrera { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<RegularizacionBachilleratoDto> Filas { get; set; } = [];
+
+    /// <summary>Se invoca tras un procesamiento exitoso, para que el host recargue.</summary>
+    [Parameter] public EventCallback OnConfirmado { get; set; }
+
+    private readonly List<FilaVm> _filas = [];
+    private bool _procesando;
+
+    private bool HayConsejoSinResolver =>
+        _filas.Any(f => !f.ForzarLibre && RequiereDecision(f));
+
+    protected override void OnParametersSet()
+    {
+        _filas.Clear();
+        _filas.AddRange(Filas.Select(FilaVm.Desde));
+    }
+
+    private CalculoCondicionRegularizacionBachiller.Resultado Calcular(FilaVm f) =>
+        ConfirmarRegularizacionBachilleratoHandler.Resolver(f.AInput());
+
+    private bool RequiereDecision(FilaVm f) => Calcular(f).RequiereDecision;
+
+    private static bool PuedePasarALibre(FilaVm f) =>
+        f.CondicionActual is "CURSANDO" or "RECURSANDO";
+
+    private string Resultante(FilaVm f)
+    {
+        if (f.ForzarLibre)
+        {
+            return "LIBRE (forzado)";
+        }
+
+        var r = Calcular(f);
+        if (r.RequiereDecision)
+        {
+            return "CONSEJO — elegí";
+        }
+
+        return r.VaAlAnalitico ? $"{r.Condicion} ✓ ({r.NotaFinal})" : (r.Condicion ?? string.Empty);
+    }
+
+    private Color ColorResultante(FilaVm f)
+    {
+        if (f.ForzarLibre)
+        {
+            return Color.Error;
+        }
+
+        var r = Calcular(f);
+        return r.Condicion switch
+        {
+            "REGULAR" => Color.Success,
+            "LIBRES" or "LIBRE" => Color.Error,
+            "A/REGULAR" or "PREVIO" or "CONSEJO" => Color.Warning,
+            _ => Color.Default,
+        };
+    }
+
+    private async Task Procesar()
+    {
+        var codusu = (await EstadoAutenticacion!).User.CodigoUsuario();
+        if (codusu is null)
+        {
+            Snackbar.Add("No se pudo determinar el usuario.", Severity.Error);
+            return;
+        }
+
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Regularización",
+            $"¿Procesar la regularización de {_filas.Count} materia(s)? Las que queden REGULAR pasan al analítico y no se deshace.",
+            yesText: "Procesar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        _procesando = true;
+        try
+        {
+            var command = new ConfirmarRegularizacionBachilleratoCommand
+            {
+                CodigoCarrera = CodigoCarrera,
+                CodigoUsuario = codusu.Value,
+                Filas = _filas.Select(f => f.AInput()).ToList(),
+            };
+
+            var resultado = await Confirmar.HandleAsync(command, CancellationToken.None);
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add($"Se regularizaron {resultado.Value} materia(s).", Severity.Success);
+                await OnConfirmado.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add(resultado.Message ?? "No se pudo procesar la regularización.", Severity.Error);
+            }
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private sealed class FilaVm
+    {
+        public required string CodigoAlumno { get; init; }
+
+        public string? Apellido { get; init; }
+
+        public string? Nombre { get; init; }
+
+        public required string CodigoMateria { get; init; }
+
+        public string? SiglaMateria { get; init; }
+
+        public required string CuatrimestreAnio { get; init; }
+
+        public string? CondicionActual { get; init; }
+
+        public bool EnRecursa { get; init; }
+
+        public decimal? TpEva { get; set; }
+
+        public decimal? TpEva2 { get; set; }
+
+        public decimal? Recuperatorio { get; set; }
+
+        public decimal? NotaRegular { get; set; }
+
+        public int? TotalHoras { get; set; }
+
+        public int? Inasistencias { get; set; }
+
+        public int? Justificadas { get; set; }
+
+        public DateTime? Fecha { get; set; }
+
+        /// <summary>Decisión ante CONSEJO (Consejo/Regular/Libre).</summary>
+        public string? Paso { get; set; }
+
+        /// <summary>Override manual "pasar a Libre".</summary>
+        public bool ForzarLibre { get; set; }
+
+        public NotaCursadoBachilleratoInput AInput() => new()
+        {
+            CodigoAlumno = CodigoAlumno,
+            CodigoMateria = CodigoMateria,
+            CuatrimestreAnio = CuatrimestreAnio,
+            CondicionActual = CondicionActual,
+            TpEva = TpEva,
+            TpEva2 = TpEva2,
+            Recuperatorio = Recuperatorio,
+            NotaRegular = NotaRegular,
+            TotalHoras = (short?)TotalHoras,
+            Inasistencias = (short?)Inasistencias,
+            Justificadas = (short?)Justificadas,
+            Fecha = Fecha,
+            EnRecursa = EnRecursa,
+            Paso = Paso,
+            ForzarLibre = ForzarLibre,
+        };
+
+        public static FilaVm Desde(RegularizacionBachilleratoDto d) => new()
+        {
+            CodigoAlumno = d.CodigoAlumno,
+            Apellido = d.Apellido,
+            Nombre = d.Nombre,
+            CodigoMateria = d.CodigoMateria,
+            SiglaMateria = d.SiglaMateria,
+            CuatrimestreAnio = d.CuatrimestreAnio,
+            CondicionActual = d.Condicion?.Trim() ?? string.Empty,
+            EnRecursa = d.EnRecursa,
+            TpEva = d.TpEva,
+            TpEva2 = d.TpEva2,
+            Recuperatorio = d.Recuperatorio,
+            NotaRegular = d.NotaRegular,
+            TotalHoras = d.TotalHoras,
+            Inasistencias = d.Inasistencias,
+            Justificadas = d.Justificadas,
+            Fecha = d.Fecha ?? DateTime.Today,
+        };
+    }
+}
