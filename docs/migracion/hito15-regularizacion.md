@@ -71,23 +71,31 @@ no la de TBL_CUAT.
 ## 5. Verificación
 
 - `dotnet build` → **0 warnings**.
-- `dotnet test` → **535 verdes**: Domain 188 (+16 terciario, +16 bachillerato),
-  Application 253 (+5 terciario, +7 bachillerato), Integration 94 (+1 terciario, +1 bachillerato).
-- Equivalencia (Firebird real):
+- `dotnet test` → **538 verdes**: Domain 188 (+16 terciario, +16 bachillerato),
+  Application 253 (+5 terciario, +7 bachillerato), Integration 97 (+1 condición terciaria,
+  +1 condición bachillerato, +3 equivalencia del commit).
+- Equivalencia de **condición** (Firebird real):
   - `CalculoCondicionRegularizacionTerciaria` vs `XXX_REGULARIZACION_MAT_TERC` (6 escenarios).
   - `CalculoCondicionRegularizacionBachiller` vs `XXX_REGULARIZACION_MAT_BAC` + `_POSTVAL`
     (9 escenarios de notas/faltas + CONSEJO + CONSEJO/Regular), poblando `"$$$CURSADA"`
     con los derivados TP_EVA3/FINAL1 y comparando condición y nota final.
+- Equivalencia del **commit** (`RegularizacionCommitEquivalenciaTests`, 2026-07-01): corre cada
+  volcado por dos caminos (SP `XXX_REGULARIZACION` sobre `"$$$CURSADA"` vs seam C#
+  `ConfirmarFilas*Async` directo), cada uno en su transacción revertida, y compara el efecto en
+  CURSADA/CURSADA_HST/ANALITIC. Cubre: terciaria PROMOCIONA (materia `561/16`), bachillerato
+  REGULAR y bachillerato no-aprobado (update-only).
+  - **Hallazgo corregido:** la rama TER de `XXX_REGULARIZACION` deja `CURSADA_HST.CONDANT` en
+    NULL (a diferencia de la rama BAC, que sí guarda la condición previa) — el port del
+    incremento 1 la escribía. Se alineó `RegularizacionRepository` al SP para lograr paridad.
+  - **Bug latente corregido:** `SqlFechaPromocion` truncaba el parámetro `@CuaAnio` (Firebird lo
+    inferí­a más corto que el código de 3 chars dentro de `SUBSTRING`); se tipó con `CAST(... AS
+    VARCHAR(10))`. Afectaba al volcado terciario a analítico (nunca antes ejercido contra la base).
 
 ## 6. Pendiente (próximos incrementos)
 
 - **Secundario 333/650** (`_333`, 3 trimestres + exámenes dic/mar) y **CNA** (`_BAC` de faltas
   sin notas: `TIPO=BAC` pero no corre `_POSTVAL`; "solo nota final"). También `197916` (`TIPO=BAD`,
   solo faltas) queda a definir.
-- **Equivalencia del commit** (`RegularizacionRepository` vs las ramas TER/BAC de
-  `XXX_REGULARIZACION`): el volcado es estructuralmente idéntico al de `CargaFinalRepository`
-  (ya con equivalencia); falta el test dedicado — requiere un alumno con materia que apruebe
-  directo en la base de prueba.
 - **Autocompletado de faltas** desde `XXX_CONT_FALTAS` (asistencias) cuando CURSADA está en 0:
   hoy las faltas se leen de CURSADA y el usuario las edita, en ambas ramas. // TODO-migrar prefill.
 - **Botones "A previa"** del formulario por-alumno (333/650): fuera del alcance de bachillerato.

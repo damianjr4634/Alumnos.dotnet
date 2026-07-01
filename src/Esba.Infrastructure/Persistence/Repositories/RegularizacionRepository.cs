@@ -30,10 +30,12 @@ public sealed class RegularizacionRepository : IRegularizacionRepository
         """;
 
     // Fecha de promoción del cuatrimestre (XXX_FECHA_REGULARIZACION / rama TER de XXX_REGULARIZACION).
+    // El CAST fija el tipo del parámetro (VARCHAR): sin él Firebird lo infiere más corto que el
+    // código de 3 chars dentro del SUBSTRING y trunca al bindear.
     private const string SqlFechaPromocion = """
-        SELECT IIF(SUBSTRING(@CuaAnio FROM 1 FOR 1) = '1', T.FHTAPRI, T.FHTASEG)
+        SELECT IIF(SUBSTRING(CAST(@CuaAnio AS VARCHAR(10)) FROM 1 FOR 1) = '1', T.FHTAPRI, T.FHTASEG)
         FROM TBL_CUAT T
-        WHERE T.FANIO = '20' || SUBSTRING(@CuaAnio FROM 2 FOR 2)
+        WHERE T.FANIO = '20' || SUBSTRING(CAST(@CuaAnio AS VARCHAR(10)) FROM 2 FOR 2)
         """;
 
     // Apellido de CURSADA, matriz de ALUMNOS e instituto/característica de CARRERA (como el SP).
@@ -130,11 +132,7 @@ public sealed class RegularizacionRepository : IRegularizacionRepository
             var clave = new { Carre = codigoCarrera, CodAlu = fila.CodigoAlumno, CodMat = fila.CodigoMateria };
             var cuaAnio = fila.CuatrimestreAnio.Replace("/", string.Empty, StringComparison.Ordinal).Trim();
 
-            // 1. Condición previa (para CURSADA_HST.CONDANT), antes del UPDATE.
-            var condAnt = await connection.ExecuteScalarAsync<string?>(new CommandDefinition(
-                SqlCondicionPrevia, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
-
-            // 2. UPDATE CURSADA con las notas del cursado y la condición nueva.
+            // UPDATE CURSADA con las notas del cursado y la condición nueva.
             await connection.ExecuteAsync(new CommandDefinition(
                 SqlUpdateCursada,
                 new
@@ -155,7 +153,7 @@ public sealed class RegularizacionRepository : IRegularizacionRepository
                 transaccion,
                 cancellationToken: ct)).ConfigureAwait(false);
 
-            // 3. Si aprueba directo, mover a histórico + analítico.
+            // Si aprueba directo, mover a histórico + analítico.
             if (fila.NotaAnalitico is not null)
             {
                 var fechaPromocion = await connection.ExecuteScalarAsync<DateTime?>(new CommandDefinition(
@@ -169,9 +167,11 @@ public sealed class RegularizacionRepository : IRegularizacionRepository
                 var datos = await connection.QueryFirstAsync<DatosAnalitico>(new CommandDefinition(
                     SqlDatosAnalitico, clave, transaccion, cancellationToken: ct)).ConfigureAwait(false);
 
+                // La rama TER de XXX_REGULARIZACION deja CURSADA_HST.CONDANT en NULL (a
+                // diferencia de la rama BAC, que sí guarda la condición previa): se replica.
                 await connection.ExecuteAsync(new CommandDefinition(
                     SqlMueveAHistorico,
-                    new { clave.Carre, clave.CodAlu, clave.CodMat, CondAnt = condAnt },
+                    new { clave.Carre, clave.CodAlu, clave.CodMat, CondAnt = (string?)null },
                     transaccion,
                     cancellationToken: ct)).ConfigureAwait(false);
 
