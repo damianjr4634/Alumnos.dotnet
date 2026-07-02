@@ -23,6 +23,10 @@
             <MudTh Class="d-none d-lg-table-cell">Inasist.</MudTh>
             <MudTh Class="d-none d-lg-table-cell">Justif.</MudTh>
             <MudTh>Resultante</MudTh>
+            @if (PermiteLibre)
+            {
+                <MudTh aria-label="Acciones"></MudTh>
+            }
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Alumno" Class="d-none d-md-table-cell">@context.Apellido, @context.Nombre</MudTd>
@@ -32,33 +36,54 @@
             </MudTd>
             <MudTd DataLabel="1° Parc.">
                 <MudNumericField T="decimal?" @bind-Value="context.TpEva" Min="0" Max="99" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
             </MudTd>
             <MudTd DataLabel="2° Parc.">
                 <MudNumericField T="decimal?" @bind-Value="context.TpEva2" Min="0" Max="99" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
             </MudTd>
             <MudTd DataLabel="Recup.">
                 <MudNumericField T="decimal?" @bind-Value="context.Recuperatorio" Min="0" Max="99" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
             </MudTd>
             <MudTd DataLabel="Hs." Class="d-none d-lg-table-cell">
                 <MudNumericField T="int?" @bind-Value="context.TotalHoras" Min="0" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
             </MudTd>
             <MudTd DataLabel="Inasist." Class="d-none d-lg-table-cell">
                 <MudNumericField T="int?" @bind-Value="context.Inasistencias" Min="0" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
             </MudTd>
             <MudTd DataLabel="Justif." Class="d-none d-lg-table-cell">
                 <MudNumericField T="int?" @bind-Value="context.Justificadas" Min="0" Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true" />
+                                 Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
+                                 Disabled="@context.ForzarLibre" />
             </MudTd>
             <MudTd DataLabel="Resultante">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorResultante(context)">
                     @Resultante(context)
                 </MudChip>
             </MudTd>
+            @if (PermiteLibre)
+            {
+                <MudTd DataLabel="Acciones">
+                    @if (PuedePasarALibre(context))
+                    {
+                        <MudTooltip Text="@(context.ForzarLibre ? "Deshacer pase a Libre" : "Pasar a Libre")">
+                            <MudIconButton Size="Size.Small"
+                                           Icon="@(context.ForzarLibre ? Icons.Material.Filled.Undo : Icons.Material.Filled.Block)"
+                                           Color="@(context.ForzarLibre ? Color.Default : Color.Error)"
+                                           aria-label="Pasar la materia a Libre"
+                                           OnClick="@(() => context.ForzarLibre = !context.ForzarLibre)" />
+                        </MudTooltip>
+                    }
+                </MudTd>
+            }
         </RowTemplate>
         <NoRecordsContent>
             <MudText Class="pa-4 mud-text-secondary">No hay materias para regularizar.</MudText>
@@ -84,6 +109,9 @@
     /// <summary>Se invoca tras un procesamiento exitoso, para que el host recargue.</summary>
     [Parameter] public EventCallback OnConfirmado { get; set; }
 
+    /// <summary>Habilita el pase manual a Libre por materia (BtnLibre legacy: solo en la variante por-alumno).</summary>
+    [Parameter] public bool PermiteLibre { get; set; }
+
     private readonly List<FilaVm> _filas = [];
     private decimal _notaPromocion;
     private bool _procesando;
@@ -95,6 +123,9 @@
         _filas.AddRange(Filas.Select(FilaVm.Desde));
     }
 
+    private static bool PuedePasarALibre(FilaVm f) =>
+        f.CondicionActual is "CURSANDO" or "RECURSANDO";
+
     private CalculoResultado Calcular(FilaVm f) =>
         ConfirmarRegularizacionHandler.Resolver(f.AInput(), _notaPromocion) is var r
             ? new CalculoResultado(r.Condicion, r.VaAlAnalitico)
@@ -102,12 +133,22 @@
 
     private string Resultante(FilaVm f)
     {
+        if (f.ForzarLibre)
+        {
+            return "LIBRE (forzado)";
+        }
+
         var r = Calcular(f);
         return r.VaAlAnalitico ? $"{r.Condicion} ✓" : r.Condicion;
     }
 
     private Color ColorResultante(FilaVm f)
     {
+        if (f.ForzarLibre)
+        {
+            return Color.Error;
+        }
+
         var r = Calcular(f);
         return r.Condicion switch
         {
@@ -197,6 +238,9 @@
 
         public int? Justificadas { get; set; }
 
+        /// <summary>Override manual "pasar a Libre".</summary>
+        public bool ForzarLibre { get; set; }
+
         public NotaCursadoInput AInput() => new()
         {
             CodigoAlumno = CodigoAlumno,
@@ -211,6 +255,7 @@
             Justificadas = (short?)Justificadas,
             MateriaPromociona = MateriaPromociona,
             MateriaApruebaSinFinal = MateriaApruebaSinFinal,
+            ForzarLibre = ForzarLibre,
         };
 
         public static FilaVm Desde(RegularizacionCursadaDto d) => new()

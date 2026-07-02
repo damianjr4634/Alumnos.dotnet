@@ -21,6 +21,9 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Estado del buscador de alumnos: persiste la búsqueda mientras dura el circuito.
+builder.Services.AddScoped<Esba.Web.State.EstadoBusquedaAlumnos>();
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {

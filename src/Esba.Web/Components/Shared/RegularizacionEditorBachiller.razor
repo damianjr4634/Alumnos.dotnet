@@ -27,7 +27,10 @@
             <MudTh Class="d-none d-lg-table-cell">Inasist.</MudTh>
             <MudTh Class="d-none d-lg-table-cell">Fecha</MudTh>
             <MudTh>Resultante</MudTh>
-            <MudTh aria-label="Acciones"></MudTh>
+            @if (PermiteLibre)
+            {
+                <MudTh aria-label="Acciones"></MudTh>
+            }
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Alumno" Class="d-none d-md-table-cell">@context.Apellido, @context.Nombre</MudTd>
@@ -86,18 +89,21 @@
                     </MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Acciones">
-                @if (PuedePasarALibre(context))
-                {
-                    <MudTooltip Text="@(context.ForzarLibre ? "Deshacer pase a Libre" : "Pasar a Libre")">
-                        <MudIconButton Size="Size.Small"
-                                       Icon="@(context.ForzarLibre ? Icons.Material.Filled.Undo : Icons.Material.Filled.Block)"
-                                       Color="@(context.ForzarLibre ? Color.Default : Color.Error)"
-                                       aria-label="Pasar la materia a Libre"
-                                       OnClick="@(() => context.ForzarLibre = !context.ForzarLibre)" />
-                    </MudTooltip>
-                }
-            </MudTd>
+            @if (PermiteLibre)
+            {
+                <MudTd DataLabel="Acciones">
+                    @if (PuedePasarALibre(context))
+                    {
+                        <MudTooltip Text="@(context.ForzarLibre ? "Deshacer pase a Libre" : "Pasar a Libre")">
+                            <MudIconButton Size="Size.Small"
+                                           Icon="@(context.ForzarLibre ? Icons.Material.Filled.Undo : Icons.Material.Filled.Block)"
+                                           Color="@(context.ForzarLibre ? Color.Default : Color.Error)"
+                                           aria-label="Pasar la materia a Libre"
+                                           OnClick="@(() => context.ForzarLibre = !context.ForzarLibre)" />
+                        </MudTooltip>
+                    }
+                </MudTd>
+            }
         </RowTemplate>
         <NoRecordsContent>
             <MudText Class="pa-4 mud-text-secondary">No hay materias para regularizar.</MudText>
@@ -129,6 +135,9 @@
     /// <summary>Se invoca tras un procesamiento exitoso, para que el host recargue.</summary>
     [Parameter] public EventCallback OnConfirmado { get; set; }
 
+    /// <summary>Habilita el pase manual a Libre por materia (BtnLibre legacy: solo en la variante por-alumno).</summary>
+    [Parameter] public bool PermiteLibre { get; set; }
+
     private readonly List<FilaVm> _filas = [];
     private bool _procesando;
 
@@ -146,8 +155,8 @@
 
     private bool RequiereDecision(FilaVm f) => Calcular(f).RequiereDecision;
 
-    private static bool PuedePasarALibre(FilaVm f) =>
-        f.CondicionActual is "CURSANDO" or "RECURSANDO";
+    private bool PuedePasarALibre(FilaVm f) =>
+        PermiteLibre && f.CondicionActual is "CURSANDO" or "RECURSANDO";
 
     private string Resultante(FilaVm f)
     {

@@ -30,6 +30,9 @@ public sealed record NotaCursadoInput
     public bool MateriaPromociona { get; init; }
 
     public bool MateriaApruebaSinFinal { get; init; }
+
+    /// <summary>Override manual "pasar a Libre" (BtnLibre del formulario legacy por-alumno).</summary>
+    public bool ForzarLibre { get; init; }
 }
 
 /// <summary>

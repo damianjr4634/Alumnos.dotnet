@@ -52,6 +52,11 @@ public sealed class ConfirmarRegularizacionHandler
 
         var resueltas = command.Filas.Select(fila =>
         {
+            if (fila.ForzarLibre)
+            {
+                return ForzarLibre(fila);
+            }
+
             var resultado = Resolver(fila, notaPromocion);
             return new FilaRegularizacionResuelta
             {
@@ -81,6 +86,23 @@ public sealed class ConfirmarRegularizacionHandler
             return Result.Error<int>(ex.Message);
         }
     }
+
+    // Override manual "pasar a Libre" (BtnLibre del formulario legacy por-alumno): fuerza
+    // CONDICION=LIBRE y las notas/faltas a 99, sin cálculo. No va al analítico (no es aprobación).
+    private static FilaRegularizacionResuelta ForzarLibre(NotaCursadoInput fila) => new()
+    {
+        CodigoAlumno = fila.CodigoAlumno,
+        CodigoMateria = fila.CodigoMateria,
+        CuatrimestreAnio = fila.CuatrimestreAnio,
+        TpEva = 99m,
+        TpEva2 = 99m,
+        Recuperatorio = 99m,
+        TotalHoras = 99,
+        Inasistencias = 99,
+        Justificadas = fila.Justificadas,
+        NuevaCondicion = "LIBRE",
+        NotaAnalitico = null,
+    };
 
     /// <summary>Resuelve condición + nota de analítico de una fila (reusado por la vista previa).</summary>
     public static CalculoCondicionRegularizacionTerciaria.Resultado Resolver(NotaCursadoInput fila, decimal notaPromocion) =>

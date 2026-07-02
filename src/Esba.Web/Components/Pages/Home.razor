@@ -4,9 +4,11 @@
 @using Esba.Domain.Enums
 @using Esba.Web.Components.Pages.Alumnos
 @using Esba.Web.Components.Shared
+@using Esba.Web.State
 @inject IAlumnosQuery AlumnosQuery
 @inject IDialogService DialogService
 @inject NavigationManager Navegacion
+@inject EstadoBusquedaAlumnos Estado
 
 <PageTitle>ESBA — Búsqueda de Alumnos</PageTitle>
 
@@ -29,7 +31,7 @@
 <MudPaper Outlined="true" Class="pa-4 mb-4">
     <MudGrid Spacing="2" Class="align-center">
         <MudItem xs="12" sm="6" md="5">
-            <MudTextField T="string" @bind-Value="_texto" Label="Apellido[:Nombre], código o e-mail"
+            <MudTextField T="string" @bind-Value="Estado.Texto" Label="Apellido[:Nombre], código o e-mail"
                           Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" Clearable="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           OnKeyDown="BuscarSiEnter" autofocus />
@@ -39,8 +41,8 @@
                        FullWidth="true" OnClick="Buscar">Buscar</MudButton>
         </MudItem>
         <MudItem xs="12" md="5" Class="d-flex align-center flex-wrap gap-4">
-            <MudCheckBox T="bool" @bind-Value="_buscarBajas" Label="Buscar en bajas" Dense="true" />
-            <MudCheckBox T="bool" @bind-Value="_carrerasEnDesuso" Label="Incluir carreras en desuso" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="Estado.BuscarBajas" Label="Buscar en bajas" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="Estado.CarrerasEnDesuso" Label="Incluir carreras en desuso" Dense="true" />
         </MudItem>
     </MudGrid>
 </MudPaper>
@@ -48,7 +50,7 @@
 <MudPaper Outlined="true" Class="overflow-hidden">
     <MudDataGrid T="AlumnoListItemDto" @ref="_grilla" ServerData="CargarPagina" Dense="true" Hover="true"
                  Striped="true" Elevation="0" RowClick="SeleccionarFila" RowsPerPage="25"
-                 RowClassFunc="ClaseFila">
+                 @bind-CurrentPage="Estado.Pagina" RowClassFunc="ClaseFila">
         <Columns>
             <PropertyColumn Property="a => a.NombreCarrera" Title="Carrera" />
             <PropertyColumn Property="a => a.Codigo" Title="Código" />
@@ -78,10 +80,6 @@
 
 @code {
     private MudDataGrid<AlumnoListItemDto>? _grilla;
-    private string? _texto;
-    private bool _buscarBajas;
-    private bool _carrerasEnDesuso;
-    private AlumnoListItemDto? _seleccionado;
 
     [CascadingParameter]
     private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
@@ -93,9 +91,9 @@
         var pagina = await AlumnosQuery.BuscarPadronAsync(
             new PadronAlumnosFiltro
             {
-                Texto = _texto,
-                BuscarDadosDeBaja = _buscarBajas,
-                IncluirCarrerasEnDesuso = _carrerasEnDesuso,
+                Texto = Estado.Texto,
+                BuscarDadosDeBaja = Estado.BuscarBajas,
+                IncluirCarrerasEnDesuso = Estado.CarrerasEnDesuso,
                 EsSupervisor = usuario.EsSupervisor(),
                 CodigoUsuario = usuario.CodigoUsuario(),
                 Skip = estado.Page * estado.PageSize,
@@ -108,7 +106,9 @@
 
     private Task Buscar()
     {
-        _seleccionado = null;
+        Estado.CodigoSeleccionado = null;
+        Estado.CarreraSeleccionada = null;
+        Estado.Pagina = 0;
         return _grilla?.ReloadServerData() ?? Task.CompletedTask;
     }
 
@@ -117,13 +117,16 @@
 
     private async Task SeleccionarFila(DataGridRowClickEventArgs<AlumnoListItemDto> fila)
     {
-        _seleccionado = fila.Item;
+        Estado.CodigoSeleccionado = fila.Item.Codigo;
+        Estado.CarreraSeleccionada = fila.Item.CodigoCarrera;
         var parametros = new DialogParameters<AccionesAlumnoDialog> { { x => x.Alumno, fila.Item } };
         await DialogService.ShowAsync<AccionesAlumnoDialog>("Alumno seleccionado", parametros);
     }
 
     private string ClaseFila(AlumnoListItemDto alumno, int _) =>
-        alumno == _seleccionado ? "cursor-pointer esba-fila-seleccionada" : "cursor-pointer";
+        alumno.Codigo == Estado.CodigoSeleccionado && alumno.CodigoCarrera == Estado.CarreraSeleccionada
+            ? "cursor-pointer esba-fila-seleccionada"
+            : "cursor-pointer";
 
     private static string TextoEstado(AlumnoListItemDto alumno) => alumno switch
     {

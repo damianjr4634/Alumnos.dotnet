@@ -1,0 +1,42 @@
+@using Esba.Application.DTOs.Examenes
+
+@* Elección de mesa/llamado al emitir un permiso de examen, cuando la materia tiene
+   más de una mesa (equivalente al ComboMesas de PermisoExamen.pas). Solo presentación. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2 mud-text-secondary">
+            La materia tiene más de una mesa. Elegí en cuál se emite el permiso.
+        </MudText>
+        <MudTable T="MesaListItemDto" Items="Mesas" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Mesa</MudTh>
+                <MudTh>Llamado</MudTh>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Hora</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mesa">@context.NumeroMesa</MudTd>
+                <MudTd DataLabel="Llamado">@context.Llamado</MudTd>
+                <MudTd DataLabel="Fecha">@(context.FechaExamen?.ToString("dd/MM/yyyy"))</MudTd>
+                <MudTd DataLabel="Hora">@context.Hora</MudTd>
+                <MudTd DataLabel="Tipo">@context.DescripcionTipo</MudTd>
+                <MudTd Style="white-space:nowrap">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                               OnClick="@(() => MudDialog?.Close(DialogResult.Ok(context)))">Elegir</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter, EditorRequired] public IReadOnlyList<MesaListItemDto> Mesas { get; set; } = [];
+}

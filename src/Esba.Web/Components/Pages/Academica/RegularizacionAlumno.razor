@@ -35,11 +35,11 @@ else
 
     @if (_esTerciaria)
     {
-        <RegularizacionEditor CodigoCarrera="@Carre" Filas="_filas" OnConfirmado="Recargar" />
+        <RegularizacionEditor CodigoCarrera="@Carre" Filas="_filas" OnConfirmado="Recargar" PermiteLibre="true" />
     }
     else if (_esBachillerato)
     {
-        <RegularizacionEditorBachiller CodigoCarrera="@Carre" Filas="_filasBac" OnConfirmado="Recargar" />
+        <RegularizacionEditorBachiller CodigoCarrera="@Carre" Filas="_filasBac" OnConfirmado="Recargar" PermiteLibre="true" />
     }
     else if (_esSecundario)
     {

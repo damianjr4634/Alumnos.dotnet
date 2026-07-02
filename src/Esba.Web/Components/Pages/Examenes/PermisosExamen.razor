@@ -3,9 +3,11 @@
 @using Esba.Application.DTOs.Alumnos
 @using Esba.Application.DTOs.Examenes
 @using Esba.Application.Features.Examenes
+@using Esba.Web.Components.Shared
 @using Esba.Web.Seguridad
 @inject IAlumnosQuery AlumnosQuery
 @inject IMateriasFinalesProcedure MateriasFinales
+@inject IMesasQuery MesasQuery
 @inject IPermisosExamenRepository Permisos
 @inject CrearPermisoExamenHandler CrearPermiso
 @inject EliminarPermisoExamenHandler EliminarPermiso
@@ -45,7 +47,7 @@ else
                 <MudTable T="MateriaFinalDto" Items="_finales" Dense="true" Hover="true" Loading="@_cargando">
                     <HeaderContent>
                         <MudTh>Materia</MudTh>
-                        <MudTh>Mesa</MudTh>
+                        <MudTh>Condición</MudTh>
                         <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -58,10 +60,10 @@ else
                                 </MudTooltip>
                             }
                         </MudTd>
-                        <MudTd DataLabel="Mesa">@context.Mesa</MudTd>
+                        <MudTd DataLabel="Condición">@context.Condicion</MudTd>
                         <MudTd Style="white-space:nowrap">
                             <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
-                                       Disabled="@(!context.PuedeRendir || context.Mesa is null or 0)"
+                                       Disabled="@(!context.PuedeRendir)"
                                        OnClick="@(() => GenerarPermiso(context))">Emitir permiso</MudButton>
                         </MudTd>
                     </RowTemplate>
@@ -138,12 +140,46 @@ else
             return;
         }
 
+        // La mesa la elige el operador entre las mesas reales de la materia (como el
+        // ComboMesas de PermisoExamen.pas), no FMESA del SP —que puede venir null aunque
+        // haya mesa cargada—. Una mesa: directo; varias: se elige; ninguna: aviso.
+        var mesas = (await MesasQuery.BuscarAsync(new MesasFiltro
+        {
+            CodigoCarrera = Carre,
+            CodigoMateria = materia.CodigoMateria,
+            Take = 100,
+        }, CancellationToken.None)).Items;
+
+        if (mesas.Count == 0)
+        {
+            Snackbar.Add("No hay mesa de examen cargada para esta materia.", MudBlazor.Severity.Warning);
+            return;
+        }
+
+        MesaListItemDto mesa;
+        if (mesas.Count == 1)
+        {
+            mesa = mesas[0];
+        }
+        else
+        {
+            var parametros = new DialogParameters<SeleccionarMesaDialog> { { x => x.Mesas, mesas } };
+            var dialogo = await DialogService.ShowAsync<SeleccionarMesaDialog>("Elegir mesa", parametros);
+            var seleccion = await dialogo.Result;
+            if (seleccion is not { Canceled: false, Data: MesaListItemDto elegida })
+            {
+                return;
+            }
+
+            mesa = elegida;
+        }
+
         var resultado = await CrearPermiso.HandleAsync(new CrearPermisoExamenCommand
         {
             CodigoCarrera = Carre,
             CodigoAlumno = Codigo,
             Apellido = _alumno?.Apellido,
-            Mesa = materia.Mesa ?? 0,
+            Mesa = mesa.NumeroMesa,
             Cutuco = materia.Cutuco ?? 0,
             CodigoMateria = materia.CodigoMateria,
             CodigoUsuario = codusu.Value,
