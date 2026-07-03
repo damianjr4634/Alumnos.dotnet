@@ -10,7 +10,7 @@
 
 services:
   esba:
-    image: esba-web:latest
+    image: esba-web_1
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -20,7 +20,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      ConnectionStrings__Esba: "database=host.docker.internal:/pool/firebird/esba.gdb;user=${ESBA_DB_USER:-SYSDBA};password=${ESBA_DB_PASSWORD};charset=ISO8859_1"
+      ConnectionStrings__Esba: "database=localhost:/pool/firebird/esba.gdb;user=SYSDBA;password=masterkey;charset=ISO8859_1"
       # DataProtection__KeysPath ya viene en la imagen (=/keys); solo hay que montar el volumen.
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       # Correo por comisión (opcional hasta configurar la cuenta institucional):
