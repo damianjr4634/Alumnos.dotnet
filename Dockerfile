@@ -18,7 +18,12 @@ COPY src/Esba.Web/Esba.Web.csproj src/Esba.Web/
 RUN dotnet restore src/Esba.Web/Esba.Web.csproj
 
 COPY src/ src/
-RUN dotnet publish src/Esba.Web/Esba.Web.csproj -c Release -o /app/publish --no-restore
+# OJO: sin --no-restore a propósito. El restore previo (solo .csproj) cachea la
+# capa de paquetes, pero el SDK 10.0.30x omite los static assets del framework
+# Blazor (wwwroot/_framework/blazor.web.js) si se publica con --no-restore sobre
+# ese restore "en seco" → la app queda sin interactividad. Dejar que publish
+# re-restaure (incremental, barato) con el código presente los genera bien.
+RUN dotnet publish src/Esba.Web/Esba.Web.csproj -c Release -o /app/publish
 
 # ---------- runtime ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
