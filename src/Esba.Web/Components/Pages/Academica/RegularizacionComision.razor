@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject ICarrerasQuery Carreras
+@inject IMateriasQuery MateriasQuery
 @inject IRegularizacionQuery Regularizacion
 @inject ISnackbar Snackbar
 
@@ -23,7 +24,7 @@
 
 <MudPaper Outlined="true" Class="pa-4 mb-4">
     <MudGrid Spacing="2" Class="align-center">
-        <MudItem xs="12" sm="6" md="4">
+        <MudItem xs="12" sm="6" md="3">
             <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
                              Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
                              SearchFunc="BuscarCarrera"
@@ -36,8 +37,11 @@
         <MudItem xs="6" sm="3" md="2">
             <MudTextField @bind-Value="_cuatrimestre" Label="Cuatrimestre (ej. 1/24)" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="6" sm="3" md="2">
-            <MudTextField @bind-Value="_codMateria" Label="Materia" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudItem xs="12" sm="6" md="3">
+            <MudAutocomplete T="MateriaListItemDto" Label="Materia" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_materiaSel" ValueChanged="SeleccionarMateria"
+                             Disabled="@(_carreraSel is null)" SearchFunc="BuscarMateria"
+                             ToStringFunc="@(m => m is null ? string.Empty : $"{m.Codigo} — {m.Sigla ?? m.Nombre}")" />
         </MudItem>
         <MudItem xs="6" sm="3" md="2" Class="d-flex align-center">
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Search"
@@ -84,7 +88,8 @@ else if (_buscado && _esCna)
     private bool _esCna;
     private short? _cutuco;
     private string? _cuatrimestre;
-    private string? _codMateria;
+    private IReadOnlyList<MateriaListItemDto> _materias = [];
+    private MateriaListItemDto? _materiaSel;
     private bool _cargando;
     private bool _buscado;
     private IReadOnlyList<RegularizacionCursadaDto> _filas = [];
@@ -94,7 +99,7 @@ else if (_buscado && _esCna)
 
     private bool PuedeBuscar =>
         _carreraSel is not null && (_esTerciaria || _esBachillerato || _esSecundario || _esCna) && _cutuco is > 0
-        && !string.IsNullOrWhiteSpace(_cuatrimestre) && !string.IsNullOrWhiteSpace(_codMateria);
+        && !string.IsNullOrWhiteSpace(_cuatrimestre) && _materiaSel is not null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,6 +120,8 @@ else if (_buscado && _esCna)
         _esBachillerato = false;
         _esSecundario = false;
         _esCna = false;
+        _materias = [];
+        _materiaSel = null;
         if (carrera is not null)
         {
             var tipo = (await Carreras.ObtenerTipoAsync(carrera.Codigo, CancellationToken.None))?.Trim().ToUpperInvariant();
@@ -123,7 +130,25 @@ else if (_buscado && _esCna)
             _esBachillerato = string.Equals(carrera.Codigo, "BAC", StringComparison.OrdinalIgnoreCase);
             _esSecundario = carrera.Codigo is "333" or "650";
             _esCna = string.Equals(carrera.Codigo, "CNA", StringComparison.OrdinalIgnoreCase);
+            _materias = await MateriasQuery.ListarPorCarreraAsync(carrera.Codigo, CancellationToken.None);
         }
+    }
+
+    private void SeleccionarMateria(MateriaListItemDto? materia)
+    {
+        _materiaSel = materia;
+        _buscado = false;
+    }
+
+    private Task<IEnumerable<MateriaListItemDto>> BuscarMateria(string? texto, CancellationToken ct)
+    {
+        IEnumerable<MateriaListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _materias
+            : _materias.Where(m =>
+                m.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (m.Sigla?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
     }
 
     private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
@@ -152,25 +177,25 @@ else if (_buscado && _esCna)
             if (_esTerciaria)
             {
                 _filas = await Regularizacion.ObtenerPorComisionAsync(
-                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _materiaSel!.Codigo, CancellationToken.None);
                 cantidad = _filas.Count;
             }
             else if (_esBachillerato)
             {
                 _filasBac = await Regularizacion.ObtenerBachilleratoPorComisionAsync(
-                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _materiaSel!.Codigo, CancellationToken.None);
                 cantidad = _filasBac.Count;
             }
             else if (_esSecundario)
             {
                 _filas333 = await Regularizacion.Obtener333PorComisionAsync(
-                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _materiaSel!.Codigo, CancellationToken.None);
                 cantidad = _filas333.Count;
             }
             else if (_esCna)
             {
                 _filasCna = await Regularizacion.ObtenerCnaPorComisionAsync(
-                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _codMateria!, CancellationToken.None);
+                    _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _materiaSel!.Codigo, CancellationToken.None);
                 cantidad = _filasCna.Count;
             }
 

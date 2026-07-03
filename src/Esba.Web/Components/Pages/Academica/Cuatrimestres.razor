@@ -1,0 +1,176 @@
+@page "/academica/cuatrimestres"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICiclosLectivosQuery Ciclos
+@inject EliminarCicloLectivoHandler EliminarCiclo
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Cuatrimestres</PageTitle>
+
+@* Fechas de los ciclos lectivos (sucesor de CargadeTrimestres.pas): TBL_CUAT
+   para las carreras cuatrimestrales y TBL_TRIM para el secundario 333. En vez
+   de la grilla editable con delete-all + reinsert del legacy, ABM por año.
+   Solo binding y llamadas a Application (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Cuatrimestres</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Fechas de los ciclos lectivos: cuatrimestres y trimestres (uso 333)</MudText>
+    </div>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoAnio">Nuevo año</MudButton>
+</div>
+
+<MudPaper Outlined="true">
+    <MudTabs @bind-ActivePanelIndex="_tab" Rounded="true" ApplyEffectsToContainer="true">
+        <MudTabPanel Text="Cuatrimestral">
+            @if (_cargando)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <MudDataGrid T="CicloCuatrimestralDto" Items="_cuatrimestrales" Dense="true" Hover="true" Striped="true"
+                             RowClass="cursor-pointer" RowClick="@(e => EditarCuatrimestral(e.Item))">
+                    <Columns>
+                        <PropertyColumn Property="c => c.Anio" Title="Año" />
+                        <TemplateColumn Title="1er cuatrimestre">
+                            <CellTemplate>@Rango(context.Item.PrimerCuatrimestreDesde, context.Item.PrimerCuatrimestreHasta)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="2do cuatrimestre">
+                            <CellTemplate>@Rango(context.Item.SegundoCuatrimestreDesde, context.Item.SegundoCuatrimestreHasta)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn CellClass="text-right" CellStyle="white-space:nowrap">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar año"
+                                               OnClick="@(() => EditarCuatrimestral(context.Item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               aria-label="Eliminar año"
+                                               OnClick="@(() => EliminarClick(context.Item.Anio, trimestral: false))" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>No hay años cargados.</NoRecordsContent>
+                </MudDataGrid>
+            }
+        </MudTabPanel>
+        <MudTabPanel Text="Trimestral (uso 333)">
+            @if (_cargando)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <MudDataGrid T="CicloTrimestralDto" Items="_trimestrales" Dense="true" Hover="true" Striped="true"
+                             RowClass="cursor-pointer" RowClick="@(e => EditarTrimestral(e.Item))">
+                    <Columns>
+                        <PropertyColumn Property="c => c.Anio" Title="Año" />
+                        <TemplateColumn Title="1er trimestre">
+                            <CellTemplate>@Rango(context.Item.PrimerTrimestreDesde, context.Item.PrimerTrimestreHasta)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="2do trimestre">
+                            <CellTemplate>@Rango(context.Item.SegundoTrimestreDesde, context.Item.SegundoTrimestreHasta)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="3er trimestre">
+                            <CellTemplate>@Rango(context.Item.TercerTrimestreDesde, context.Item.TercerTrimestreHasta)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn CellClass="text-right" CellStyle="white-space:nowrap">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar año"
+                                               OnClick="@(() => EditarTrimestral(context.Item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               aria-label="Eliminar año"
+                                               OnClick="@(() => EliminarClick(context.Item.Anio, trimestral: true))" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>No hay años cargados.</NoRecordsContent>
+                </MudDataGrid>
+            }
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+
+@code {
+    private int _tab;
+    private bool _cargando = true;
+    private IReadOnlyList<CicloCuatrimestralDto> _cuatrimestrales = [];
+    private IReadOnlyList<CicloTrimestralDto> _trimestrales = [];
+
+    private bool TabTrimestral => _tab == 1;
+
+    protected override async Task OnInitializedAsync() => await Recargar();
+
+    private async Task Recargar()
+    {
+        _cargando = true;
+        try
+        {
+            _cuatrimestrales = await Ciclos.ListarCuatrimestralesAsync(CancellationToken.None);
+            _trimestrales = await Ciclos.ListarTrimestralesAsync(CancellationToken.None);
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private static string Rango(DateOnly desde, DateOnly hasta) => $"{desde:dd/MM/yyyy} — {hasta:dd/MM/yyyy}";
+
+    private Task NuevoAnio() => AbrirDialogo(TabTrimestral, null, null);
+
+    private Task EditarCuatrimestral(CicloCuatrimestralDto ciclo) => AbrirDialogo(false, ciclo, null);
+
+    private Task EditarTrimestral(CicloTrimestralDto ciclo) => AbrirDialogo(true, null, ciclo);
+
+    private async Task AbrirDialogo(bool trimestral, CicloCuatrimestralDto? cuatrimestral, CicloTrimestralDto? trimestralDto)
+    {
+        var parametros = new DialogParameters<CicloLectivoFormDialog>
+        {
+            { d => d.ModoTrimestral, trimestral },
+            { d => d.Cuatrimestral, cuatrimestral },
+            { d => d.Trimestral, trimestralDto },
+        };
+
+        var anio = cuatrimestral?.Anio ?? trimestralDto?.Anio;
+        var titulo = anio is null
+            ? $"Nuevo año ({(trimestral ? "trimestral" : "cuatrimestral")})"
+            : $"Año {anio} ({(trimestral ? "trimestral" : "cuatrimestral")})";
+
+        var dialogo = await DialogService.ShowAsync<CicloLectivoFormDialog>(titulo, parametros);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+        {
+            await Recargar();
+        }
+    }
+
+    private async Task EliminarClick(int anio, bool trimestral)
+    {
+        var confirma = await DialogService.ShowMessageBoxAsync(
+            "Eliminar año lectivo",
+            $"¿Eliminar las fechas del año {anio} ({(trimestral ? "trimestral" : "cuatrimestral")})?",
+            yesText: "Eliminar", cancelText: "Cancelar");
+        if (confirma != true)
+        {
+            return;
+        }
+
+        var resultado = await EliminarCiclo.HandleAsync(
+            new EliminarCicloLectivoCommand { Anio = anio, Trimestral = trimestral }, CancellationToken.None);
+
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add("Año eliminado.", MudBlazor.Severity.Success);
+            await Recargar();
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo eliminar.", MudBlazor.Severity.Error);
+        }
+    }
+}

@@ -10,17 +10,17 @@
 
     <MudDivider Class="my-2" />
 
+    @* Inscripción de materias y permisos de examen no van acá: son flujos por
+       alumno, accesibles desde las acciones del buscador (/alumnos/{carre}/{cod}/…). *@
     <MudNavGroup Title="Alumnos" Icon="@Icons.Material.Filled.People" Expanded="false">
-        <MudNavLink Disabled="true">Inscripción de materias</MudNavLink>
         <MudNavLink Href="/academica/regularizacion-comision" Icon="@Icons.Material.Filled.FactCheck">Regularización</MudNavLink>
-        <MudNavLink Disabled="true">Permisos de exámenes</MudNavLink>
     </MudNavGroup>
 
     <MudNavGroup Title="Académica" Icon="@Icons.Material.Filled.MenuBook" Expanded="false">
         <MudNavLink Href="/academica/materias" Icon="@Icons.Material.Filled.MenuBook">Materias</MudNavLink>
         <MudNavLink Href="/academica/comisiones" Icon="@Icons.Material.Filled.Groups">Comisiones</MudNavLink>
         <MudNavLink Href="/correo-comision" Icon="@Icons.Material.Filled.Email">Correo por comisión</MudNavLink>
-        <MudNavLink Disabled="true">Cuatrimestres</MudNavLink>
+        <MudNavLink Href="/academica/cuatrimestres" Icon="@Icons.Material.Filled.DateRange">Cuatrimestres</MudNavLink>
     </MudNavGroup>
 
     <MudNavGroup Title="Asistencias" Icon="@Icons.Material.Filled.EventAvailable" Expanded="false">

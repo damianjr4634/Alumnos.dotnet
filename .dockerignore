@@ -1,0 +1,10 @@
+# Solo src/ y Directory.Build.props entran a la imagen; el resto no viaja al
+# contexto de build (el legacy Delphi pesa y no se usa).
+*
+!Directory.Build.props
+!.editorconfig
+!src/
+
+# Dentro de src/, nada de artefactos locales.
+src/**/bin/
+src/**/obj/

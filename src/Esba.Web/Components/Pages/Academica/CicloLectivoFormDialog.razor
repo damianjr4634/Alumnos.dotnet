@@ -1,0 +1,158 @@
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.Features.Academica
+@inject GuardarCicloCuatrimestralHandler GuardarCuatrimestral
+@inject GuardarCicloTrimestralHandler GuardarTrimestral
+@inject ISnackbar Snackbar
+
+@* Alta/modificación de un año lectivo de TBL_CUAT o TBL_TRIM (sucesor de la
+   grilla editable de CargadeTrimestres.pas). Solo binding y llamadas a
+   Application (§2.1). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="6" sm="4">
+                <MudNumericField T="int" @bind-Value="_anio" Label="Año lectivo" Min="1980" Max="2100"
+                                 Disabled="@EsModificacion" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6" sm="8" />
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_primerDesde" Label="@($"1er {Periodo} — desde")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_primerHasta" Label="@($"1er {Periodo} — hasta")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_segundoDesde" Label="@($"2do {Periodo} — desde")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_segundoHasta" Label="@($"2do {Periodo} — hasta")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            @if (ModoTrimestral)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_tercerDesde" Label="3er trimestre — desde"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_tercerHasta" Label="3er trimestre — hasta"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_guardando" OnClick="Guardar">
+            @(EsModificacion ? "Guardar cambios" : "Cargar año")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>true = TBL_TRIM ("uso 333"); false = TBL_CUAT.</summary>
+    [Parameter] public bool ModoTrimestral { get; set; }
+
+    /// <summary>Año a editar (modo cuatrimestral); null = alta.</summary>
+    [Parameter] public CicloCuatrimestralDto? Cuatrimestral { get; set; }
+
+    /// <summary>Año a editar (modo trimestral); null = alta.</summary>
+    [Parameter] public CicloTrimestralDto? Trimestral { get; set; }
+
+    private bool EsModificacion => ModoTrimestral ? Trimestral is not null : Cuatrimestral is not null;
+
+    private string Periodo => ModoTrimestral ? "trimestre" : "cuatrimestre";
+
+    private int _anio = DateTime.Today.Year;
+    private DateTime? _primerDesde;
+    private DateTime? _primerHasta;
+    private DateTime? _segundoDesde;
+    private DateTime? _segundoHasta;
+    private DateTime? _tercerDesde;
+    private DateTime? _tercerHasta;
+    private bool _guardando;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Cuatrimestral is { } c)
+        {
+            _anio = c.Anio;
+            _primerDesde = AFecha(c.PrimerCuatrimestreDesde);
+            _primerHasta = AFecha(c.PrimerCuatrimestreHasta);
+            _segundoDesde = AFecha(c.SegundoCuatrimestreDesde);
+            _segundoHasta = AFecha(c.SegundoCuatrimestreHasta);
+        }
+        else if (Trimestral is { } t)
+        {
+            _anio = t.Anio;
+            _primerDesde = AFecha(t.PrimerTrimestreDesde);
+            _primerHasta = AFecha(t.PrimerTrimestreHasta);
+            _segundoDesde = AFecha(t.SegundoTrimestreDesde);
+            _segundoHasta = AFecha(t.SegundoTrimestreHasta);
+            _tercerDesde = AFecha(t.TercerTrimestreDesde);
+            _tercerHasta = AFecha(t.TercerTrimestreHasta);
+        }
+    }
+
+    private static DateTime AFecha(DateOnly fecha) => fecha.ToDateTime(TimeOnly.MinValue);
+
+    private static DateOnly? ADia(DateTime? fecha) => fecha is null ? null : DateOnly.FromDateTime(fecha.Value);
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        _error = null;
+        try
+        {
+            var resultado = ModoTrimestral
+                ? await GuardarTrimestral.HandleAsync(new GuardarCicloTrimestralCommand
+                {
+                    EsNuevo = !EsModificacion,
+                    Anio = _anio,
+                    PrimerTrimestreDesde = ADia(_primerDesde),
+                    PrimerTrimestreHasta = ADia(_primerHasta),
+                    SegundoTrimestreDesde = ADia(_segundoDesde),
+                    SegundoTrimestreHasta = ADia(_segundoHasta),
+                    TercerTrimestreDesde = ADia(_tercerDesde),
+                    TercerTrimestreHasta = ADia(_tercerHasta),
+                }, CancellationToken.None)
+                : await GuardarCuatrimestral.HandleAsync(new GuardarCicloCuatrimestralCommand
+                {
+                    EsNuevo = !EsModificacion,
+                    Anio = _anio,
+                    PrimerCuatrimestreDesde = ADia(_primerDesde),
+                    PrimerCuatrimestreHasta = ADia(_primerHasta),
+                    SegundoCuatrimestreDesde = ADia(_segundoDesde),
+                    SegundoCuatrimestreHasta = ADia(_segundoHasta),
+                }, CancellationToken.None);
+
+            if (resultado.IsSuccess)
+            {
+                Snackbar.Add(EsModificacion ? "Año actualizado." : "Año cargado.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _error = resultado.Message;
+            }
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

@@ -164,6 +164,15 @@ public static class DependencyInjection
         services.AddScoped<ActualizarComisionHandler>();
         services.AddScoped<EliminarComisionHandler>();
 
+        // Académica: ciclos lectivos TBL_CUAT/TBL_TRIM (sucesor de CargadeTrimestres.pas).
+        services.AddScoped<ICiclosLectivosQuery, CiclosLectivosQuery>();
+        services.AddScoped<ICicloLectivoRepository, CicloLectivoRepository>();
+        services.AddScoped<IValidator<GuardarCicloCuatrimestralCommand>, GuardarCicloCuatrimestralValidator>();
+        services.AddScoped<IValidator<GuardarCicloTrimestralCommand>, GuardarCicloTrimestralValidator>();
+        services.AddScoped<GuardarCicloCuatrimestralHandler>();
+        services.AddScoped<GuardarCicloTrimestralHandler>();
+        services.AddScoped<EliminarCicloLectivoHandler>();
+
         // Académica: inscripción masiva por cuatrimestre (deuda hito 6, dos fases).
         services.AddScoped<IInscripcionMasivaCuatrimestreProcedure, InscripcionMasivaCuatrimestreProcedure>();
         services.AddScoped<IValidator<InscribirCuatrimestreCompletoCommand>, InscribirCuatrimestreCompletoValidator>();

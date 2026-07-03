@@ -1,0 +1,38 @@
+# Stack de ESBA para Portainer (hito 12.6). La imagen la define el Dockerfile de
+# la raíz; toda la config entra por variables de entorno (12.1, lista completa en
+# docs/migracion/hito12-endurecimiento.md).
+#
+# Secretos: definir ESBA_DB_PASSWORD (y los SMTP_* cuando se configure el correo)
+# en la sección "Environment variables" del stack en Portainer — no acá.
+#
+# Firebird corre en el HOST (decisión heredada del deploy anterior): desde el
+# contenedor se llega por host.docker.internal (mapeado abajo al gateway).
+
+services:
+  esba:
+    image: esba-web:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5005:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ConnectionStrings__Esba: "database=host.docker.internal:/pool/firebird/esba.gdb;user=${ESBA_DB_USER:-SYSDBA};password=${ESBA_DB_PASSWORD};charset=ISO8859_1"
+      # DataProtection__KeysPath ya viene en la imagen (=/keys); solo hay que montar el volumen.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      # Correo por comisión (opcional hasta configurar la cuenta institucional):
+      # Smtp__Host: "smtp.gmail.com"
+      # Smtp__Port: "587"
+      # Smtp__From: "secretaria@esbabarrionorte.edu.ar"
+      # Smtp__User: "${ESBA_SMTP_USER}"
+      # Smtp__Password: "${ESBA_SMTP_PASSWORD}"
+    volumes:
+      # Claves de DataProtection (12.1): sin este volumen, cada redeploy invalida
+      # las cookies/sesiones de todos los usuarios.
+      - esba-keys:/keys
+
+volumes:
+  esba-keys:

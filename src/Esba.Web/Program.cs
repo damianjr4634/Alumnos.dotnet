@@ -10,10 +10,29 @@ using Esba.Web.Components;
 using Esba.Web.Seguridad;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// DataProtection (hito 12.1): las claves que cifran la cookie de auth y el estado de
+// los circuitos deben sobrevivir al redeploy del contenedor — si no, cada deploy
+// desloguea a todos. En el stack de Portainer, DataProtection__KeysPath apunta a un
+// volumen persistente; en desarrollo (sin la variable) alcanza el default del perfil
+// del usuario.
+var dataProtection = builder.Services.AddDataProtection().SetApplicationName("Esba");
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
+else if (builder.Environment.IsProduction())
+{
+    throw new InvalidOperationException(
+        "Falta DataProtection__KeysPath: en producción las claves de DataProtection deben "
+        + "persistirse en un volumen (hito 12.1); sin esto cada redeploy invalida las sesiones.");
+}
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
