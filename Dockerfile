@@ -3,7 +3,11 @@
 # Portainer (12.1, ver docs/migracion/hito12-endurecimiento.md).
 
 # ---------- build ----------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# SDK pineado a versión exacta a propósito: el tag rolling `sdk:10.0` cambia de
+# patch sin aviso y una de esas variaciones (10.0.30x) omitía los static assets
+# del framework Blazor al publicar → app sin interactividad. Subir esta versión
+# es una decisión explícita, no un efecto colateral de reconstruir la imagen.
+FROM mcr.microsoft.com/dotnet/sdk:10.0.301 AS build
 WORKDIR /src
 
 # Primero solo los .csproj + props: el restore queda cacheado como capa y no se

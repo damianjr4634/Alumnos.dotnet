@@ -46,4 +46,15 @@
         <MudNavLink Href="/administracion/profesores" Icon="@Icons.Material.Filled.CoPresent">Profesores</MudNavLink>
         <MudNavLink Href="/administracion/configuracion" Icon="@Icons.Material.Filled.Tune">Configuración</MudNavLink>
     </MudNavGroup>
+
+    @* Cerrar sesión también acá (además del menú del avatar): más visible, sobre
+       todo en mobile. POST nativo con antiforgery — la cookie solo se limpia en
+       una request HTTP real, no desde el circuito (igual que el login, §Program.cs). *@
+    <MudDivider Class="my-2" />
+    <form method="post" action="/auth/logout" class="ma-0 px-2">
+        <AntiforgeryToken />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error"
+                   FullWidth="true" StartIcon="@Icons.Material.Filled.Logout"
+                   Class="justify-start">Cerrar sesión</MudButton>
+    </form>
 </MudNavMenu>
