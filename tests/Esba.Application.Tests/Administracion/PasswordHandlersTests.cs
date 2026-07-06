@@ -19,13 +19,14 @@ public class PasswordHandlersTests
         new(_usuarios, _hasher, _cipher, new CambiarPasswordValidator(), _unitOfWork);
 
     private BlanquearPasswordHandler BlanquearHandler() =>
-        new(_usuarios, _hasher, new BlanquearPasswordValidator(), _unitOfWork);
+        new(_usuarios, _hasher, _cipher, new BlanquearPasswordValidator(), _unitOfWork);
 
     private static Usuario Usuario() => new()
     {
         Codigo = 7,
         NombreUsuario = "JPEREZ",
-        PasswordHash = "$E1$viejo",
+        PasswordLegacy = "cifradoLegacy",
+        PasswordHashNuevo = "$E1$viejo",
         DebeCambiarPassword = true,
     };
 
@@ -38,36 +39,61 @@ public class PasswordHandlersTests
     };
 
     [Fact]
-    public async Task Cambiar_ActualCorrecta_HasheaQuitaCampassYCommitea()
+    public async Task Cambiar_ActualCorrecta_ActualizaAmbasColumnasQuitaCampassYCommitea()
     {
         var usuario = Usuario();
         _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
-        _hasher.CanVerify(usuario.PasswordHash).Returns(true);
-        _hasher.Verify(usuario.PasswordHash, "actual1").Returns(true);
+        _hasher.Verify("$E1$viejo", "actual1").Returns(true);
         _hasher.Hash("nueva123").Returns("$E1$nuevo");
+        _cipher.Cifrar("nueva123").Returns("cifradoNuevo");
 
         var resultado = await CambiarHandler().HandleAsync(Cambio(), CancellationToken.None);
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
-        Assert.Equal("$E1$nuevo", usuario.PasswordHash);
+        Assert.Equal("$E1$nuevo", usuario.PasswordHashNuevo);
+        // PASSWD queda con el cifrado legacy: el escritorio Delphi sigue entrando.
+        Assert.Equal("cifradoNuevo", usuario.PasswordLegacy);
         Assert.False(usuario.DebeCambiarPassword);
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Cambiar_ActualEnFormatoLegacy_VerificaConCipherYCambia()
+    public async Task Cambiar_SinNpasswdYActualEnFormatoLegacy_VerificaConCipherYCambia()
     {
         var usuario = Usuario();
-        usuario.PasswordHash = "legacy";
+        usuario.PasswordHashNuevo = null;
+        usuario.PasswordLegacy = "legacy";
         _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
         _hasher.CanVerify("legacy").Returns(false);
         _cipher.Descifrar("legacy").Returns("actual1");
         _hasher.Hash("nueva123").Returns("$E1$nuevo");
+        _cipher.Cifrar("nueva123").Returns("cifradoNuevo");
 
         var resultado = await CambiarHandler().HandleAsync(Cambio(), CancellationToken.None);
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
-        Assert.Equal("$E1$nuevo", usuario.PasswordHash);
+        Assert.Equal("$E1$nuevo", usuario.PasswordHashNuevo);
+        Assert.Equal("cifradoNuevo", usuario.PasswordLegacy);
+    }
+
+    [Fact]
+    public async Task Cambiar_SinNpasswdYPasswdPisadoConHash_VerificaContraEseHashYRepara()
+    {
+        // Usuario cuyo PASSWD fue pisado con "$E1$" por la versión anterior del login.
+        var usuario = Usuario();
+        usuario.PasswordHashNuevo = null;
+        usuario.PasswordLegacy = "$E1$pisado";
+        _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
+        _hasher.CanVerify("$E1$pisado").Returns(true);
+        _hasher.Verify("$E1$pisado", "actual1").Returns(true);
+        _hasher.Hash("nueva123").Returns("$E1$nuevo");
+        _cipher.Cifrar("nueva123").Returns("cifradoNuevo");
+
+        var resultado = await CambiarHandler().HandleAsync(Cambio(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        Assert.Equal("$E1$nuevo", usuario.PasswordHashNuevo);
+        Assert.Equal("cifradoNuevo", usuario.PasswordLegacy);
     }
 
     [Fact]
@@ -75,8 +101,7 @@ public class PasswordHandlersTests
     {
         var usuario = Usuario();
         _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
-        _hasher.CanVerify(usuario.PasswordHash).Returns(true);
-        _hasher.Verify(usuario.PasswordHash, "actual1").Returns(false);
+        _hasher.Verify("$E1$viejo", "actual1").Returns(false);
 
         var resultado = await CambiarHandler().HandleAsync(Cambio(), CancellationToken.None);
 
@@ -106,18 +131,20 @@ public class PasswordHandlersTests
     }
 
     [Fact]
-    public async Task Blanquear_UsuarioExistente_HasheaTemporalForzaCampassYCommitea()
+    public async Task Blanquear_UsuarioExistente_EscribeAmbasColumnasForzaCampassYCommitea()
     {
         var usuario = Usuario();
         usuario.DebeCambiarPassword = false;
         _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
         _hasher.Hash("temporal1").Returns("$E1$temp");
+        _cipher.Cifrar("temporal1").Returns("cifradoTemp");
 
         var resultado = await BlanquearHandler().HandleAsync(
             new BlanquearPasswordCommand { CodigoUsuario = 7, PasswordTemporal = "temporal1" }, CancellationToken.None);
 
         Assert.Equal(OperationStatus.Ok, resultado.Status);
-        Assert.Equal("$E1$temp", usuario.PasswordHash);
+        Assert.Equal("$E1$temp", usuario.PasswordHashNuevo);
+        Assert.Equal("cifradoTemp", usuario.PasswordLegacy);
         Assert.True(usuario.DebeCambiarPassword);
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }

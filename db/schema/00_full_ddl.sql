@@ -1332,6 +1332,7 @@ CREATE TABLE USUARIOS (CODUSU INTEGER NOT NULL,
         CAMPASS CHAR(1),
         IMGFIRMA VARCHAR(30),
         FECHA_BAJ DATE, /* baja lógica agregada por el lado .NET — ver db/schema/migrations/2026-06-22_usuarios_fecha_baja.sql */
+        NPASSWD VARCHAR(60), /* hash PBKDF2 del login web; PASSWD conserva el cifrado legacy para el escritorio — ver db/schema/migrations/2026-07-06_usuarios_npasswd.sql */
 CONSTRAINT PK_USUARIOS PRIMARY KEY (CODUSU));
 
 /* Table: WEB_ALUMNOS, Owner: SYSDBA */

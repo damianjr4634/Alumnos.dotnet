@@ -6,11 +6,15 @@ using FluentValidation;
 namespace Esba.Application.Features.Administracion;
 
 /// <summary>
-/// Login con verificación dual (sucesor de sesion.pas):
-/// 1. Si PASSWD tiene el formato nuevo, verifica el hash PBKDF2.
-/// 2. Si no, compara contra el cifrado legacy (EncriptoCadena2) y, si es
-///    correcto, re-hashea en el momento (migration_improvements.md §2.7) — los
-///    usuarios migran de esquema solos en su primer login.
+/// Login con verificación dual (sucesor de sesion.pas), conviviendo con el
+/// escritorio Delphi que sigue validando PASSWD (decisión 2026-07-06):
+/// 1. Si NPASSWD tiene valor, el usuario ya entró por la web: verifica solo
+///    ese hash PBKDF2.
+/// 2. Si NPASSWD es NULL (usuario nuevo en la web), valida contra PASSWD —
+///    cifrado legacy EncriptoCadena2 o, si una versión anterior lo pisó con
+///    "$E1$", contra ese hash — y en el login exitoso puebla NPASSWD y deja en
+///    PASSWD el cifrado legacy de la contraseña tipeada (para los pisados esto
+///    les repara el acceso por escritorio; para el resto es reescribir lo mismo).
 /// En ambos casos regenera el UID de sesión única (regla de seciones.pas).
 /// </summary>
 public sealed class IniciarSesionHandler
@@ -56,17 +60,24 @@ public sealed class IniciarSesionHandler
         }
 
         bool credencialesValidas;
-        if (_hasher.CanVerify(usuario.PasswordHash))
+        if (usuario.PasswordHashNuevo is not null)
         {
-            credencialesValidas = _hasher.Verify(usuario.PasswordHash, command.Password);
+            credencialesValidas = _hasher.Verify(usuario.PasswordHashNuevo, command.Password);
         }
         else
         {
-            // Legacy (sesion.pas): EncriptoCadena2(PASSWD, -1) == contraseña tipeada.
-            credencialesValidas = _cipherLegacy.Descifrar(usuario.PasswordHash) == command.Password;
+            // Primer login web del usuario: PASSWD trae el cifrado legacy
+            // (sesion.pas: EncriptoCadena2(PASSWD, -1) == contraseña tipeada) o
+            // el hash "$E1$" que una versión anterior de este handler escribió ahí.
+            credencialesValidas = _hasher.CanVerify(usuario.PasswordLegacy)
+                ? _hasher.Verify(usuario.PasswordLegacy, command.Password)
+                : _cipherLegacy.Descifrar(usuario.PasswordLegacy) == command.Password;
             if (credencialesValidas)
             {
-                usuario.PasswordHash = _hasher.Hash(command.Password);
+                usuario.PasswordHashNuevo = _hasher.Hash(command.Password);
+                // Garantiza que PASSWD quede legible para el escritorio: repara
+                // los pisados con "$E1$" y es un no-op para los demás.
+                usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.Password);
             }
         }
 

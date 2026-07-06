@@ -2,9 +2,10 @@ namespace Esba.Domain.Entities;
 
 /// <summary>
 /// Tabla USUARIOS: usuarios del sistema. PK: CODUSU (trigger USUARIOS_BI0 con
-/// GEN_ID(G_USUARIOS)). El login legacy (sesion.pas) compara la contraseña
-/// descifrando PASSWD con EncriptoCadena2 (cifrado reversible): el nuevo
-/// sistema re-hashea en el primer login exitoso (migration_improvements.md §2.7).
+/// GEN_ID(G_USUARIOS)). Contraseña dual mientras convivan web y escritorio
+/// (decisión 2026-07-06): PASSWD conserva el cifrado reversible legacy que lee
+/// el Delphi (sesion.pas + EncriptoCadena2) y NPASSWD guarda el hash PBKDF2
+/// que usa el login web. Al retirar el escritorio se dropea PASSWD.
 /// </summary>
 public class Usuario
 {
@@ -15,11 +16,19 @@ public class Usuario
     public required string NombreUsuario { get; set; }
 
     /// <summary>
-    /// PASSWD VARCHAR(60) NOT NULL. Legacy: cifrado reversible EncriptoCadena2;
-    /// el valor '/' indica contraseña blanqueada (junto con CAMPASS='S').
-    /// Destino: hash PBKDF2 con re-hash en el primer login. // TODO-migrar re-hash
+    /// PASSWD VARCHAR(60) NOT NULL. Cifrado reversible EncriptoCadena2 que valida
+    /// el escritorio Delphi; el valor '/' indica contraseña blanqueada (junto con
+    /// CAMPASS='S'). El lado .NET lo mantiene sincronizado al cambiar la
+    /// contraseña, NUNCA lo pisa con un hash (rompería el login del escritorio).
     /// </summary>
-    public required string PasswordHash { get; set; }
+    public required string PasswordLegacy { get; set; }
+
+    /// <summary>
+    /// NPASSWD VARCHAR(60): hash PBKDF2 ($E1$) del login web. NULL = usuario que
+    /// todavía no entró por la web; su primer login lo puebla validando contra
+    /// PASSWD. Se dropea PASSWD (no esta columna) al retirar el escritorio.
+    /// </summary>
+    public string? PasswordHashNuevo { get; set; }
 
     /// <summary>NOMUSU VARCHAR(50): nombres reales.</summary>
     public string? Nombres { get; set; }

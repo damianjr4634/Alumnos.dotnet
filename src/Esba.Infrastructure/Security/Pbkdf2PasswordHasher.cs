@@ -5,10 +5,10 @@ namespace Esba.Infrastructure.Security;
 
 /// <summary>
 /// PBKDF2-SHA256 con formato compacto "$E1$" + Base64(salt[16] + hash[24]) =
-/// 60 caracteres exactos: el máximo de USUARIOS.PASSWD VARCHAR(60), que no se
-/// puede ensanchar mientras la base se comparta con el Delphi legacy. El
-/// prefijo "$E1$" distingue el formato nuevo del cifrado legacy (una salida de
-/// EncriptoCadena2 no puede empezar así para contraseñas reales).
+/// 60 caracteres exactos: el máximo de USUARIOS.NPASSWD VARCHAR(60) (dimensionada
+/// igual que PASSWD, que sigue siendo del escritorio legacy). El prefijo "$E1$"
+/// distingue el formato nuevo del cifrado legacy (una salida de EncriptoCadena2
+/// no puede empezar así para contraseñas reales).
 /// </summary>
 public sealed class Pbkdf2PasswordHasher : IPasswordHasher
 {

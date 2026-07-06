@@ -16,7 +16,8 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.Codigo).HasColumnName("CODUSU").ValueGeneratedOnAdd();
 
         builder.Property(u => u.NombreUsuario).HasColumnName("NOMBRE").HasMaxLength(15).IsRequired();
-        builder.Property(u => u.PasswordHash).HasColumnName("PASSWD").HasMaxLength(60).IsRequired();
+        builder.Property(u => u.PasswordLegacy).HasColumnName("PASSWD").HasMaxLength(60).IsRequired();
+        builder.Property(u => u.PasswordHashNuevo).HasColumnName("NPASSWD").HasMaxLength(60);
         builder.Property(u => u.Nombres).HasColumnName("NOMUSU").HasMaxLength(50);
         builder.Property(u => u.Apellido).HasColumnName("APELLIDO").HasMaxLength(50);
         builder.Property(u => u.Cargo).HasColumnName("CARGO").HasMaxLength(30);

@@ -26,7 +26,7 @@ public class AsignarPermisosUsuarioHandlerTests
     {
         Codigo = codigo,
         NombreUsuario = "U" + codigo,
-        PasswordHash = "$E1$h",
+        PasswordLegacy = "cifrado",
     };
 
     [Fact]

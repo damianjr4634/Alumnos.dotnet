@@ -12,10 +12,11 @@ public class UsuarioHandlersTests
 {
     private readonly IUsuarioRepository _usuarios = Substitute.For<IUsuarioRepository>();
     private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
+    private readonly ILegacyPasswordCipher _cipher = Substitute.For<ILegacyPasswordCipher>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
     private CrearUsuarioHandler CrearHandler() =>
-        new(_usuarios, _hasher, new CrearUsuarioValidator(), _unitOfWork);
+        new(_usuarios, _hasher, _cipher, new CrearUsuarioValidator(), _unitOfWork);
 
     private ActualizarUsuarioHandler ActualizarHandler() =>
         new(_usuarios, new ActualizarUsuarioValidator(), _unitOfWork);
@@ -35,6 +36,7 @@ public class UsuarioHandlersTests
     {
         _usuarios.ExisteNombreAsync("JPEREZ", null, Arg.Any<CancellationToken>()).Returns(false);
         _hasher.Hash("clave123").Returns("$E1$hash");
+        _cipher.Cifrar("clave123").Returns("cifradoLegacy");
         Usuario? capturado = null;
         _usuarios.When(u => u.Agregar(Arg.Any<Usuario>())).Do(ci => capturado = ci.Arg<Usuario>());
 
@@ -43,7 +45,9 @@ public class UsuarioHandlersTests
         Assert.Equal(OperationStatus.Ok, resultado.Status);
         _usuarios.Received(1).Agregar(Arg.Any<Usuario>());
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-        Assert.Equal("$E1$hash", capturado!.PasswordHash);
+        Assert.Equal("$E1$hash", capturado!.PasswordHashNuevo);
+        // PASSWD nace con el cifrado legacy: el usuario nuevo también puede entrar por el escritorio.
+        Assert.Equal("cifradoLegacy", capturado.PasswordLegacy);
     }
 
     [Fact]
@@ -154,7 +158,7 @@ public class UsuarioHandlersTests
     {
         Codigo = codigo,
         NombreUsuario = "JPEREZ",
-        PasswordHash = "$E1$hash",
+        PasswordLegacy = "cifrado",
         EsSupervisor = esSupervisor,
     };
 }

@@ -9,25 +9,29 @@ namespace Esba.Application.Features.Administracion;
 /// <summary>
 /// Alta de usuario (sucesor del INSERT de AltaUsuario.GrabaClick). Valida,
 /// normaliza el nombre de login, rechaza duplicados (insensible a mayúsculas) y
-/// hashea la contraseña con PBKDF2 antes de tocar la base (nunca en claro,
-/// §2.7). El usuario nace con CAMPASS='S' para forzar el cambio de la clave
+/// guarda la clave inicial en NPASSWD hasheada con PBKDF2 (nunca en claro, §2.7)
+/// y en PASSWD con el cifrado legacy para que el escritorio Delphi también la
+/// acepte. El usuario nace con CAMPASS='S' para forzar el cambio de la clave
 /// inicial en su primer login. Devuelve el CODUSU generado por el trigger.
 /// </summary>
 public sealed class CrearUsuarioHandler
 {
     private readonly IUsuarioRepository _usuarios;
     private readonly IPasswordHasher _hasher;
+    private readonly ILegacyPasswordCipher _cipherLegacy;
     private readonly IValidator<CrearUsuarioCommand> _validator;
     private readonly IUnitOfWork _unitOfWork;
 
     public CrearUsuarioHandler(
         IUsuarioRepository usuarios,
         IPasswordHasher hasher,
+        ILegacyPasswordCipher cipherLegacy,
         IValidator<CrearUsuarioCommand> validator,
         IUnitOfWork unitOfWork)
     {
         _usuarios = usuarios;
         _hasher = hasher;
+        _cipherLegacy = cipherLegacy;
         _validator = validator;
         _unitOfWork = unitOfWork;
     }
@@ -55,7 +59,8 @@ public sealed class CrearUsuarioHandler
         var usuario = new Usuario
         {
             NombreUsuario = nombre,
-            PasswordHash = _hasher.Hash(command.Password),
+            PasswordHashNuevo = _hasher.Hash(command.Password),
+            PasswordLegacy = _cipherLegacy.Cifrar(command.Password),
             Nombres = command.Nombres?.Trim(),
             Apellido = command.Apellido?.Trim(),
             Cargo = command.Cargo?.Trim(),

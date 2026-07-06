@@ -2,8 +2,8 @@ namespace Esba.Application.Abstractions;
 
 /// <summary>
 /// Hash de contraseñas del sistema nuevo (PBKDF2, migration_improvements.md §2.7).
-/// El formato debe entrar en USUARIOS.PASSWD VARCHAR(60), compartida con el
-/// legacy durante la transición.
+/// El formato debe entrar en USUARIOS.NPASSWD VARCHAR(60) (columna propia del
+/// login web; PASSWD queda para el cifrado legacy del escritorio).
 /// </summary>
 public interface IPasswordHasher
 {

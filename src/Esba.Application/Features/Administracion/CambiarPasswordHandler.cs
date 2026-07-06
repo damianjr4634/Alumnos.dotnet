@@ -7,8 +7,9 @@ namespace Esba.Application.Features.Administracion;
 
 /// <summary>
 /// Cambio de contraseña por el propio usuario (sucesor de CambioPassword.GrabaClick).
-/// Verifica la clave actual con el mismo esquema dual del login (PBKDF2 o cifrado
-/// legacy), guarda la nueva hasheada y deja CAMPASS='N'.
+/// Verifica la clave actual con el mismo esquema dual del login (NPASSWD si existe;
+/// si no, PASSWD legacy o pisado con "$E1$"), guarda la nueva en NPASSWD (PBKDF2) y
+/// en PASSWD (cifrado legacy, para que el escritorio Delphi la acepte) y deja CAMPASS='N'.
 /// </summary>
 public sealed class CambiarPasswordHandler
 {
@@ -48,16 +49,25 @@ public sealed class CambiarPasswordHandler
             return Result.Error<int>("El usuario no existe.");
         }
 
-        var actualValida = _hasher.CanVerify(usuario.PasswordHash)
-            ? _hasher.Verify(usuario.PasswordHash, command.PasswordActual)
-            : _cipherLegacy.Descifrar(usuario.PasswordHash) == command.PasswordActual;
+        bool actualValida;
+        if (usuario.PasswordHashNuevo is not null)
+        {
+            actualValida = _hasher.Verify(usuario.PasswordHashNuevo, command.PasswordActual);
+        }
+        else
+        {
+            actualValida = _hasher.CanVerify(usuario.PasswordLegacy)
+                ? _hasher.Verify(usuario.PasswordLegacy, command.PasswordActual)
+                : _cipherLegacy.Descifrar(usuario.PasswordLegacy) == command.PasswordActual;
+        }
 
         if (!actualValida)
         {
             return Result.Error<int>("La contraseña actual es incorrecta.");
         }
 
-        usuario.PasswordHash = _hasher.Hash(command.PasswordNueva);
+        usuario.PasswordHashNuevo = _hasher.Hash(command.PasswordNueva);
+        usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.PasswordNueva);
         usuario.DebeCambiarPassword = false;
         await _unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
 

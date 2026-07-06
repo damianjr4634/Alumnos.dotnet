@@ -6,7 +6,8 @@ using FluentValidation;
 namespace Esba.Application.Features.Administracion;
 
 /// <summary>
-/// Blanqueo de contraseña por un administrador. Fija una clave temporal hasheada
+/// Blanqueo de contraseña por un administrador. Fija una clave temporal —en
+/// NPASSWD hasheada (login web) y en PASSWD con el cifrado legacy (escritorio)—
 /// y deja CAMPASS='S' para forzar el cambio en el próximo login del usuario.
 /// Reemplaza el blanqueo legacy (PASSWD='/' + CAMPASS='S'), incompatible con PBKDF2.
 /// </summary>
@@ -14,17 +15,20 @@ public sealed class BlanquearPasswordHandler
 {
     private readonly IUsuarioRepository _usuarios;
     private readonly IPasswordHasher _hasher;
+    private readonly ILegacyPasswordCipher _cipherLegacy;
     private readonly IValidator<BlanquearPasswordCommand> _validator;
     private readonly IUnitOfWork _unitOfWork;
 
     public BlanquearPasswordHandler(
         IUsuarioRepository usuarios,
         IPasswordHasher hasher,
+        ILegacyPasswordCipher cipherLegacy,
         IValidator<BlanquearPasswordCommand> validator,
         IUnitOfWork unitOfWork)
     {
         _usuarios = usuarios;
         _hasher = hasher;
+        _cipherLegacy = cipherLegacy;
         _validator = validator;
         _unitOfWork = unitOfWork;
     }
@@ -45,7 +49,8 @@ public sealed class BlanquearPasswordHandler
             return Result.Error<int>("El usuario no existe.");
         }
 
-        usuario.PasswordHash = _hasher.Hash(command.PasswordTemporal);
+        usuario.PasswordHashNuevo = _hasher.Hash(command.PasswordTemporal);
+        usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.PasswordTemporal);
         usuario.DebeCambiarPassword = true;
         await _unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
 

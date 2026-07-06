@@ -21,7 +21,7 @@ public class BajaReactivarUsuarioHandlerTests
     {
         Codigo = codigo,
         NombreUsuario = "U" + codigo,
-        PasswordHash = "$E1$h",
+        PasswordLegacy = "cifrado",
         EsSupervisor = supervisor,
         FechaBaja = null,
     };
