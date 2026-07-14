@@ -168,17 +168,19 @@ public sealed class AlumnosQuery : IAlumnosQuery
 
         var condiciones = new List<string>();
 
+        // A diferencia del atajo "_CARRE" del legacy (excluyente con el texto),
+        // la carrera es un filtro independiente combinable con la búsqueda.
+        if (!string.IsNullOrWhiteSpace(filtro.CodigoCarrera))
+        {
+            condiciones.Add("A.CARRE = @CodigoCarrera");
+            parametros.Add("CodigoCarrera", filtro.CodigoCarrera.Trim());
+        }
+
         if (!string.IsNullOrWhiteSpace(filtro.CodigoAlumno))
         {
             // Legacy: A.COD_ALU='<ACodAlu>' (búsqueda exacta).
             condiciones.Add("A.COD_ALU = @CodigoAlumno");
             parametros.Add("CodigoAlumno", filtro.CodigoAlumno);
-        }
-        else if (!string.IsNullOrWhiteSpace(filtro.CodigoCarrera))
-        {
-            // Legacy: atajo "_CARRE" del buscador.
-            condiciones.Add("A.CARRE = @CodigoCarrera");
-            parametros.Add("CodigoCarrera", filtro.CodigoCarrera.Trim());
         }
         else if (!string.IsNullOrWhiteSpace(filtro.Texto))
         {

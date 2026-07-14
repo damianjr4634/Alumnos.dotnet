@@ -4,8 +4,10 @@ namespace Esba.Application.DTOs.Alumnos;
 /// Filtros del padrón de alumnos. Cada propiedad replica un control del
 /// buscador global de FrmEsba (legacy):
 /// - <see cref="Texto"/>: TxtBusqueda — "apellido" o "apellido:nombre"; también
-///   matchea contra mail y código de alumno. El atajo legacy "_CARRE" de ese
-///   control se traduce acá en <see cref="CodigoCarrera"/> (lo parsea la UI).
+///   matchea contra mail y código de alumno.
+/// - <see cref="CodigoCarrera"/>: filtro opcional de carrera, combinable con
+///   <see cref="Texto"/> (sucesor del atajo "_CARRE" del TxtBusqueda legacy,
+///   que era excluyente).
 /// - <see cref="CodigoAlumno"/>: parámetro ACodAlu (búsqueda exacta al volver
 ///   de otra pantalla).
 /// - <see cref="BuscarDadosDeBaja"/>: checkbox chbBuscarBajas — el padrón

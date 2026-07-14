@@ -40,11 +40,11 @@
                 </MudSelect>
             </MudItem>
 
-            <MudItem xs="6" sm="3">
+            <MudItem xs="6" sm="2">
                 <MudNumericField T="int" @bind-Value="_llamado" Label="Llamado" Min="0" Max="9"
                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="6" sm="3">
+            <MudItem xs="6" sm="4">
                 <MudDatePicker @bind-Date="_fecha" Label="Fecha" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" />
             </MudItem>
             <MudItem xs="6" sm="3">
@@ -56,7 +56,7 @@
                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
 
-            <MudItem xs="12" sm="4">
+            <MudItem xs="12">
                 <MudSelect T="string" @bind-Value="_titular" Label="Titular" Clearable="true"
                            Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var d in _docentes)
@@ -65,7 +65,7 @@
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="6" sm="4">
+            <MudItem xs="12" sm="6">
                 <MudSelect T="string" @bind-Value="_vocal1" Label="Vocal 1" Clearable="true"
                            Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var d in _docentes)
@@ -74,7 +74,7 @@
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="6" sm="4">
+            <MudItem xs="12" sm="6">
                 <MudSelect T="string" @bind-Value="_vocal2" Label="Vocal 2" Clearable="true"
                            Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var d in _docentes)

@@ -21,6 +21,9 @@ public sealed class EstadoBusquedaAlumnos
 
     public bool CarrerasEnDesuso { get; set; }
 
+    /// <summary>Código de carrera del filtro opcional del buscador (null = todas).</summary>
+    public string? CarreraFiltro { get; set; }
+
     /// <summary>Página actual de la grilla (0-based), para volver donde estaba.</summary>
     public int Pagina { get; set; }
 

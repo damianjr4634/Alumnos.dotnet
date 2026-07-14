@@ -1,11 +1,13 @@
 @page "/"
 @using Esba.Application.Abstractions
 @using Esba.Application.DTOs.Alumnos
+@using Esba.Application.DTOs.Carreras
 @using Esba.Domain.Enums
 @using Esba.Web.Components.Pages.Alumnos
 @using Esba.Web.Components.Shared
 @using Esba.Web.State
 @inject IAlumnosQuery AlumnosQuery
+@inject ICarrerasQuery CarrerasQuery
 @inject IDialogService DialogService
 @inject NavigationManager Navegacion
 @inject EstadoBusquedaAlumnos Estado
@@ -30,17 +32,24 @@
 
 <MudPaper Outlined="true" Class="pa-4 mb-4">
     <MudGrid Spacing="2" Class="align-center">
-        <MudItem xs="12" sm="6" md="5">
+        <MudItem xs="12" sm="6" md="4">
             <MudTextField T="string" @bind-Value="Estado.Texto" Label="Apellido[:Nombre], código o e-mail"
                           Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" Clearable="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           OnKeyDown="BuscarSiEnter" autofocus />
         </MudItem>
-        <MudItem xs="12" sm="6" md="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera (opcional)" Clearable="true"
+                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
                        FullWidth="true" OnClick="Buscar">Buscar</MudButton>
         </MudItem>
-        <MudItem xs="12" md="5" Class="d-flex align-center flex-wrap gap-4">
+        <MudItem xs="12" sm="8" md="3" Class="d-flex align-center flex-wrap gap-4">
             <MudCheckBox T="bool" @bind-Value="Estado.BuscarBajas" Label="Buscar en bajas" Dense="true" />
             <MudCheckBox T="bool" @bind-Value="Estado.CarrerasEnDesuso" Label="Incluir carreras en desuso" Dense="true" />
         </MudItem>
@@ -84,6 +93,35 @@
     [CascadingParameter]
     private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
 
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private CarreraListItemDto? _carreraSel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await CarrerasQuery.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        _carreraSel = _carreras.FirstOrDefault(c => c.Codigo == Estado.CarreraFiltro);
+    }
+
+    private Task SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        Estado.CarreraFiltro = carrera?.Codigo;
+        return Buscar();
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
     private async Task<GridData<AlumnoListItemDto>> CargarPagina(GridState<AlumnoListItemDto> estado, CancellationToken ct)
     {
         var usuario = (await EstadoAutenticacion!).User;
@@ -92,6 +130,7 @@
             new PadronAlumnosFiltro
             {
                 Texto = Estado.Texto,
+                CodigoCarrera = Estado.CarreraFiltro,
                 BuscarDadosDeBaja = Estado.BuscarBajas,
                 IncluirCarrerasEnDesuso = Estado.CarrerasEnDesuso,
                 EsSupervisor = usuario.EsSupervisor(),

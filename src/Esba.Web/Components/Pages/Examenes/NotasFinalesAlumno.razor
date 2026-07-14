@@ -42,7 +42,7 @@ else
             @if (_filas.Count > 0)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Inventory2"
-                           Disabled="@_guardando" OnClick="PasarAArchivos">Pasar a archivos</MudButton>
+                           Disabled="@_guardando" OnClick="PasarAArchivos">Procesar mesa</MudButton>
             }
         </div>
     </MudPaper>
@@ -77,8 +77,9 @@ else
                                      Immediate="true" HideSpinButtons="true" />
                 </MudTd>
                 <MudTd DataLabel="Fecha">
-                    <MudDatePicker @bind-Date="context.FechaActual" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                   Style="max-width:140px" />
+                    <div style="max-width:140px">
+                        <MudDatePicker @bind-Date="context.FechaActual" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
                 </MudTd>
                 <MudTd DataLabel="Libro/Acta" Class="d-none d-md-table-cell">
                     <MudTextField @bind-Value="context.ActaActual" MaxLength="10" Variant="Variant.Outlined"

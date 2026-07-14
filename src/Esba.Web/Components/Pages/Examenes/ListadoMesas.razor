@@ -143,8 +143,9 @@
             { d => d.Mesa, mesa },
         };
 
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialogo = await DialogService.ShowAsync<MesaFormDialog>(
-            mesa is null ? "Nueva mesa" : $"Mesa {mesa.NumeroMesa}", parametros);
+            mesa is null ? "Nueva mesa" : $"Mesa {mesa.NumeroMesa}", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false } && _listado is not null)
         {

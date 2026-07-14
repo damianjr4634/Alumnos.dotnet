@@ -35,34 +35,40 @@
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@context.CondicionActual</MudChip>
             </MudTd>
             <MudTd DataLabel="1° Parc.">
-                <MudNumericField T="decimal?" @bind-Value="context.TpEva" Min="0" Max="99" Variant="Variant.Outlined"
+                <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][0]" @bind-Value="context.TpEva"
+                                 Min="0" Max="99" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
-                                 Disabled="@context.ForzarLibre" />
+                                 Disabled="@context.ForzarLibre" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 0))" />
             </MudTd>
             <MudTd DataLabel="2° Parc.">
-                <MudNumericField T="decimal?" @bind-Value="context.TpEva2" Min="0" Max="99" Variant="Variant.Outlined"
+                <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][1]" @bind-Value="context.TpEva2"
+                                 Min="0" Max="99" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
-                                 Disabled="@context.ForzarLibre" />
+                                 Disabled="@context.ForzarLibre" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 1))" />
             </MudTd>
             <MudTd DataLabel="Recup.">
-                <MudNumericField T="decimal?" @bind-Value="context.Recuperatorio" Min="0" Max="99" Variant="Variant.Outlined"
+                <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][2]" @bind-Value="context.Recuperatorio"
+                                 Min="0" Max="99" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
-                                 Disabled="@context.ForzarLibre" />
+                                 Disabled="@context.ForzarLibre" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 2))" />
             </MudTd>
             <MudTd DataLabel="Hs." Class="d-none d-lg-table-cell">
-                <MudNumericField T="int?" @bind-Value="context.TotalHoras" Min="0" Variant="Variant.Outlined"
+                <MudNumericField T="int?" @ref="_refsEnteros[context.Indice][0]" @bind-Value="context.TotalHoras"
+                                 Min="0" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
-                                 Disabled="@context.ForzarLibre" />
+                                 Disabled="@context.ForzarLibre" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 3))" />
             </MudTd>
             <MudTd DataLabel="Inasist." Class="d-none d-lg-table-cell">
-                <MudNumericField T="int?" @bind-Value="context.Inasistencias" Min="0" Variant="Variant.Outlined"
+                <MudNumericField T="int?" @ref="_refsEnteros[context.Indice][1]" @bind-Value="context.Inasistencias"
+                                 Min="0" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
-                                 Disabled="@context.ForzarLibre" />
+                                 Disabled="@context.ForzarLibre" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 4))" />
             </MudTd>
             <MudTd DataLabel="Justif." Class="d-none d-lg-table-cell">
-                <MudNumericField T="int?" @bind-Value="context.Justificadas" Min="0" Variant="Variant.Outlined"
+                <MudNumericField T="int?" @ref="_refsEnteros[context.Indice][2]" @bind-Value="context.Justificadas"
+                                 Min="0" Variant="Variant.Outlined"
                                  Margin="Margin.Dense" Style="max-width:80px" Immediate="true" HideSpinButtons="true"
-                                 Disabled="@context.ForzarLibre" />
+                                 Disabled="@context.ForzarLibre" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 5))" />
             </MudTd>
             <MudTd DataLabel="Resultante">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorResultante(context)">
@@ -116,11 +122,72 @@
     private decimal _notaPromocion;
     private bool _procesando;
 
+    // Refs de los casilleros para el salto con Enter: [fila][0..2] son las notas
+    // (1° Parc., 2° Parc., Recup.) y [fila][0..2] de enteros son Hs./Inasist./Justif.
+    private MudNumericField<decimal?>?[][] _refsNotas = [];
+    private MudNumericField<int?>?[][] _refsEnteros = [];
+
     protected override async Task OnParametersSetAsync()
     {
         _notaPromocion = await Confirmar.ObtenerNotaPromocionAsync(CancellationToken.None);
         _filas.Clear();
         _filas.AddRange(Filas.Select(FilaVm.Desde));
+        for (var i = 0; i < _filas.Count; i++)
+        {
+            _filas[i].Indice = i;
+        }
+
+        _refsNotas = [.. Enumerable.Range(0, _filas.Count).Select(_ => new MudNumericField<decimal?>?[3])];
+        _refsEnteros = [.. Enumerable.Range(0, _filas.Count).Select(_ => new MudNumericField<int?>?[3])];
+    }
+
+    /// <summary>
+    /// Enter avanza al casillero siguiente en el orden de carga (1° Parc. → 2° Parc.
+    /// → Recup. → Hs. → Inasist. → Justif.) y de la última columna pasa al primer
+    /// casillero de la fila siguiente, repitiendo las horas si aún no tiene.
+    /// </summary>
+    private async Task SaltarSiEnter(KeyboardEventArgs e, int fila, int columna)
+    {
+        if (e.Key != "Enter")
+        {
+            return;
+        }
+
+        var (f, c) = columna == 5 ? (fila + 1, 0) : (fila, columna + 1);
+        while (f < _filas.Count && _filas[f].ForzarLibre)
+        {
+            f++;
+        }
+
+        if (f >= _filas.Count)
+        {
+            return;
+        }
+
+        // Las horas de la comisión se repiten de un registro al siguiente.
+        if (f != fila && _filas[f].TotalHoras is null or 0 && _filas[fila].TotalHoras is > 0)
+        {
+            _filas[f].TotalHoras = _filas[fila].TotalHoras;
+        }
+
+        await EnfocarAsync(f, c);
+    }
+
+    private async Task EnfocarAsync(int fila, int columna)
+    {
+        if (columna <= 2)
+        {
+            if (_refsNotas[fila][columna] is { } nota)
+            {
+                await nota.FocusAsync();
+                await nota.SelectAsync();
+            }
+        }
+        else if (_refsEnteros[fila][columna - 3] is { } entero)
+        {
+            await entero.FocusAsync();
+            await entero.SelectAsync();
+        }
     }
 
     private static bool PuedePasarALibre(FilaVm f) =>
@@ -208,6 +275,9 @@
 
     private sealed class FilaVm
     {
+        /// <summary>Posición en la grilla, para el salto con Enter entre casilleros.</summary>
+        public int Indice { get; set; }
+
         public required string CodigoAlumno { get; init; }
 
         public string? Apellido { get; init; }

@@ -30,7 +30,7 @@
     @if (_filas.Count > 0)
     {
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Inventory2"
-                   Disabled="@_guardando" OnClick="PasarAArchivos">Pasar a archivos</MudButton>
+                   Disabled="@_guardando" OnClick="PasarAArchivos">Procesar mesa</MudButton>
     }
 </div>
 
@@ -101,17 +101,24 @@ else if (_buscado)
                     </MudChip>
                 </MudTd>
                 <MudTd DataLabel="Nota">
-                    <MudNumericField T="decimal?" @bind-Value="context.NotaActual" Min="0" Max="10"
+                    <MudNumericField T="decimal?" @ref="_refsNota[context.Indice]" @bind-Value="context.NotaActual"
+                                     Min="0" Max="10"
                                      Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:90px"
-                                     Immediate="true" HideSpinButtons="true" />
+                                     Immediate="true" HideSpinButtons="true"
+                                     OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 0))" />
                 </MudTd>
                 <MudTd DataLabel="Fecha">
-                    <MudDatePicker @bind-Date="context.FechaActual" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                   Style="max-width:140px" />
+                    <div style="max-width:170px;min-width:150px" @onkeydown="@(e => SaltarSiEnter(e, context.Indice, 1))">
+                        <MudDatePicker @ref="_refsFecha[context.Indice]" @bind-Date="context.FechaActual"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true"
+                                       ImmediateText="true" />
+                    </div>
                 </MudTd>
                 <MudTd DataLabel="Libro/Acta" Class="d-none d-md-table-cell">
-                    <MudTextField @bind-Value="context.ActaActual" MaxLength="10" Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" Style="max-width:110px" />
+                    <MudTextField @ref="_refsActa[context.Indice]" @bind-Value="context.ActaActual"
+                                  MaxLength="10" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Style="max-width:110px" Immediate="true"
+                                  OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 2))" />
                 </MudTd>
                 <MudTd DataLabel="Resultado">
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
@@ -133,6 +140,11 @@ else if (_buscado)
     private IReadOnlyList<CarreraListItemDto> _carreras = [];
     private readonly List<FilaVm> _filas = [];
     private List<string> _tiposExamen = [];
+
+    // Refs de los casilleros de carga para el salto con Enter, indexados por fila.
+    private MudNumericField<decimal?>?[] _refsNota = [];
+    private MudDatePicker?[] _refsFecha = [];
+    private MudTextField<string>?[] _refsActa = [];
 
     private CarreraListItemDto? _carreraSel;
     private string? _carrera;
@@ -229,8 +241,14 @@ else if (_buscado)
             var candidatos = await Candidatos.ObtenerAsync(_mesaSel.NumeroMesa, _carrera, _tipoExamen, CancellationToken.None);
             foreach (var c in candidatos)
             {
-                _filas.Add(FilaVm.Desde(c));
+                var fila = FilaVm.Desde(c);
+                fila.Indice = _filas.Count;
+                _filas.Add(fila);
             }
+
+            _refsNota = new MudNumericField<decimal?>?[_filas.Count];
+            _refsFecha = new MudDatePicker?[_filas.Count];
+            _refsActa = new MudTextField<string>?[_filas.Count];
 
             _buscado = true;
             if (_filas.Count == 0)
@@ -332,6 +350,62 @@ else if (_buscado)
         }
     }
 
+    /// <summary>
+    /// Enter avanza al casillero siguiente en el orden de carga (Nota → Fecha →
+    /// Libro/Acta) y del acta pasa a la nota del alumno siguiente, repitiendo
+    /// fecha y libro/acta si ese alumno aún no los tiene.
+    /// </summary>
+    private async Task SaltarSiEnter(KeyboardEventArgs e, int fila, int columna)
+    {
+        if (e.Key != "Enter")
+        {
+            return;
+        }
+
+        var (f, c) = columna == 2 ? (fila + 1, 0) : (fila, columna + 1);
+        if (f >= _filas.Count)
+        {
+            return;
+        }
+
+        // Al dejar la fecha con Enter, el popup del picker queda abierto: cerrarlo.
+        if (columna == 1 && _refsFecha[fila] is { } picker)
+        {
+            await picker.CloseAsync();
+        }
+
+        // La mesa se carga de corrido: fecha y libro/acta se repiten al alumno siguiente.
+        if (f != fila)
+        {
+            _filas[f].FechaActual ??= _filas[fila].FechaActual;
+            if (string.IsNullOrWhiteSpace(_filas[f].ActaActual) && !string.IsNullOrWhiteSpace(_filas[fila].ActaActual))
+            {
+                _filas[f].ActaActual = _filas[fila].ActaActual;
+            }
+        }
+
+        await EnfocarAsync(f, c);
+    }
+
+    private async Task EnfocarAsync(int fila, int columna)
+    {
+        switch (columna)
+        {
+            case 0 when _refsNota[fila] is { } nota:
+                await nota.FocusAsync();
+                await nota.SelectAsync();
+                break;
+            case 1 when _refsFecha[fila] is { } fecha:
+                await fecha.FocusAsync();
+                await fecha.SelectAsync();
+                break;
+            case 2 when _refsActa[fila] is { } acta:
+                await acta.FocusAsync();
+                await acta.SelectAsync();
+                break;
+        }
+    }
+
     private static DateOnly? ComoFecha(DateTime? fecha) => fecha is { } f ? DateOnly.FromDateTime(f) : null;
 
     /// <summary>
@@ -341,6 +415,9 @@ else if (_buscado)
     /// </summary>
     private sealed class FilaVm
     {
+        /// <summary>Posición en la grilla, para el salto con Enter entre casilleros.</summary>
+        public int Indice { get; set; }
+
         public required string CodigoAlumno { get; init; }
 
         public required string CodigoMateria { get; init; }
