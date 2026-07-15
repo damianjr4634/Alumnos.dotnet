@@ -1,8 +1,11 @@
+using Esba.Application.DTOs.Asistencias;
 using Esba.Application.DTOs.Certificados;
 using Esba.Application.DTOs.Examenes;
 using Esba.Application.Features.Administracion;
+using Esba.Application.Features.Asistencias;
 using Esba.Application.Features.Certificados;
 using Esba.Application.Features.Examenes;
+using Esba.Domain.Asistencias;
 using Esba.Domain.Enums;
 using Esba.Domain.Examenes;
 using Esba.Infrastructure;
@@ -310,6 +313,31 @@ app.MapGet("/actas/mesa/excel", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, ExcelMime, $"acta_mesa_{mesa}.xlsx")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
+}).RequireAuthorization();
+
+// Carpetas por comisión (planillas en blanco de asistencia o trabajos prácticos para
+// el docente): PDF inline (sucesor de lstplanasis.pas y lstNotasyPractico.pas).
+app.MapGet("/asistencias/carpeta/pdf", async (
+    string tipo, string carre, string cua, short? cutuco, string? codmat,
+    GenerarCarpetaComisionHandler handler, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<TipoCarpetaComision>(tipo, ignoreCase: true, out var tipoCarpeta))
+    {
+        return Results.BadRequest("Tipo de carpeta inválido.");
+    }
+
+    var command = new GenerarCarpetaComisionCommand
+    {
+        Tipo = tipoCarpeta,
+        CodigoCarrera = carre,
+        CuatrimestreAnio = cua,
+        Cutuco = cutuco,
+        CodigoMateria = string.IsNullOrWhiteSpace(codmat) ? null : codmat,
+    };
+    var resultado = await handler.GenerarPdfAsync(command, ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
 }).RequireAuthorization();
 
 app.Run();

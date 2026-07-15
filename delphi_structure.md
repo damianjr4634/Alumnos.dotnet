@@ -105,7 +105,7 @@
 | `Formulario carga de inasistencias/CargaInasistenciasComision.pas` | `TFrmCargaInaComi` | "Carga de Inasistencias" | Carga de inasistencias por comisión/fecha (versión original). |
 | `Formulario carga de inasistencias nuevo/CargaInasistenciasComisionNuevo.pas` | `TFrmCargaInaComiNuevo` | "Carga de Inasistencias" | Versión rediseñada del formulario anterior (contiene además una copia de respaldo en subcarpeta `bkp/`). |
 | `Formulario modificacion de inasistencias/ModificacionInasistenciasComision.pas` | `TFrmModiInaComi` | "Carga de Inasistencias" | Edición/corrección de inasistencias ya cargadas. |
-| `Formulario Listado de Asistencias/lstplanasis.pas` | `TFrmlstplanasis` | "Listado de Planillas de Asistencia" | Reporte de planillas de asistencia (usa `XXX_FALTAS_IMPRESI`, `XXX_FALTAS_PASLIBRE`). |
+| `Formulario Listado de Asistencias/lstplanasis.pas` | `TFrmlstplanasis` | "Listado de Planillas de Asistencia" | "Carpeta asistencia" del menú: imprime la planilla en blanco por comisión (nómina de `CURSADA` cursando/recursando + 25 columnas de días) dibujada a mano sobre GmPreview. SQL directo a `COMARM`/`CURSADA`; **no usa SPs** (corrección 2026-07-14: `XXX_FALTAS_IMPRESI`/`XXX_FALTAS_PASLIBRE` pertenecen a `ConsultaReincorporaciones.pas`). |
 | `Formulario Carga de permisos masivo/CargadePermisosMasivo.pas` | `TFrmCargaPermisos` | "Carga de permisos de examenes" | Carga masiva de permisos de examen para varios alumnos. |
 | `Formulario Permisos de Examenes/PermisoExamen.pas` | `TPermisosExamen` | "Permisos de Exámenes" | ABM de permisos de examen individuales (`PERMEXA`). |
 | `Web/CargadePermisosWeb.pas` | `TFrmCargaPermisosWeb` | "Permisos cargados via Web" | Sincroniza/revisa permisos de examen ingresados desde el portal web (misma base Firebird). |
@@ -120,7 +120,7 @@
 | `Formulario finales por mesa y comison/FinalesxMesayComision.pas` | `TFinalesmesacom` | "Finales por mesa y comisión" | Listado/carga de finales agrupados por mesa y comisión. |
 | `Formulario Listado de actas de examenes/lstactasexamenes.pas` | `TFrmlstactas` | "Actas de Exámenes" | Impresión de actas de exámenes finales. |
 | `Formulario Listado de actas de A-REGULAR/lstactasARegular.pas` | `TFrmlstARegular` | "Actas de A/Regular" | Impresión de actas para alumnos libres/regulares. |
-| `Formulario listado notas y practico/lstNotasyPractico.pas` | `TFrmPractNotas` | "FrmPractNotas" | Listado combinado de notas y trabajos prácticos. |
+| `Formulario listado notas y practico/lstNotasyPractico.pas` | `TFrmPractNotas` | "FrmPractNotas" | Formulario compartido por dos opciones de menú (FrmEsba lo parametriza con plantilla WMF y posiciones): "Carpeta de trabajos practicos" (`trabajos_practicos.wmf`: TP 1–5 con fecha + condición) y "Planillas de profesores" (`Planilla_calificaciones.wmf`: bimestres + calificación final). Imprime la nómina de `CURSADA` cursando/recursando sobre la plantilla; SQL directo, sin SPs. ⚠️ Su impresión omite el filtro `BAJA='N'` que su propio export a Excel sí aplica (descuido). |
 
 #### Constancias, Certificados y Equivalencias
 | Carpeta / Archivo | Clase | Caption | Función |

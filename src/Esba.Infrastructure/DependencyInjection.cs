@@ -193,6 +193,14 @@ public static class DependencyInjection
         services.AddScoped<IPaseLibreProcedure, PaseLibreProcedure>();
         services.AddScoped<PasarMateriasALibreHandler>();
 
+        // Asistencias: carpetas por comisión (planillas en blanco de asistencia y de
+        // trabajos prácticos, sucesoras de lstplanasis.pas y lstNotasyPractico.pas —
+        // "Carpeta asistencia" y "Carpeta de trabajos practicos" del menú legacy).
+        services.AddScoped<ICarpetaComisionQuery, CarpetaComisionQuery>();
+        services.AddScoped<ICarpetaComisionReportService, CarpetaComisionPdfService>();
+        services.AddScoped<IValidator<GenerarCarpetaComisionCommand>, GenerarCarpetaComisionValidator>();
+        services.AddScoped<GenerarCarpetaComisionHandler>();
+
         // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();
         services.AddScoped<ITipoMesaQuery, TipoMesaQuery>();

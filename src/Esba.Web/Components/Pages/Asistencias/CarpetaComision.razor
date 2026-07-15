@@ -1,0 +1,164 @@
+@page "/asistencias/carpeta"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Carreras
+@using Esba.Domain.Asistencias
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IMateriasQuery Materias
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — @Titulo</PageTitle>
+
+@* Filtros de las carpetas por comisión (sucesoras de lstplanasis.pas y
+   lstNotasyPractico.pas, "Carpeta asistencia" y "Carpeta de trabajos practicos" del
+   menú legacy). Solo markup, binding y apertura del endpoint que genera el PDF (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">@Titulo</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Planilla en blanco por comisión para la carpeta del docente</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="TipoCarpetaComision" @bind-Value="_tipo" Label="Tipo de planilla" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="TipoCarpetaComision" Value="TipoCarpetaComision.Asistencia">Asistencia</MudSelectItem>
+                <MudSelectItem T="TipoCarpetaComision" Value="TipoCarpetaComision.TrabajosPracticos">Trabajos prácticos</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_cuatrimestre" Label="Cuatrimestre (ej. 1/24)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="1">
+            <MudNumericField T="short?" @bind-Value="_cutuco" Label="Comisión" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" HideSpinButtons="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudAutocomplete T="MateriaListItemDto" Label="Materia (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Disabled="@(_carreraSel is null)"
+                             Value="_materiaSel" ValueChanged="SeleccionarMateria"
+                             SearchFunc="BuscarMateria"
+                             ToStringFunc="@(m => m is null ? string.Empty : $"{m.Codigo} — {m.Nombre ?? m.Sigla}")" />
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   Disabled="@(!PuedeGenerar)" OnClick="AbrirPdf">Ver PDF</MudButton>
+    </div>
+</MudPaper>
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary">
+    La comisión y la materia son opcionales: en blanco sale una hoja por cada comisión del cuatrimestre.
+    La planilla de asistencia lista los cursantes (y recursantes al pie) con 25 columnas de días para marcar
+    a mano; la de trabajos prácticos, con columnas TP 1 a TP 5 (cada una con su fecha) y condición.
+</MudText>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    /// <summary>Tipo inicial vía query string ("tp" o "asistencia"), para las dos entradas de menú.</summary>
+    [SupplyParameterFromQuery(Name = "tipo")]
+    public string? TipoInicial { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private IReadOnlyList<MateriaListItemDto> _materias = [];
+    private CarreraListItemDto? _carreraSel;
+    private MateriaListItemDto? _materiaSel;
+    private TipoCarpetaComision _tipo = TipoCarpetaComision.Asistencia;
+    private string? _cuatrimestre;
+    private short? _cutuco;
+
+    private bool PuedeGenerar => _carreraSel is not null && !string.IsNullOrWhiteSpace(_cuatrimestre);
+
+    private string Titulo => _tipo == TipoCarpetaComision.Asistencia
+        ? "Carpeta de asistencia"
+        : "Carpeta de trabajos prácticos";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    protected override void OnParametersSet()
+    {
+        _tipo = TipoInicial?.Trim().ToLowerInvariant() is "tp" or "trabajospracticos"
+            ? TipoCarpetaComision.TrabajosPracticos
+            : TipoCarpetaComision.Asistencia;
+    }
+
+    private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
+    {
+        _carreraSel = carrera;
+        _materiaSel = null;
+        // El combo de materias replica el lookup del legacy (ComboMateriaButtonClick):
+        // MATERIAS de la carrera elegida, excluyendo las dadas de baja (ESTADO<>'B').
+        _materias = carrera is null
+            ? []
+            : (await Materias.ListarPorCarreraAsync(carrera.Codigo, CancellationToken.None))
+                .Where(m => !m.DadaDeBaja).ToList();
+    }
+
+    private void SeleccionarMateria(MateriaListItemDto? materia) => _materiaSel = materia;
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private Task<IEnumerable<MateriaListItemDto>> BuscarMateria(string? texto, CancellationToken ct)
+    {
+        IEnumerable<MateriaListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _materias
+            : _materias.Where(m =>
+                m.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (m.Sigla?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (m.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private async Task AbrirPdf()
+    {
+        if (!PuedeGenerar)
+        {
+            Snackbar.Add("Elegí carrera y cuatrimestre.", Severity.Warning);
+            return;
+        }
+
+        var url = "/asistencias/carpeta/pdf"
+            + $"?tipo={_tipo}"
+            + $"&carre={Uri.EscapeDataString(_carreraSel!.Codigo)}"
+            + $"&cua={Uri.EscapeDataString(_cuatrimestre!)}";
+
+        if (_cutuco is > 0)
+        {
+            url += $"&cutuco={_cutuco}";
+        }
+
+        if (_materiaSel is not null)
+        {
+            url += $"&codmat={Uri.EscapeDataString(_materiaSel.Codigo)}";
+        }
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+}
