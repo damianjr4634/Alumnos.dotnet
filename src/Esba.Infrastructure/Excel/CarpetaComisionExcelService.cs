@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using ClosedXML.Excel;
 using Esba.Application.Abstractions;
 using Esba.Application.DTOs.Asistencias;
@@ -9,18 +10,20 @@ namespace Esba.Infrastructure.Excel;
 /// <summary>
 /// Exportación a Excel de las carpetas por comisión con ClosedXML (reemplaza el
 /// BtnExcel de lstNotasyPractico.pas, que abría por OLE la plantilla
-/// Planilla_de_notas.xls y generaba un .xls por comisión). Un único .xlsx con una
-/// hoja por comisión y la grilla en blanco según el tipo: TP 1–5 + condición para
-/// trabajos prácticos, bimestres + calificación + notificado para la planilla de
-/// profesores (a diferencia del legacy, que exportaba siempre el formato de
-/// calificaciones sin importar el menú de origen).
+/// Planilla_de_notas.xls). Como el legacy, un archivo por comisión/materia
+/// (Notas_{CUTUCO}_{materia}); con varias comisiones se entregan en un .zip
+/// (equivalente web del directorio de destino que elegía el usuario). La grilla en
+/// blanco acompaña al tipo: TP 1–5 + condición para trabajos prácticos, bimestres +
+/// calificación + notificado para la planilla de profesores (a diferencia del
+/// legacy, que exportaba siempre el formato de calificaciones sin importar el menú
+/// de origen).
 /// </summary>
 public sealed class CarpetaComisionExcelService : ICarpetaComisionExcelService
 {
     private const int CantidadTp = 5;
     private const int NotasPorBimestre = 5;
 
-    public byte[] GenerarCarpeta(CarpetaComisionModel model)
+    public CarpetaComisionExcelResultado GenerarCarpeta(CarpetaComisionModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
@@ -30,37 +33,94 @@ public sealed class CarpetaComisionExcelService : ICarpetaComisionExcelService
                 "La carpeta de asistencia no tiene exportación a Excel.", nameof(model));
         }
 
-        using var libro = new XLWorkbook();
-        var indice = 0;
-        foreach (var seccion in model.Secciones)
+        var archivos = model.Secciones
+            .Select(seccion => (Nombre: NombreArchivo(model.Tipo, seccion.Cabecera),
+                                Contenido: GenerarLibro(model, seccion)))
+            .ToList();
+
+        if (archivos.Count == 1)
         {
-            indice++;
-            var hoja = libro.AddWorksheet(NombreHojaValido(
-                $"{seccion.Cabecera.Cutuco}-{seccion.Cabecera.CodigoMateria}-{indice}"));
-
-            var fila = Cabecera(hoja, model, seccion.Cabecera);
-
-            if (model.Tipo == TipoCarpetaComision.TrabajosPracticos)
+            return new CarpetaComisionExcelResultado
             {
-                TablaTrabajosPracticos(hoja, ref fila, seccion);
-            }
-            else
-            {
-                TablaCalificaciones(hoja, ref fila, seccion);
-            }
-
-            // Anchos explícitos: AdjustToContents ignora las celdas combinadas del
-            // encabezado y colapsaría las columnas de la grilla, que van en blanco
-            // (se completan a mano).
-            AnchosGrilla(hoja, model.Tipo);
-
-            // Impresión en una sola hoja apaisada (la grilla es más ancha que un A4
-            // vertical y se partiría en dos páginas).
-            hoja.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-            hoja.PageSetup.FitToPages(1, 0);
+                Contenido = archivos[0].Contenido,
+                NombreArchivo = archivos[0].Nombre,
+                EsZip = false,
+            };
         }
 
+        return new CarpetaComisionExcelResultado
+        {
+            Contenido = Comprimir(archivos),
+            NombreArchivo = model.Tipo == TipoCarpetaComision.TrabajosPracticos
+                ? "trabajos_practicos.zip"
+                : "planillas_calificaciones.zip",
+            EsZip = true,
+        };
+    }
+
+    private static byte[] GenerarLibro(CarpetaComisionModel model, CarpetaComisionSeccion seccion)
+    {
+        using var libro = new XLWorkbook();
+        var hoja = libro.AddWorksheet(NombreHojaValido(
+            $"{seccion.Cabecera.Cutuco}-{seccion.Cabecera.CodigoMateria}"));
+
+        var fila = Cabecera(hoja, model, seccion.Cabecera);
+
+        if (model.Tipo == TipoCarpetaComision.TrabajosPracticos)
+        {
+            TablaTrabajosPracticos(hoja, ref fila, seccion);
+        }
+        else
+        {
+            TablaCalificaciones(hoja, ref fila, seccion);
+        }
+
+        // Anchos explícitos: AdjustToContents ignora las celdas combinadas del
+        // encabezado y colapsaría las columnas de la grilla, que van en blanco
+        // (se completan a mano).
+        AnchosGrilla(hoja, model.Tipo);
+
+        // Impresión en una sola hoja apaisada (la grilla es más ancha que un A4
+        // vertical y se partiría en dos páginas).
+        hoja.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+        hoja.PageSetup.FitToPages(1, 0);
+
         return AGuardar(libro);
+    }
+
+    /// <summary>Como el legacy: Notas_{CUTUCO}_{materia}.xls (acá con prefijo por tipo y .xlsx).</summary>
+    private static string NombreArchivo(TipoCarpetaComision tipo, CarpetaComisionCabeceraDto cabecera)
+    {
+        var prefijo = tipo == TipoCarpetaComision.TrabajosPracticos ? "TP" : "Notas";
+        var materia = new string((cabecera.DescripcionMateria ?? cabecera.CodigoMateria ?? string.Empty)
+            .Trim()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')
+            .ToArray());
+        return $"{prefijo}_{cabecera.Cutuco}_{materia}.xlsx";
+    }
+
+    private static byte[] Comprimir(IReadOnlyList<(string Nombre, byte[] Contenido)> archivos)
+    {
+        using var memoria = new MemoryStream();
+        using (var zip = new ZipArchive(memoria, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            // Un mismo nombre puede repetirse (p. ej. comisiones sin materia): se
+            // desambigua con un sufijo para no romper el zip.
+            var usados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (nombre, contenido) in archivos)
+            {
+                var unico = nombre;
+                for (var n = 2; !usados.Add(unico); n++)
+                {
+                    unico = $"{Path.GetFileNameWithoutExtension(nombre)}_{n}.xlsx";
+                }
+
+                using var entrada = zip.CreateEntry(unico, CompressionLevel.Fastest).Open();
+                entrada.Write(contenido);
+            }
+        }
+
+        return memoria.ToArray();
     }
 
     private static int Cabecera(IXLWorksheet hoja, CarpetaComisionModel model, CarpetaComisionCabeceraDto cabecera)

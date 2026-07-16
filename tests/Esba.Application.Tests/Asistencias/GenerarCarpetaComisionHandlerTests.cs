@@ -141,13 +141,19 @@ public class GenerarCarpetaComisionHandlerTests
             .Returns([]);
 
         CarpetaComisionModel? capturado = null;
-        _excel.GenerarCarpeta(Arg.Do<CarpetaComisionModel>(m => capturado = m)).Returns([7]);
+        var esperado = new CarpetaComisionExcelResultado
+        {
+            Contenido = [7],
+            NombreArchivo = "Notas_111_Mat.xlsx",
+            EsZip = false,
+        };
+        _excel.GenerarCarpeta(Arg.Do<CarpetaComisionModel>(m => capturado = m)).Returns(esperado);
 
         var resultado = await CrearHandler().GenerarExcelAsync(
             Comando(TipoCarpetaComision.PlanillaProfesores), CancellationToken.None);
 
         Assert.True(resultado.IsSuccess);
-        Assert.Equal([7], resultado.Value);
+        Assert.Same(esperado, resultado.Value);
         Assert.Equal(TipoCarpetaComision.PlanillaProfesores, capturado!.Tipo);
         _reporte.DidNotReceiveWithAnyArgs().GenerarCarpeta(default!);
     }

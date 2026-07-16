@@ -359,11 +359,13 @@ app.MapGet("/asistencias/carpeta/excel", async (
         CodigoMateria = string.IsNullOrWhiteSpace(codmat) ? null : codmat,
     };
     var resultado = await handler.GenerarExcelAsync(command, ct);
-    var nombre = tipoCarpeta == TipoCarpetaComision.TrabajosPracticos
-        ? "trabajos_practicos"
-        : "planilla_calificaciones";
+    // Un archivo por comisión/materia como el legacy: .xlsx directo si es uno,
+    // .zip con todos si el filtro abarca varias comisiones.
     return resultado.IsSuccess && resultado.Value is not null
-        ? Results.File(resultado.Value, ExcelMime, $"{nombre}_{carre}_{cua.Replace('/', '-')}.xlsx")
+        ? Results.File(
+            resultado.Value.Contenido,
+            resultado.Value.EsZip ? "application/zip" : ExcelMime,
+            resultado.Value.NombreArchivo)
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
 }).RequireAuthorization();
 

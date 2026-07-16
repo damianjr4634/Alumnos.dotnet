@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using ClosedXML.Excel;
 using Esba.Application.DTOs.Asistencias;
 using Esba.Domain.Asistencias;
@@ -7,60 +8,70 @@ namespace Esba.IntegrationTests.Reports;
 
 /// <summary>
 /// Tests del export Excel de las carpetas por comisión (sucesor del BtnExcel de
-/// lstNotasyPractico.pas): verificamos hoja por comisión, encabezados según el tipo
-/// y la nómina con recursantes al pie, reabriendo el .xlsx con ClosedXML. No
-/// necesitan base de datos (sin el trait Integration).
+/// lstNotasyPractico.pas): un archivo por comisión/materia como el legacy — .xlsx
+/// directo si es una sola, .zip si son varias —, con encabezados según el tipo y la
+/// nómina con recursantes al pie; se verifica reabriendo el .xlsx con ClosedXML.
+/// No necesitan base de datos (sin el trait Integration).
 /// </summary>
 public class CarpetaComisionExcelServiceTests
 {
-    private static CarpetaComisionModel Modelo(TipoCarpetaComision tipo) => new()
+    private static CarpetaComisionSeccion Seccion1 => new()
+    {
+        Cabecera = new CarpetaComisionCabeceraDto
+        {
+            Cutuco = 111, CodigoMateria = "01", DescripcionMateria = "Contabilidad",
+            Docente = "RODRIGUEZ, LUIS", TitularSuplente = "T",
+        },
+        Cursando =
+        [
+            new CarpetaComisionAlumnoDto { CodigoAlumno = "100", Apellido = "Pérez", Nombre = "Ana", Condicion = "CURSANDO", Cutuco = 111, CodigoMateria = "01" },
+            new CarpetaComisionAlumnoDto { CodigoAlumno = "101", Apellido = "Gómez", Nombre = "Luis", Condicion = "CURSANDO", Cutuco = 111, CodigoMateria = "01" },
+        ],
+        Recursantes =
+        [
+            new CarpetaComisionAlumnoDto { CodigoAlumno = "102", Apellido = "Ruiz", Nombre = "Eva", Condicion = "RECURSANDO", Cutuco = 111, CodigoMateria = "01" },
+        ],
+    };
+
+    private static CarpetaComisionSeccion Seccion2 => new()
+    {
+        Cabecera = new CarpetaComisionCabeceraDto
+        {
+            Cutuco = 222, CodigoMateria = "02", DescripcionMateria = "Psicología",
+            Docente = null, TitularSuplente = null,
+        },
+        Cursando = [],
+        Recursantes = [],
+    };
+
+    private static CarpetaComisionModel Modelo(TipoCarpetaComision tipo, params CarpetaComisionSeccion[] secciones) => new()
     {
         Tipo = tipo,
         CarreraLarga = "Bachillerato de Adultos",
         CuatrimestreAnio = "1/24",
         FechaEmision = new DateOnly(2026, 7, 15),
-        Secciones =
-        [
-            new CarpetaComisionSeccion
-            {
-                Cabecera = new CarpetaComisionCabeceraDto
-                {
-                    Cutuco = 111, CodigoMateria = "01", DescripcionMateria = "Contabilidad",
-                    Docente = "RODRIGUEZ, LUIS", TitularSuplente = "T",
-                },
-                Cursando =
-                [
-                    new CarpetaComisionAlumnoDto { CodigoAlumno = "100", Apellido = "Pérez", Nombre = "Ana", Condicion = "CURSANDO", Cutuco = 111, CodigoMateria = "01" },
-                    new CarpetaComisionAlumnoDto { CodigoAlumno = "101", Apellido = "Gómez", Nombre = "Luis", Condicion = "CURSANDO", Cutuco = 111, CodigoMateria = "01" },
-                ],
-                Recursantes =
-                [
-                    new CarpetaComisionAlumnoDto { CodigoAlumno = "102", Apellido = "Ruiz", Nombre = "Eva", Condicion = "RECURSANDO", Cutuco = 111, CodigoMateria = "01" },
-                ],
-            },
-            new CarpetaComisionSeccion
-            {
-                Cabecera = new CarpetaComisionCabeceraDto
-                {
-                    Cutuco = 222, CodigoMateria = "02", DescripcionMateria = "Psicología",
-                    Docente = null, TitularSuplente = null,
-                },
-                Cursando = [],
-                Recursantes = [],
-            },
-        ],
+        Secciones = secciones,
     };
 
     [Fact]
-    public void TrabajosPracticos_Excel_UnaHojaPorComision_ConTpsYCondicion()
+    public void TrabajosPracticos_VariasComisiones_GeneraUnZipConUnXlsxPorComision()
     {
-        var bytes = new CarpetaComisionExcelService().GenerarCarpeta(Modelo(TipoCarpetaComision.TrabajosPracticos));
+        var resultado = new CarpetaComisionExcelService().GenerarCarpeta(
+            Modelo(TipoCarpetaComision.TrabajosPracticos, Seccion1, Seccion2));
 
-        using var libro = new XLWorkbook(new MemoryStream(bytes));
-        Assert.Equal(2, libro.Worksheets.Count);
+        Assert.True(resultado.EsZip);
+        Assert.Equal("trabajos_practicos.zip", resultado.NombreArchivo);
 
-        var hoja = libro.Worksheet(1);
-        var textos = hoja.CellsUsed().Select(c => c.GetString()).ToList();
+        using var zip = new ZipArchive(new MemoryStream(resultado.Contenido), ZipArchiveMode.Read);
+        Assert.Equal(2, zip.Entries.Count);
+        Assert.Equal("TP_111_Contabilidad.xlsx", zip.Entries[0].Name);
+        Assert.Equal("TP_222_Psicología.xlsx", zip.Entries[1].Name);
+
+        using var memoria = new MemoryStream();
+        zip.Entries[0].Open().CopyTo(memoria);
+        memoria.Position = 0;
+        using var libro = new XLWorkbook(memoria);
+        var textos = libro.Worksheet(1).CellsUsed().Select(c => c.GetString()).ToList();
         Assert.Contains("CARPETA DE TRABAJOS PRÁCTICOS", textos);
         Assert.Contains("TP 1", textos);
         Assert.Contains("TP 5", textos);
@@ -71,13 +82,16 @@ public class CarpetaComisionExcelServiceTests
     }
 
     [Fact]
-    public void PlanillaProfesores_Excel_ConBimestresCalificacionYNotificado()
+    public void PlanillaProfesores_UnaComision_GeneraElXlsxDirecto_ConBimestresCalificacionYNotificado()
     {
-        var bytes = new CarpetaComisionExcelService().GenerarCarpeta(Modelo(TipoCarpetaComision.PlanillaProfesores));
+        var resultado = new CarpetaComisionExcelService().GenerarCarpeta(
+            Modelo(TipoCarpetaComision.PlanillaProfesores, Seccion1));
 
-        using var libro = new XLWorkbook(new MemoryStream(bytes));
-        var hoja = libro.Worksheet(1);
-        var textos = hoja.CellsUsed().Select(c => c.GetString()).ToList();
+        Assert.False(resultado.EsZip);
+        Assert.Equal("Notas_111_Contabilidad.xlsx", resultado.NombreArchivo);
+
+        using var libro = new XLWorkbook(new MemoryStream(resultado.Contenido));
+        var textos = libro.Worksheet(1).CellsUsed().Select(c => c.GetString()).ToList();
         Assert.Contains("PLANILLA DE CALIFICACIONES", textos);
         Assert.Contains("1er. Bimestre", textos);
         Assert.Contains("2do Bimestre", textos);
@@ -94,6 +108,6 @@ public class CarpetaComisionExcelServiceTests
     public void Asistencia_Excel_NoSoportada_Arroja()
     {
         Assert.Throws<ArgumentException>(() =>
-            new CarpetaComisionExcelService().GenerarCarpeta(Modelo(TipoCarpetaComision.Asistencia)));
+            new CarpetaComisionExcelService().GenerarCarpeta(Modelo(TipoCarpetaComision.Asistencia, Seccion1)));
     }
 }

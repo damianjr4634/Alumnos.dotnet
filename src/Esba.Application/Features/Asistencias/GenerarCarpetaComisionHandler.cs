@@ -49,20 +49,22 @@ public sealed class GenerarCarpetaComisionHandler
             : Result.Error<byte[]>(modelo.Message ?? "No se pudo generar la carpeta.");
     }
 
-    public async Task<Result<byte[]>> GenerarExcelAsync(GenerarCarpetaComisionCommand command, CancellationToken ct)
+    public async Task<Result<CarpetaComisionExcelResultado>> GenerarExcelAsync(
+        GenerarCarpetaComisionCommand command, CancellationToken ct)
     {
         // El Excel legacy existía solo en lstNotasyPractico (TP y planilla de
         // profesores); el de asistencia volcaba la grilla de comisiones, cubierta
         // por el listado de comisiones del hito 6.
         if (command.Tipo == TipoCarpetaComision.Asistencia)
         {
-            return Result.Error<byte[]>("La carpeta de asistencia no tiene exportación a Excel.");
+            return Result.Error<CarpetaComisionExcelResultado>(
+                "La carpeta de asistencia no tiene exportación a Excel.");
         }
 
         var modelo = await ArmarModeloAsync(command, ct).ConfigureAwait(false);
         return modelo.IsSuccess && modelo.Value is not null
             ? Result.Ok(_excel.GenerarCarpeta(modelo.Value))
-            : Result.Error<byte[]>(modelo.Message ?? "No se pudo generar la carpeta.");
+            : Result.Error<CarpetaComisionExcelResultado>(modelo.Message ?? "No se pudo generar la carpeta.");
     }
 
     private async Task<Result<CarpetaComisionModel>> ArmarModeloAsync(
