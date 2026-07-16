@@ -13,7 +13,7 @@ services:
     # Tag versionado: subilo en cada deploy (1.0.1, 1.0.2, …). Con un tag fijo,
     # Portainer/Docker reutiliza la imagen existente por nombre y no toma el
     # rebuild; cambiar el tag lo obliga a usar la imagen nueva.
-    image: esba-web:1.0.3
+    image: esba-web:1.0.4
     build:
       context: .
       dockerfile: ./Dockerfile
