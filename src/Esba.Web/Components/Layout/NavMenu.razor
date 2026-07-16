@@ -25,15 +25,21 @@
 
     <MudNavGroup Title="Asistencias" Icon="@Icons.Material.Filled.EventAvailable" Expanded="false">
         <MudNavLink Href="/asistencias/carga" Icon="@Icons.Material.Filled.EditCalendar">Carga de inasistencias</MudNavLink>
-        <MudNavLink Href="/asistencias/planillas" Icon="@Icons.Material.Filled.Summarize">Planillas de asistencia</MudNavLink>
-        <MudNavLink Href="/asistencias/carpeta" Icon="@Icons.Material.Filled.FactCheck">Carpeta de asistencia</MudNavLink>
-        <MudNavLink Href="/asistencias/carpeta?tipo=tp" Icon="@Icons.Material.Filled.Assignment">Carpeta de trabajos prácticos</MudNavLink>
     </MudNavGroup>
 
     <MudNavGroup Title="Exámenes" Icon="@Icons.Material.Filled.Grading" Expanded="false">
         <MudNavLink Href="/examenes/mesas" Icon="@Icons.Material.Filled.Grading">Mesas de exámenes</MudNavLink>
         <MudNavLink Href="/examenes/permisos-masivo" Icon="@Icons.Material.Filled.AssignmentTurnedIn">Permisos (carga masiva)</MudNavLink>
         <MudNavLink Href="/examenes/notas-finales" Icon="@Icons.Material.Filled.Grading">Notas de finales</MudNavLink>
+    </MudNavGroup>
+
+    @* Salidas impresas (PDF/Excel) agrupadas en un solo lugar, sin importar el
+       área de origen (asistencias o exámenes). *@
+    <MudNavGroup Title="Planillas" Icon="@Icons.Material.Filled.Print" Expanded="false">
+        <MudNavLink Href="/asistencias/planillas" Icon="@Icons.Material.Filled.Summarize">Planillas de asistencia</MudNavLink>
+        <MudNavLink Href="/asistencias/carpeta" Icon="@Icons.Material.Filled.FactCheck">Carpeta de asistencia</MudNavLink>
+        <MudNavLink Href="/asistencias/carpeta?tipo=tp" Icon="@Icons.Material.Filled.Assignment">Carpeta de trabajos prácticos</MudNavLink>
+        <MudNavLink Href="/asistencias/carpeta?tipo=profesores" Icon="@Icons.Material.Filled.Grade">Planilla de profesores</MudNavLink>
         <MudNavLink Href="/examenes/actas/mesa" Icon="@Icons.Material.Filled.Print">Actas volantes (mesa)</MudNavLink>
         <MudNavLink Href="/examenes/actas/comision" Icon="@Icons.Material.Filled.Print">Actas por comisión</MudNavLink>
     </MudNavGroup>

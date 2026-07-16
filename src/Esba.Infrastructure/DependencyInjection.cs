@@ -198,6 +198,7 @@ public static class DependencyInjection
         // "Carpeta asistencia" y "Carpeta de trabajos practicos" del menú legacy).
         services.AddScoped<ICarpetaComisionQuery, CarpetaComisionQuery>();
         services.AddScoped<ICarpetaComisionReportService, CarpetaComisionPdfService>();
+        services.AddScoped<ICarpetaComisionExcelService, CarpetaComisionExcelService>();
         services.AddScoped<IValidator<GenerarCarpetaComisionCommand>, GenerarCarpetaComisionValidator>();
         services.AddScoped<GenerarCarpetaComisionHandler>();
 

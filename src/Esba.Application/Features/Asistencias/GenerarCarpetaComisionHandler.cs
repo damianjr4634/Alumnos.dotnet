@@ -1,5 +1,6 @@
 using Esba.Application.Abstractions;
 using Esba.Application.DTOs.Asistencias;
+using Esba.Domain.Asistencias;
 using Esba.Domain.Common;
 using FluentValidation;
 
@@ -7,10 +8,11 @@ namespace Esba.Application.Features.Asistencias;
 
 /// <summary>
 /// Caso de uso de lectura que arma una carpeta por comisión (planilla en blanco de
-/// asistencia o de trabajos prácticos para la carpeta del docente) y la entrega como
-/// PDF. Sucesor de los ImprimirClick de lstplanasis.pas ("Carpeta asistencia") y
-/// lstNotasyPractico.pas ("Carpeta de trabajos practicos"), sin SQL en la UI ni
-/// globales (§2.1, §2.3).
+/// asistencia, de trabajos prácticos o de calificaciones para la carpeta del docente)
+/// y la entrega como PDF o Excel. Sucesor de los ImprimirClick/BtnExcelClick de
+/// lstplanasis.pas ("Carpeta asistencia") y lstNotasyPractico.pas ("Carpeta de
+/// trabajos practicos" y "Planillas de profesores"), sin SQL en la UI ni globales
+/// (§2.1, §2.3).
 /// </summary>
 public sealed class GenerarCarpetaComisionHandler
 {
@@ -20,6 +22,7 @@ public sealed class GenerarCarpetaComisionHandler
     private readonly ICarpetaComisionQuery _carpeta;
     private readonly IConstanciasQuery _constancias;
     private readonly ICarpetaComisionReportService _reporte;
+    private readonly ICarpetaComisionExcelService _excel;
     private readonly TimeProvider _clock;
 
     public GenerarCarpetaComisionHandler(
@@ -27,21 +30,48 @@ public sealed class GenerarCarpetaComisionHandler
         ICarpetaComisionQuery carpeta,
         IConstanciasQuery constancias,
         ICarpetaComisionReportService reporte,
+        ICarpetaComisionExcelService excel,
         TimeProvider clock)
     {
         _validator = validator;
         _carpeta = carpeta;
         _constancias = constancias;
         _reporte = reporte;
+        _excel = excel;
         _clock = clock;
     }
 
     public async Task<Result<byte[]>> GenerarPdfAsync(GenerarCarpetaComisionCommand command, CancellationToken ct)
     {
+        var modelo = await ArmarModeloAsync(command, ct).ConfigureAwait(false);
+        return modelo.IsSuccess && modelo.Value is not null
+            ? Result.Ok(_reporte.GenerarCarpeta(modelo.Value))
+            : Result.Error<byte[]>(modelo.Message ?? "No se pudo generar la carpeta.");
+    }
+
+    public async Task<Result<byte[]>> GenerarExcelAsync(GenerarCarpetaComisionCommand command, CancellationToken ct)
+    {
+        // El Excel legacy existía solo en lstNotasyPractico (TP y planilla de
+        // profesores); el de asistencia volcaba la grilla de comisiones, cubierta
+        // por el listado de comisiones del hito 6.
+        if (command.Tipo == TipoCarpetaComision.Asistencia)
+        {
+            return Result.Error<byte[]>("La carpeta de asistencia no tiene exportación a Excel.");
+        }
+
+        var modelo = await ArmarModeloAsync(command, ct).ConfigureAwait(false);
+        return modelo.IsSuccess && modelo.Value is not null
+            ? Result.Ok(_excel.GenerarCarpeta(modelo.Value))
+            : Result.Error<byte[]>(modelo.Message ?? "No se pudo generar la carpeta.");
+    }
+
+    private async Task<Result<CarpetaComisionModel>> ArmarModeloAsync(
+        GenerarCarpetaComisionCommand command, CancellationToken ct)
+    {
         var validacion = await _validator.ValidateAsync(command, ct).ConfigureAwait(false);
         if (!validacion.IsValid)
         {
-            return Result.Error<byte[]>(validacion.Errors[0].ErrorMessage);
+            return Result.Error<CarpetaComisionModel>(validacion.Errors[0].ErrorMessage);
         }
 
         var carrera = await _constancias.ObtenerDatosCarreraAsync(command.CodigoCarrera, ct).ConfigureAwait(false);
@@ -52,7 +82,7 @@ public sealed class GenerarCarpetaComisionHandler
 
         if (cabeceras.Count == 0)
         {
-            return Result.Error<byte[]>("No hay datos para mostrar.");
+            return Result.Error<CarpetaComisionModel>("No hay datos para mostrar.");
         }
 
         var alumnos = await _carpeta.ObtenerAlumnosAsync(
@@ -77,16 +107,14 @@ public sealed class GenerarCarpetaComisionHandler
             };
         }).ToList();
 
-        var modelo = new CarpetaComisionModel
+        return Result.Ok(new CarpetaComisionModel
         {
             Tipo = command.Tipo,
             CarreraLarga = carrera?.Nombre ?? command.CodigoCarrera,
             CuatrimestreAnio = command.CuatrimestreAnio,
             FechaEmision = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime),
             Secciones = secciones,
-        };
-
-        return Result.Ok(_reporte.GenerarCarpeta(modelo));
+        });
     }
 
     private static bool EsRecursante(CarpetaComisionAlumnoDto alumno) =>

@@ -315,8 +315,9 @@ app.MapGet("/actas/mesa/excel", async (
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
 }).RequireAuthorization();
 
-// Carpetas por comisión (planillas en blanco de asistencia o trabajos prácticos para
-// el docente): PDF inline (sucesor de lstplanasis.pas y lstNotasyPractico.pas).
+// Carpetas por comisión (planillas en blanco de asistencia, trabajos prácticos o
+// calificaciones para el docente): PDF inline y export Excel (sucesor de
+// lstplanasis.pas y lstNotasyPractico.pas).
 app.MapGet("/asistencias/carpeta/pdf", async (
     string tipo, string carre, string cua, short? cutuco, string? codmat,
     GenerarCarpetaComisionHandler handler, CancellationToken ct) =>
@@ -337,6 +338,32 @@ app.MapGet("/asistencias/carpeta/pdf", async (
     var resultado = await handler.GenerarPdfAsync(command, ct);
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
+}).RequireAuthorization();
+
+app.MapGet("/asistencias/carpeta/excel", async (
+    string tipo, string carre, string cua, short? cutuco, string? codmat,
+    GenerarCarpetaComisionHandler handler, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<TipoCarpetaComision>(tipo, ignoreCase: true, out var tipoCarpeta))
+    {
+        return Results.BadRequest("Tipo de carpeta inválido.");
+    }
+
+    var command = new GenerarCarpetaComisionCommand
+    {
+        Tipo = tipoCarpeta,
+        CodigoCarrera = carre,
+        CuatrimestreAnio = cua,
+        Cutuco = cutuco,
+        CodigoMateria = string.IsNullOrWhiteSpace(codmat) ? null : codmat,
+    };
+    var resultado = await handler.GenerarExcelAsync(command, ct);
+    var nombre = tipoCarpeta == TipoCarpetaComision.TrabajosPracticos
+        ? "trabajos_practicos"
+        : "planilla_calificaciones";
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, ExcelMime, $"{nombre}_{carre}_{cua.Replace('/', '-')}.xlsx")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
 }).RequireAuthorization();
 

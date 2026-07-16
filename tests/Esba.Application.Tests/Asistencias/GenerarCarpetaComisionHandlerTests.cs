@@ -13,9 +13,10 @@ public class GenerarCarpetaComisionHandlerTests
     private readonly ICarpetaComisionQuery _carpeta = Substitute.For<ICarpetaComisionQuery>();
     private readonly IConstanciasQuery _constancias = Substitute.For<IConstanciasQuery>();
     private readonly ICarpetaComisionReportService _reporte = Substitute.For<ICarpetaComisionReportService>();
+    private readonly ICarpetaComisionExcelService _excel = Substitute.For<ICarpetaComisionExcelService>();
 
     private GenerarCarpetaComisionHandler CrearHandler() =>
-        new(new GenerarCarpetaComisionValidator(), _carpeta, _constancias, _reporte, TimeProvider.System);
+        new(new GenerarCarpetaComisionValidator(), _carpeta, _constancias, _reporte, _excel, TimeProvider.System);
 
     private static GenerarCarpetaComisionCommand Comando(
         TipoCarpetaComision tipo = TipoCarpetaComision.Asistencia,
@@ -116,6 +117,39 @@ public class GenerarCarpetaComisionHandlerTests
 
         Assert.True(resultado.IsSuccess);
         Assert.Equal(TipoCarpetaComision.TrabajosPracticos, capturado!.Tipo);
+    }
+
+    [Fact]
+    public async Task GenerarExcel_Asistencia_DevuelveError_YNoConsultaNada()
+    {
+        var resultado = await CrearHandler().GenerarExcelAsync(
+            Comando(TipoCarpetaComision.Asistencia), CancellationToken.None);
+
+        Assert.False(resultado.IsSuccess);
+        Assert.Equal("La carpeta de asistencia no tiene exportación a Excel.", resultado.Message);
+        await _carpeta.DidNotReceiveWithAnyArgs().ObtenerComisionesAsync(
+            default!, default!, default, default, default);
+        _excel.DidNotReceiveWithAnyArgs().GenerarCarpeta(default!);
+    }
+
+    [Fact]
+    public async Task GenerarExcel_PlanillaProfesores_GeneraConElServicioExcel()
+    {
+        _carpeta.ObtenerComisionesAsync("TEC", "1/24", null, null, Arg.Any<CancellationToken>())
+            .Returns([new CarpetaComisionCabeceraDto { Cutuco = 111, CodigoMateria = "01" }]);
+        _carpeta.ObtenerAlumnosAsync("TEC", "1/24", null, null, Arg.Any<CancellationToken>())
+            .Returns([]);
+
+        CarpetaComisionModel? capturado = null;
+        _excel.GenerarCarpeta(Arg.Do<CarpetaComisionModel>(m => capturado = m)).Returns([7]);
+
+        var resultado = await CrearHandler().GenerarExcelAsync(
+            Comando(TipoCarpetaComision.PlanillaProfesores), CancellationToken.None);
+
+        Assert.True(resultado.IsSuccess);
+        Assert.Equal([7], resultado.Value);
+        Assert.Equal(TipoCarpetaComision.PlanillaProfesores, capturado!.Tipo);
+        _reporte.DidNotReceiveWithAnyArgs().GenerarCarpeta(default!);
     }
 
     [Fact]

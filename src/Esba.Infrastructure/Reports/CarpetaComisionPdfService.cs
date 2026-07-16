@@ -19,6 +19,9 @@ namespace Esba.Infrastructure.Reports;
 /// <item><b>Trabajos prácticos</b> (sucesor de lstNotasyPractico.pas +
 /// trabajos_practicos.wmf): Oficio con TP 1–5 (cada uno con línea de fecha) y
 /// columna de condición.</item>
+/// <item><b>Planilla de profesores</b> (el mismo lstNotasyPractico.pas con
+/// Planilla_calificaciones.wmf): Oficio con 1er./2do bimestre (5 notas + Prom.
+/// cada uno), calificación Final/Recup./Def. y columna Notificado.</item>
 /// </list>
 /// </summary>
 public sealed class CarpetaComisionPdfService : ICarpetaComisionReportService
@@ -27,6 +30,9 @@ public sealed class CarpetaComisionPdfService : ICarpetaComisionReportService
     private const int TotalColumnasAsistencia = ColumnasDias + 6; // N° + nombre + D/H + días + INA/ANT/TOT
     private const int CantidadTp = 5;
     private const int TotalColumnasTp = CantidadTp + 3;           // N° + nombre + TPs + condición
+    private const int NotasPorBimestre = 5;
+    // N° + nombre + 2 bimestres (5 notas + Prom.) + Final/Recup./Def. + Notificado
+    private const int TotalColumnasCalificaciones = 2 + 2 * (NotasPorBimestre + 1) + 3 + 1;
     private const string ColorPrimario = ReporteConstanciaLayout.ColorPrimario;
 
     private readonly InstitucionSettings _institucion;
@@ -51,8 +57,9 @@ public sealed class CarpetaComisionPdfService : ICarpetaComisionReportService
         {
             contenedor.Page(pagina =>
             {
-                // La hoja de asistencia legacy era A4; la de trabajos prácticos usaba
-                // la plantilla WMF estirada a Oficio/Legal.
+                // La hoja de asistencia legacy era A4; trabajos prácticos y planilla de
+                // profesores usaban plantillas WMF estiradas a Oficio/Legal (el corte de
+                // 31 cm de la planilla de calificaciones no entra en un A4).
                 pagina.Size(esAsistencia ? PageSizes.A4 : PageSizes.Legal);
                 pagina.Margin(1.2f, Unit.Centimetre);
                 pagina.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
@@ -69,13 +76,17 @@ public sealed class CarpetaComisionPdfService : ICarpetaComisionReportService
                             Encabezado(bloque, model, seccion.Cabecera);
                             bloque.Item().PaddingTop(6).Element(c =>
                             {
-                                if (esAsistencia)
+                                switch (model.Tipo)
                                 {
-                                    TablaAsistencia(c, seccion);
-                                }
-                                else
-                                {
-                                    TablaTrabajosPracticos(c, seccion);
+                                    case TipoCarpetaComision.Asistencia:
+                                        TablaAsistencia(c, seccion);
+                                        break;
+                                    case TipoCarpetaComision.TrabajosPracticos:
+                                        TablaTrabajosPracticos(c, seccion);
+                                        break;
+                                    default:
+                                        TablaCalificaciones(c, seccion);
+                                        break;
                                 }
                             });
                         });
@@ -94,9 +105,12 @@ public sealed class CarpetaComisionPdfService : ICarpetaComisionReportService
 
     private void Encabezado(ColumnDescriptor col, CarpetaComisionModel model, CarpetaComisionCabeceraDto cabecera)
     {
-        var titulo = model.Tipo == TipoCarpetaComision.Asistencia
-            ? "CARPETA DE ASISTENCIA"
-            : "CARPETA DE TRABAJOS PRÁCTICOS";
+        var titulo = model.Tipo switch
+        {
+            TipoCarpetaComision.Asistencia => "CARPETA DE ASISTENCIA",
+            TipoCarpetaComision.TrabajosPracticos => "CARPETA DE TRABAJOS PRÁCTICOS",
+            _ => "PLANILLA DE CALIFICACIONES",
+        };
 
         col.Item().AlignCenter().Text(
             $"{_institucion.Nombre} — Emisión: {model.FechaEmision:dd/MM/yyyy}").Bold().FontSize(11);
@@ -222,6 +236,67 @@ public sealed class CarpetaComisionPdfService : ICarpetaComisionReportService
             {
                 Subtitulo(tabla, TotalColumnasTp);
                 Filas(tabla, seccion.Recursantes, celdasEnBlanco: CantidadTp + 1, altoFila: 20);
+            }
+        });
+    }
+
+    private static void TablaCalificaciones(IContainer contenedor, CarpetaComisionSeccion seccion)
+    {
+        contenedor.Table(tabla =>
+        {
+            tabla.ColumnsDefinition(cols =>
+            {
+                cols.ConstantColumn(24);       // N°
+                cols.RelativeColumn();         // Apellido y nombre
+                for (var b = 0; b < 2; b++)    // 1er. y 2do bimestre
+                {
+                    for (var n = 0; n < NotasPorBimestre; n++)
+                    {
+                        cols.ConstantColumn(16);   // una nota, a completar a mano
+                    }
+
+                    cols.ConstantColumn(26);   // Prom.
+                }
+
+                cols.ConstantColumn(28);       // Final
+                cols.ConstantColumn(30);       // Recup.
+                cols.ConstantColumn(28);       // Def.
+                cols.ConstantColumn(70);       // Notificado (firma)
+            });
+
+            // Encabezado de dos medias filas, como la plantilla Planilla_calificaciones.wmf:
+            // cada bimestre agrupa sus notas y cierra con "Prom."; la calificación se abre
+            // en Final/Recup./Def. y la última columna queda para la firma del notificado.
+            tabla.Header(encabezado =>
+            {
+                Celda(encabezado.Cell().RowSpan(2), "N°", header: true);
+                Celda(encabezado.Cell().RowSpan(2), "APELLIDO Y NOMBRE", header: true, alinearIzquierda: true);
+                Celda(encabezado.Cell().ColumnSpan(NotasPorBimestre + 1u), "1er. Bimestre", header: true);
+                Celda(encabezado.Cell().ColumnSpan(NotasPorBimestre + 1u), "2do Bimestre", header: true);
+                Celda(encabezado.Cell().ColumnSpan(3), "CALIFICACIÓN", header: true);
+                Celda(encabezado.Cell().RowSpan(2), "NOTIFICADO", header: true);
+                for (var b = 0; b < 2; b++)
+                {
+                    for (var n = 0; n < NotasPorBimestre; n++)
+                    {
+                        Celda(encabezado.Cell(), string.Empty, header: true);
+                    }
+
+                    Celda(encabezado.Cell(), "Prom.", header: true);
+                }
+
+                Celda(encabezado.Cell(), "Final", header: true);
+                Celda(encabezado.Cell(), "Recup.", header: true);
+                Celda(encabezado.Cell(), "Def.", header: true);
+            });
+
+            // Espaciado legacy: 1.03 cm por renglón (~29 pt), más aire que TP.
+            Filas(tabla, seccion.Cursando, celdasEnBlanco: TotalColumnasCalificaciones - 2, altoFila: 28);
+
+            if (seccion.Recursantes.Count > 0)
+            {
+                Subtitulo(tabla, TotalColumnasCalificaciones);
+                Filas(tabla, seccion.Recursantes, celdasEnBlanco: TotalColumnasCalificaciones - 2, altoFila: 28);
             }
         });
     }

@@ -8,6 +8,9 @@ namespace Esba.Domain.Asistencias;
 /// <item><see cref="Asistencia"/> — lstplanasis.pas ("Carpeta asistencia": 25 días + INA/ANT/TOT).</item>
 /// <item><see cref="TrabajosPracticos"/> — lstNotasyPractico.pas con plantilla trabajos_practicos.wmf
 /// ("Carpeta de trabajos practicos": TP 1–5 con fecha + condición).</item>
+/// <item><see cref="PlanillaProfesores"/> — el mismo lstNotasyPractico.pas con plantilla
+/// Planilla_calificaciones.wmf ("Planillas de profesores": bimestres con promedio,
+/// calificación Final/Recup./Def. y Notificado).</item>
 /// </list>
 /// </summary>
 public enum TipoCarpetaComision
@@ -17,4 +20,7 @@ public enum TipoCarpetaComision
 
     /// <summary>Planilla de trabajos prácticos (TP 1–5 con fecha + condición).</summary>
     TrabajosPracticos = 1,
+
+    /// <summary>Planilla de calificaciones del profesor (bimestres + Prom. + Final/Recup./Def. + Notificado).</summary>
+    PlanillaProfesores = 2,
 }

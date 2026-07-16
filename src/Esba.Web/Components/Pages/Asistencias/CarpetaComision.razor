@@ -14,8 +14,9 @@
 <PageTitle>ESBA — @Titulo</PageTitle>
 
 @* Filtros de las carpetas por comisión (sucesoras de lstplanasis.pas y
-   lstNotasyPractico.pas, "Carpeta asistencia" y "Carpeta de trabajos practicos" del
-   menú legacy). Solo markup, binding y apertura del endpoint que genera el PDF (§2.1). *@
+   lstNotasyPractico.pas: "Carpeta asistencia", "Carpeta de trabajos practicos" y
+   "Planillas de profesores" del menú legacy). Solo markup, binding y apertura del
+   endpoint que genera el PDF (§2.1). *@
 
 <div class="d-flex align-center flex-wrap gap-4 mb-4">
     <div>
@@ -30,6 +31,7 @@
             <MudSelect T="TipoCarpetaComision" @bind-Value="_tipo" Label="Tipo de planilla" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="TipoCarpetaComision" Value="TipoCarpetaComision.Asistencia">Asistencia</MudSelectItem>
                 <MudSelectItem T="TipoCarpetaComision" Value="TipoCarpetaComision.TrabajosPracticos">Trabajos prácticos</MudSelectItem>
+                <MudSelectItem T="TipoCarpetaComision" Value="TipoCarpetaComision.PlanillaProfesores">Planilla de profesores</MudSelectItem>
             </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="6" md="4">
@@ -55,20 +57,27 @@
 
     <div class="d-flex flex-wrap gap-2 mt-4">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                   Disabled="@(!PuedeGenerar)" OnClick="AbrirPdf">Ver PDF</MudButton>
+                   Disabled="@(!PuedeGenerar)" OnClick="@(() => Abrir(excel: false))">Ver PDF</MudButton>
+        @if (_tipo != TipoCarpetaComision.Asistencia)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.GridOn"
+                       Disabled="@(!PuedeGenerar)" OnClick="@(() => Abrir(excel: true))">Exportar Excel</MudButton>
+        }
     </div>
 </MudPaper>
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary">
     La comisión y la materia son opcionales: en blanco sale una hoja por cada comisión del cuatrimestre.
     La planilla de asistencia lista los cursantes (y recursantes al pie) con 25 columnas de días para marcar
-    a mano; la de trabajos prácticos, con columnas TP 1 a TP 5 (cada una con su fecha) y condición.
+    a mano; la de trabajos prácticos, con columnas TP 1 a TP 5 (cada una con su fecha) y condición; la
+    planilla de profesores, con las notas de cada bimestre y su promedio, la calificación (final,
+    recuperatorio y definitiva) y la firma del notificado.
 </MudText>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
 
-    /// <summary>Tipo inicial vía query string ("tp" o "asistencia"), para las dos entradas de menú.</summary>
+    /// <summary>Tipo inicial vía query string ("tp", "profesores" o "asistencia"), para las entradas de menú.</summary>
     [SupplyParameterFromQuery(Name = "tipo")]
     public string? TipoInicial { get; set; }
 
@@ -82,9 +91,12 @@
 
     private bool PuedeGenerar => _carreraSel is not null && !string.IsNullOrWhiteSpace(_cuatrimestre);
 
-    private string Titulo => _tipo == TipoCarpetaComision.Asistencia
-        ? "Carpeta de asistencia"
-        : "Carpeta de trabajos prácticos";
+    private string Titulo => _tipo switch
+    {
+        TipoCarpetaComision.TrabajosPracticos => "Carpeta de trabajos prácticos",
+        TipoCarpetaComision.PlanillaProfesores => "Planilla de profesores",
+        _ => "Carpeta de asistencia",
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,9 +107,12 @@
 
     protected override void OnParametersSet()
     {
-        _tipo = TipoInicial?.Trim().ToLowerInvariant() is "tp" or "trabajospracticos"
-            ? TipoCarpetaComision.TrabajosPracticos
-            : TipoCarpetaComision.Asistencia;
+        _tipo = TipoInicial?.Trim().ToLowerInvariant() switch
+        {
+            "tp" or "trabajospracticos" => TipoCarpetaComision.TrabajosPracticos,
+            "profesores" or "planillaprofesores" => TipoCarpetaComision.PlanillaProfesores,
+            _ => TipoCarpetaComision.Asistencia,
+        };
     }
 
     private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
@@ -136,7 +151,7 @@
         return Task.FromResult(filtradas);
     }
 
-    private async Task AbrirPdf()
+    private async Task Abrir(bool excel)
     {
         if (!PuedeGenerar)
         {
@@ -144,7 +159,7 @@
             return;
         }
 
-        var url = "/asistencias/carpeta/pdf"
+        var url = (excel ? "/asistencias/carpeta/excel" : "/asistencias/carpeta/pdf")
             + $"?tipo={_tipo}"
             + $"&carre={Uri.EscapeDataString(_carreraSel!.Codigo)}"
             + $"&cua={Uri.EscapeDataString(_cuatrimestre!)}";

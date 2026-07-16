@@ -7,8 +7,8 @@ namespace Esba.IntegrationTests.Reports;
 
 /// <summary>
 /// Smoke tests del PDF de las carpetas por comisión: QuestPDF puede arrojar en
-/// GeneratePdf ante errores de maqueta (ambas grillas usan RowSpan/ColumnSpan);
-/// verificamos que los dos layouts producen un PDF con datos realistas, incluidas
+/// GeneratePdf ante errores de maqueta (las grillas usan RowSpan/ColumnSpan);
+/// verificamos que los tres layouts producen un PDF con datos realistas, incluidas
 /// una sección con recursantes y otra vacía. No necesitan base de datos (sin el
 /// trait Integration).
 /// </summary>
@@ -70,6 +70,15 @@ public class CarpetaComisionPdfServiceTests
     public void CarpetaTrabajosPracticos_Pdf_ProduceUnPdf()
     {
         var pdf = CrearServicio().GenerarCarpeta(Modelo(TipoCarpetaComision.TrabajosPracticos));
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(FirmaPdf, pdf[..4]);
+    }
+
+    [Fact]
+    public void PlanillaProfesores_Pdf_ProduceUnPdf()
+    {
+        var pdf = CrearServicio().GenerarCarpeta(Modelo(TipoCarpetaComision.PlanillaProfesores));
 
         Assert.NotEmpty(pdf);
         Assert.Equal(FirmaPdf, pdf[..4]);
