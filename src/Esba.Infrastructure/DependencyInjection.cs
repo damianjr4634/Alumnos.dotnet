@@ -5,12 +5,14 @@ using Esba.Application.DTOs.Alumnos;
 using Esba.Application.DTOs.Asistencias;
 using Esba.Application.DTOs.Certificados;
 using Esba.Application.DTOs.Examenes;
+using Esba.Application.DTOs.Ministerio;
 using Esba.Application.Features.Academica;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
 using Esba.Application.Features.Asistencias;
 using Esba.Application.Features.Certificados;
 using Esba.Application.Features.Examenes;
+using Esba.Application.Features.Ministerio;
 using Esba.Application.Validators;
 using Esba.Infrastructure.Email;
 using Esba.Infrastructure.Excel;
@@ -201,6 +203,15 @@ public static class DependencyInjection
         services.AddScoped<ICarpetaComisionExcelService, CarpetaComisionExcelService>();
         services.AddScoped<IValidator<GenerarCarpetaComisionCommand>, GenerarCarpetaComisionValidator>();
         services.AddScoped<GenerarCarpetaComisionHandler>();
+
+        // Ministerio: comisiones al Ministerio (hito 16) — nómina impresa por comisión y
+        // padrón Excel con layout terciario/secundario (sucesor de ComisionesAlMinisterio.pas).
+        services.AddScoped<IPadronMinisterioQuery, PadronMinisterioQuery>();
+        services.AddScoped<INominaMinisterioReportService, NominaMinisterioPdfService>();
+        services.AddScoped<IPadronMinisterioExcelService, PadronMinisterioExcelService>();
+        services.AddScoped<IValidator<GenerarNominaMinisterioCommand>, GenerarNominaMinisterioValidator>();
+        services.AddScoped<IValidator<ExportarPadronMinisterioCommand>, ExportarPadronMinisterioValidator>();
+        services.AddScoped<GenerarComisionesMinisterioHandler>();
 
         // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();

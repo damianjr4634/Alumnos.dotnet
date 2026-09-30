@@ -44,6 +44,13 @@
         <MudNavLink Href="/examenes/actas/comision" Icon="@Icons.Material.Filled.Print">Actas por comisión</MudNavLink>
     </MudNavGroup>
 
+    @* Sucesor del submenú "Ministerio" del legacy. Sus otras dos opciones ("Profesores
+       por comisión" y "Títulos y legalizaciones") no tenían handler en el .dfm: botones
+       muertos, no se migran. *@
+    <MudNavGroup Title="Ministerio" Icon="@Icons.Material.Filled.AccountBalance" Expanded="false">
+        <MudNavLink Href="/ministerio/comisiones" Icon="@Icons.Material.Filled.Groups">Comisiones al Ministerio</MudNavLink>
+    </MudNavGroup>
+
     <MudNavGroup Title="Certificados" Icon="@Icons.Material.Filled.Description" Expanded="false">
         <MudNavLink Disabled="true">Constancias</MudNavLink>
         <MudNavLink Disabled="true">Equivalencias</MudNavLink>

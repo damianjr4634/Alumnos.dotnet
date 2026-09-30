@@ -1,10 +1,12 @@
 using Esba.Application.DTOs.Asistencias;
 using Esba.Application.DTOs.Certificados;
 using Esba.Application.DTOs.Examenes;
+using Esba.Application.DTOs.Ministerio;
 using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Asistencias;
 using Esba.Application.Features.Certificados;
 using Esba.Application.Features.Examenes;
+using Esba.Application.Features.Ministerio;
 using Esba.Domain.Asistencias;
 using Esba.Domain.Enums;
 using Esba.Domain.Examenes;
@@ -367,6 +369,45 @@ app.MapGet("/asistencias/carpeta/excel", async (
             resultado.Value.EsZip ? "application/zip" : ExcelMime,
             resultado.Value.NombreArchivo)
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
+}).RequireAuthorization();
+
+// Comisiones al Ministerio (hito 16, sucesor de ComisionesAlMinisterio.pas): nómina
+// impresa por comisión (PDF inline) y padrón Excel con el layout del Ministerio.
+app.MapGet("/ministerio/comisiones/pdf", async (
+    string carre, string cua, short? cutuco, bool? membrete, bool? edad, decimal? margen,
+    GenerarComisionesMinisterioHandler handler, CancellationToken ct) =>
+{
+    var command = new GenerarNominaMinisterioCommand
+    {
+        CodigoCarrera = carre,
+        CuatrimestreAnio = cua,
+        Cutuco = cutuco,
+        ConMembrete = membrete ?? false,
+        ConEdadYNacionalidad = edad ?? false,
+        MargenSuperiorCm = margen ?? GenerarNominaMinisterioCommand.MargenSuperiorPorDefectoCm,
+    };
+    var resultado = await handler.GenerarNominaPdfAsync(command, ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar la nómina.");
+}).RequireAuthorization();
+
+app.MapGet("/ministerio/comisiones/excel", async (
+    string carre, string cua, short? cutuco, bool? separadas,
+    GenerarComisionesMinisterioHandler handler, CancellationToken ct) =>
+{
+    var command = new ExportarPadronMinisterioCommand
+    {
+        CodigoCarrera = carre,
+        CuatrimestreAnio = cua,
+        Cutuco = cutuco,
+        HojasSeparadas = separadas ?? false,
+    };
+    var resultado = await handler.ExportarExcelAsync(command, ct);
+    var cuatrimestre = new string(cua.Where(char.IsLetterOrDigit).ToArray());
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, ExcelMime, $"comisiones_ministerio_{carre}_{cuatrimestre}.xlsx")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar el padrón.");
 }).RequireAuthorization();
 
 app.Run();

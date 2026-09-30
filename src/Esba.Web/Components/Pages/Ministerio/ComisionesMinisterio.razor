@@ -1,0 +1,142 @@
+@page "/ministerio/comisiones"
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Carreras
+@using Esba.Application.DTOs.Ministerio
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Comisiones al Ministerio</PageTitle>
+
+@* Filtros y opciones de "Comisiones al Ministerio" (sucesor de
+   ComisionesAlMinisterio.pas, menú Ministerio del legacy). Solo markup, binding y
+   apertura de los endpoints que generan el PDF y el Excel (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Comisiones al Ministerio</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Nómina de alumnos por comisión y padrón para informar al Ministerio de Educación</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="5">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="SeleccionarCarrera"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudTextField @bind-Value="_cuatrimestre" Label="Cuatrimestre (ej. 1/24)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudNumericField T="short?" @bind-Value="_cutuco" Label="Comisión (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" HideSpinButtons="true" />
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.subtitle2" Class="mt-4">Nómina impresa</MudText>
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="4" md="3">
+            <MudCheckBox T="bool" @bind-Value="_conMembrete" Label="Con membrete" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudCheckBox T="bool" @bind-Value="_conEdad" Label="Edad y nacionalidad" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="2">
+            <MudNumericField T="decimal" @bind-Value="_margenSuperior" Label="Margen superior (cm)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="20" Step="0.5m" />
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Disabled="@(!PuedeGenerar)" OnClick="AbrirNomina">Ver nómina PDF</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.subtitle2" Class="mt-4">Padrón Excel para el Ministerio</MudText>
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="bool" @bind-Value="_hojasSeparadas" Label="Comisiones" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="bool" Value="false">Juntas (una sola hoja)</MudSelectItem>
+                <MudSelectItem T="bool" Value="true">Separadas (una hoja por comisión)</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="8" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.GridOn"
+                       Disabled="@(!PuedeGenerar)" OnClick="AbrirExcel">Exportar Excel</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary">
+    La comisión es opcional: en blanco salen todas las comisiones del cuatrimestre. La nómina impresa lista, por
+    comisión, los cursantes y los recursantes al pie, con documento y opcionalmente nacionalidad y edad; el margen
+    superior sirve para papel preimpreso. El padrón Excel usa el layout que pide el Ministerio según la carrera
+    (terciaria: condición y título de ingreso; secundaria: adulto responsable y columnas PPI).
+</MudText>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private CarreraListItemDto? _carreraSel;
+    private string? _cuatrimestre;
+    private short? _cutuco;
+    private bool _conMembrete;
+    private bool _conEdad;
+    private decimal _margenSuperior = GenerarNominaMinisterioCommand.MargenSuperiorPorDefectoCm;
+    private bool _hojasSeparadas;
+
+    private bool PuedeGenerar => _carreraSel is not null && !string.IsNullOrWhiteSpace(_cuatrimestre);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private void SeleccionarCarrera(CarreraListItemDto? carrera) => _carreraSel = carrera;
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.NombreCorto?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private Task AbrirNomina() => Abrir(
+        "/ministerio/comisiones/pdf"
+        + $"&membrete={_conMembrete}"
+        + $"&edad={_conEdad}"
+        + $"&margen={Uri.EscapeDataString(_margenSuperior.ToString(System.Globalization.CultureInfo.InvariantCulture))}");
+
+    private Task AbrirExcel() => Abrir("/ministerio/comisiones/excel" + $"&separadas={_hojasSeparadas}");
+
+    private async Task Abrir(string rutaYOpciones)
+    {
+        if (!PuedeGenerar)
+        {
+            Snackbar.Add("Elegí carrera y cuatrimestre.", Severity.Warning);
+            return;
+        }
+
+        // Los filtros comunes van primero; las opciones del reporte ya vienen con '&'.
+        var comunes = $"?carre={Uri.EscapeDataString(_carreraSel!.Codigo)}"
+            + $"&cua={Uri.EscapeDataString(_cuatrimestre!)}"
+            + (_cutuco is > 0 ? $"&cutuco={_cutuco}" : string.Empty);
+
+        var separador = rutaYOpciones.IndexOf('&', StringComparison.Ordinal);
+        var url = separador < 0
+            ? rutaYOpciones + comunes
+            : rutaYOpciones[..separador] + comunes + rutaYOpciones[separador..];
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+}
