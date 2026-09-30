@@ -1,0 +1,96 @@
+@page "/examenes/parte-diario"
+@using System.Globalization
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Carreras
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Parte diario de mesas</PageTitle>
+
+@* Filtros del parte diario de mesas (sucesor de dxBarButton21Click +
+   Imp_Mesas_ParteDiario). Solo markup, binding y apertura del endpoint PDF (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Parte diario de mesas</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Mesas de exámenes finales por fecha, con tribunal, comisiones y cantidad de alumnos</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker @bind-Date="_fechaDesde" Label="Fecha desde" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="dd/MM/yyyy" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker @bind-Date="_fechaHasta" Label="Fecha hasta" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="dd/MM/yyyy" />
+        </MudItem>
+        <MudItem xs="12" sm="8" md="4">
+            <MudAutocomplete T="CarreraListItemDto" Label="Carrera (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraSel" ValueChanged="@(c => _carreraSel = c)"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="2" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Disabled="@(!PuedeGenerar)" OnClick="Abrir">Ver PDF</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary">
+    Una hoja por fecha de examen del rango; dentro de cada fecha, las mesas agrupadas por carrera con hora,
+    materia, profesores del tribunal, comisiones, cantidad de alumnos con permiso y aula.
+</MudText>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private CarreraListItemDto? _carreraSel;
+    private DateTime? _fechaDesde = DateTime.Today;
+    private DateTime? _fechaHasta = DateTime.Today.AddMonths(1);
+
+    private bool PuedeGenerar => _fechaDesde is not null && _fechaHasta is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private async Task Abrir()
+    {
+        if (!PuedeGenerar)
+        {
+            Snackbar.Add("Elegí el rango de fechas.", Severity.Warning);
+            return;
+        }
+
+        var url = "/examenes/parte-diario/pdf"
+            + $"?desde={Iso(_fechaDesde!.Value)}&hasta={Iso(_fechaHasta!.Value)}";
+        if (_carreraSel is not null)
+        {
+            url += $"&carre={Uri.EscapeDataString(_carreraSel.Codigo)}";
+        }
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private static string Iso(DateTime fecha) => fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+}

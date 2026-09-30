@@ -213,6 +213,15 @@ public static class DependencyInjection
         services.AddScoped<IValidator<ExportarPadronMinisterioCommand>, ExportarPadronMinisterioValidator>();
         services.AddScoped<GenerarComisionesMinisterioHandler>();
 
+        // Exámenes: impresiones de mesas (hito 17) — citación a profesores y parte diario
+        // (sucesores de Imp_Mesas_citacion / Imp_Mesas_ParteDiario de Impresiones.pas).
+        services.AddScoped<IImpresionesMesasQuery, ImpresionesMesasQuery>();
+        services.AddScoped<ICitacionDocentesReportService, CitacionDocentesPdfService>();
+        services.AddScoped<IParteDiarioMesasReportService, ParteDiarioMesasPdfService>();
+        services.AddScoped<IValidator<GenerarCitacionDocentesCommand>, GenerarCitacionDocentesValidator>();
+        services.AddScoped<IValidator<GenerarParteDiarioMesasCommand>, GenerarParteDiarioMesasValidator>();
+        services.AddScoped<GenerarImpresionesMesasHandler>();
+
         // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();
         services.AddScoped<ITipoMesaQuery, TipoMesaQuery>();

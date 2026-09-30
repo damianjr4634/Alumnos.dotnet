@@ -371,6 +371,46 @@ app.MapGet("/asistencias/carpeta/excel", async (
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
 }).RequireAuthorization();
 
+// Impresiones de mesas (hito 17, sucesores de Imp_Mesas_citacion / Imp_Mesas_ParteDiario
+// de Impresiones.pas): citación a profesores y parte diario, PDF inline.
+app.MapGet("/examenes/citacion-docentes/pdf", async (
+    DateOnly desde, DateOnly hasta, string? profDesde, string? profHasta, string[]? carre,
+    FirmanteCitacion firmante, bool? imagen, string carreFirma,
+    GenerarImpresionesMesasHandler handler, CancellationToken ct) =>
+{
+    var command = new GenerarCitacionDocentesCommand
+    {
+        FechaDesde = desde,
+        FechaHasta = hasta,
+        CodigoProfesorDesde = string.IsNullOrWhiteSpace(profDesde) ? null : profDesde,
+        CodigoProfesorHasta = string.IsNullOrWhiteSpace(profHasta) ? null : profHasta,
+        CodigosCarrera = carre ?? [],
+        Firmante = firmante,
+        ConImagenFirma = imagen ?? false,
+        CodigoCarreraFirma = carreFirma,
+    };
+    var resultado = await handler.GenerarCitacionPdfAsync(command, ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar la citación.");
+}).RequireAuthorization();
+
+app.MapGet("/examenes/parte-diario/pdf", async (
+    DateOnly desde, DateOnly hasta, string? carre,
+    GenerarImpresionesMesasHandler handler, CancellationToken ct) =>
+{
+    var command = new GenerarParteDiarioMesasCommand
+    {
+        FechaDesde = desde,
+        FechaHasta = hasta,
+        CodigoCarrera = string.IsNullOrWhiteSpace(carre) ? null : carre,
+    };
+    var resultado = await handler.GenerarParteDiarioPdfAsync(command, ct);
+    return resultado.IsSuccess && resultado.Value is not null
+        ? Results.File(resultado.Value, "application/pdf")
+        : Results.BadRequest(resultado.Message ?? "No se pudo generar el parte diario.");
+}).RequireAuthorization();
+
 // Comisiones al Ministerio (hito 16, sucesor de ComisionesAlMinisterio.pas): nómina
 // impresa por comisión (PDF inline) y padrón Excel con el layout del Ministerio.
 app.MapGet("/ministerio/comisiones/pdf", async (

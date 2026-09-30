@@ -1,0 +1,163 @@
+@page "/examenes/citacion-docentes"
+@using System.Globalization
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
+@using Esba.Application.DTOs.Carreras
+@using Esba.Domain.Examenes
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ICarrerasQuery Carreras
+@inject IDocentesQuery Docentes
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Citación a profesores</PageTitle>
+
+@* Filtros de la citación a profesores (sucesora de "Impresion citaciones" del menú
+   Mesas: dxBarButton20Click + Imp_Mesas_citacion). Solo markup, binding y apertura del
+   endpoint que genera el PDF (§2.1). *@
+
+<div class="d-flex align-center flex-wrap gap-4 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Citación a profesores</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Horario de evaluaciones y exámenes para cada docente convocado a mesa</MudText>
+    </div>
+</div>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudGrid Spacing="2" Class="align-center">
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker @bind-Date="_fechaDesde" Label="Fecha desde" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="dd/MM/yyyy" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker @bind-Date="_fechaHasta" Label="Fecha hasta" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="dd/MM/yyyy" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudAutocomplete T="DocenteListItemDto" Label="Docente desde (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_docenteDesde" ValueChanged="@(d => _docenteDesde = d)"
+                             SearchFunc="BuscarDocente" ToStringFunc="@TextoDocente" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudAutocomplete T="DocenteListItemDto" Label="Docente hasta (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_docenteHasta" ValueChanged="@(d => _docenteHasta = d)"
+                             SearchFunc="BuscarDocente" ToStringFunc="@TextoDocente" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSelect T="string" MultiSelection="true" @bind-SelectedValues="_carrerasSel" Label="Carreras (vacío = todas)"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                @foreach (var carrera in _carreras)
+                {
+                    <MudSelectItem T="string" Value="@carrera.Codigo">@carrera.Codigo — @carrera.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="FirmanteCitacion" @bind-Value="_firmante" Label="Firma" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="FirmanteCitacion" Value="FirmanteCitacion.Rector">Rector/a</MudSelectItem>
+                <MudSelectItem T="FirmanteCitacion" Value="FirmanteCitacion.Secretaria">Secretaria</MudSelectItem>
+                <MudSelectItem T="FirmanteCitacion" Value="FirmanteCitacion.DirectorEstudios">Dir. de Estudios</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCheckBox T="bool" @bind-Value="_conImagenFirma" Label="Imagen de firma" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudAutocomplete T="CarreraListItemDto" Label="Autoridades de la carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Clearable="true" Value="_carreraFirma" ValueChanged="@(c => _carreraFirma = c)"
+                             SearchFunc="BuscarCarrera"
+                             ToStringFunc="@(c => c is null ? string.Empty : $"{c.Codigo} — {c.Nombre}")" />
+        </MudItem>
+        <MudItem xs="12" md="6" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Disabled="@(!PuedeGenerar)" OnClick="Abrir">Ver PDF</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary">
+    Se imprime una carta por cada docente que integra alguna mesa del rango de fechas, en original y duplicado,
+    con las mesas a las que está convocado (fecha, hora, asignatura, mesa, aula y carrera), el espacio para
+    notificarse y la firma elegida. El nombre de la autoridad sale de la carrera indicada en "Autoridades de la
+    carrera" (se propone la primera carrera filtrada).
+</MudText>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private IReadOnlyList<CarreraListItemDto> _carreras = [];
+    private IReadOnlyList<DocenteListItemDto> _docentes = [];
+    private IReadOnlyCollection<string> _carrerasSel = [];
+    private CarreraListItemDto? _carreraFirma;
+    private DocenteListItemDto? _docenteDesde;
+    private DocenteListItemDto? _docenteHasta;
+    private DateTime? _fechaDesde = DateTime.Today;
+    private DateTime? _fechaHasta = DateTime.Today.AddMonths(1);
+    private FirmanteCitacion _firmante = FirmanteCitacion.Rector;
+    private bool _conImagenFirma;
+
+    private bool PuedeGenerar => _fechaDesde is not null && _fechaHasta is not null && CarreraFirma is not null;
+
+    /// <summary>La carrera de firma elegida o, si no se eligió, la primera del filtro.</summary>
+    private CarreraListItemDto? CarreraFirma =>
+        _carreraFirma ?? _carreras.FirstOrDefault(c => _carrerasSel.Contains(c.Codigo));
+
+    private static string TextoDocente(DocenteListItemDto? d) => d is null ? string.Empty : $"{d.Codigo} — {d.Nombre}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+        _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        // Como el combo legacy: docentes sin fecha de baja.
+        _docentes = await Docentes.ListarActivosAsync(CancellationToken.None);
+    }
+
+    private Task<IEnumerable<CarreraListItemDto>> BuscarCarrera(string? texto, CancellationToken ct)
+    {
+        IEnumerable<CarreraListItemDto> filtradas = string.IsNullOrWhiteSpace(texto)
+            ? _carreras
+            : _carreras.Where(c =>
+                c.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (c.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtradas);
+    }
+
+    private Task<IEnumerable<DocenteListItemDto>> BuscarDocente(string? texto, CancellationToken ct)
+    {
+        IEnumerable<DocenteListItemDto> filtrados = string.IsNullOrWhiteSpace(texto)
+            ? _docentes
+            : _docentes.Where(d =>
+                d.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (d.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtrados);
+    }
+
+    private async Task Abrir()
+    {
+        if (!PuedeGenerar)
+        {
+            Snackbar.Add("Elegí el rango de fechas y la carrera de las autoridades.", Severity.Warning);
+            return;
+        }
+
+        var url = "/examenes/citacion-docentes/pdf"
+            + $"?desde={Iso(_fechaDesde!.Value)}&hasta={Iso(_fechaHasta!.Value)}"
+            + $"&firmante={_firmante}&imagen={_conImagenFirma}"
+            + $"&carreFirma={Uri.EscapeDataString(CarreraFirma!.Codigo)}";
+
+        if (_docenteDesde is not null && _docenteHasta is not null)
+        {
+            url += $"&profDesde={Uri.EscapeDataString(_docenteDesde.Codigo)}&profHasta={Uri.EscapeDataString(_docenteHasta.Codigo)}";
+        }
+
+        foreach (var carrera in _carrerasSel)
+        {
+            url += $"&carre={Uri.EscapeDataString(carrera)}";
+        }
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private static string Iso(DateTime fecha) => fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+}

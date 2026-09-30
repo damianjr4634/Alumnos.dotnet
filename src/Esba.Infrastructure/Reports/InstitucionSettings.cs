@@ -49,4 +49,16 @@ public sealed class InstitucionSettings
     /// o no existe, se imprimen sin fondo (para papel preimpreso).
     /// </summary>
     public string? MembreteConstanciaPath { get; set; }
+
+    /// <summary>
+    /// Imagen de la firma del rector/a para la citación a profesores (sucesor de
+    /// CARPETA_FIRMAS\firma_recto.jpg). Si está vacía o no existe, se imprime solo nombre y cargo.
+    /// </summary>
+    public string? FirmaRectorPath { get; set; }
+
+    /// <summary>Imagen de la firma de la secretaria (sucesor de firma_secre.jpg).</summary>
+    public string? FirmaSecretariaPath { get; set; }
+
+    /// <summary>Imagen de la firma del director/a de estudios (sucesor de firma_direc.jpg).</summary>
+    public string? FirmaDirectorEstudiosPath { get; set; }
 }
