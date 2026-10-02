@@ -1,0 +1,123 @@
+@using Esba.Application.DTOs.Alumnos
+@using Esba.Application.Features.Alumnos
+@using Esba.Domain.Common
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
+@inject BorrarAlumnoHandler Handler
+@inject ISnackbar Snackbar
+
+@* Sucesor de "Borrar alumno" de FrmEsba (dxBarButton43Click → XXX_BORRA_ALUMNO):
+   eliminación física con todo el historial, solo supervisores. Dos fases: la
+   previsualización trae la advertencia del SP; confirmar commitea. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            @Alumno.Apellido, @Alumno.Nombre — @Alumno.Codigo · @Alumno.NombreCarrera
+        </MudText>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+
+        @if (_confirmacion is null)
+        {
+            <MudText>
+                Se eliminará al alumno de la carrera con su analítico, cursadas, permisos de examen e inasistencias.
+                Esta operación no se puede deshacer.
+            </MudText>
+        }
+        else
+        {
+            <MudAlert Severity="MudBlazor.Severity.Error" Dense="true">@_confirmacion</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancelar</MudButton>
+        @if (_confirmacion is null)
+        {
+            <MudButton Color="Color.Error" Variant="Variant.Filled" Disabled="@_procesando" OnClick="Previsualizar">Borrar</MudButton>
+        }
+        else
+        {
+            <MudButton Color="Color.Error" Variant="Variant.Filled" Disabled="@_procesando" OnClick="Confirmar">Confirmar borrado</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    [Parameter] public AlumnoListItemDto Alumno { get; set; } = default!;
+
+    private string? _confirmacion;
+    private string? _error;
+    private bool _procesando;
+    private int _codigoUsuario;
+    private bool _esSupervisor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        _codigoUsuario = usuario.CodigoUsuario() ?? 0;
+        _esSupervisor = usuario.EsSupervisor();
+    }
+
+    private BorrarAlumnoCommand Comando() => new()
+    {
+        CodigoAlumno = Alumno.Codigo,
+        CodigoCarrera = Alumno.CodigoCarrera,
+        CodigoUsuario = _codigoUsuario,
+        EsSupervisor = _esSupervisor,
+    };
+
+    private async Task Previsualizar()
+    {
+        _error = null;
+        _procesando = true;
+        try
+        {
+            Resolver(await Handler.PrevisualizarAsync(Comando(), CancellationToken.None));
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task Confirmar()
+    {
+        _error = null;
+        _procesando = true;
+        try
+        {
+            Resolver(await Handler.ConfirmarAsync(Comando(), CancellationToken.None));
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private void Resolver(Result<string> resultado)
+    {
+        switch (resultado.Status)
+        {
+            case OperationStatus.Ok:
+            case OperationStatus.Warning:
+                Snackbar.Add(resultado.Value ?? resultado.Message ?? "Alumno eliminado.", MudBlazor.Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+                break;
+            case OperationStatus.NeedsConfirmation:
+                _confirmacion = resultado.Message;
+                break;
+            default:
+                _confirmacion = null;
+                _error = resultado.Message;
+                break;
+        }
+    }
+}

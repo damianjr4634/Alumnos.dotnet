@@ -1,6 +1,9 @@
 @using Esba.Application.DTOs.Alumnos
 @using Esba.Domain.Enums
+@using Esba.Web.Seguridad
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navegacion
+@inject IDialogService DialogService
 
 @* Sucesor del panel ALUMNO SELECCIONADO de FrmEsba: las acciones sobre el alumno
    elegido en el buscador. Antes vivía debajo de la grilla; ahora es modal para
@@ -38,6 +41,22 @@
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
                        StartIcon="@Icons.Material.Filled.Description" OnClick="AbrirConstancias">Constancias</MudButton>
         </div>
+
+        @* Sucesores de "Copiar/Mover alumno a la carrera…" y "Borrar alumno" del menú
+           Alumno de FrmEsba. Borrar solo para supervisores: la UI lo oculta y el
+           handler lo deniega con el claim (§2.7). *@
+        <MudDivider Class="my-3" />
+        <div class="d-flex flex-column gap-2">
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="@(() => CambiarCarrera(mover: false))">Copiar a otra carrera</MudButton>
+            <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                       StartIcon="@Icons.Material.Filled.DriveFileMove" OnClick="@(() => CambiarCarrera(mover: true))">Mover a otra carrera</MudButton>
+            @if (_esSupervisor)
+            {
+                <MudButton FullWidth="true" Variant="Variant.Outlined" Color="Color.Error" Class="justify-start"
+                           StartIcon="@Icons.Material.Filled.DeleteForever" OnClick="Borrar">Borrar alumno</MudButton>
+            }
+        </div>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog?.Cancel())">Cerrar</MudButton>
@@ -47,7 +66,48 @@
 @code {
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
 
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
     [Parameter] public AlumnoListItemDto Alumno { get; set; } = default!;
+
+    private bool _esSupervisor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EstadoAutenticacion is not null)
+        {
+            _esSupervisor = (await EstadoAutenticacion).User.EsSupervisor();
+        }
+    }
+
+    private async Task CambiarCarrera(bool mover)
+    {
+        var parametros = new DialogParameters<CambiarCarreraAlumnoDialog>
+        {
+            { x => x.Alumno, Alumno },
+            { x => x.Mover, mover },
+        };
+        var dialogo = await DialogService.ShowAsync<CambiarCarreraAlumnoDialog>(
+            mover ? "Mover alumno a la carrera…" : "Copiar alumno a la carrera…", parametros);
+        await CerrarSiCambio(dialogo);
+    }
+
+    private async Task Borrar()
+    {
+        var parametros = new DialogParameters<BorrarAlumnoDialog> { { x => x.Alumno, Alumno } };
+        var dialogo = await DialogService.ShowAsync<BorrarAlumnoDialog>("Borrar alumno", parametros);
+        await CerrarSiCambio(dialogo);
+    }
+
+    /// <summary>Si la acción modificó el padrón, cierra este diálogo con true para que el buscador recargue.</summary>
+    private async Task CerrarSiCambio(IDialogReference dialogo)
+    {
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false, Data: true })
+        {
+            MudDialog?.Close(DialogResult.Ok(true));
+        }
+    }
 
     private void AbrirFicha() =>
         Ir($"/alumnos/{Alumno.CodigoCarrera}/{Alumno.Codigo}/ficha");

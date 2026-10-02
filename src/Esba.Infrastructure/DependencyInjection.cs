@@ -117,6 +117,16 @@ public static class DependencyInjection
         services.AddScoped<ICambioDniLibroMatrizProcedure, CambioDniLibroMatrizProcedure>();
         services.AddScoped<ICuatrimestreVigenteProcedure, CuatrimestreVigenteProcedure>();
 
+        // Alumnos: copiar/mover a otra carrera y borrar (hito 18, sucesores de
+        // dxBarButton29/30/43Click de FrmEsba.pas vía XXX_COPIA/MUEVE/BORRA_ALUMNO).
+        services.AddScoped<ICopiaAlumnoProcedure, CopiaAlumnoProcedure>();
+        services.AddScoped<IMueveAlumnoProcedure, MueveAlumnoProcedure>();
+        services.AddScoped<IBorraAlumnoProcedure, BorraAlumnoProcedure>();
+        services.AddScoped<IValidator<CambiarCarreraAlumnoCommand>, CambiarCarreraAlumnoValidator>();
+        services.AddScoped<IValidator<BorrarAlumnoCommand>, BorrarAlumnoValidator>();
+        services.AddScoped<CambiarCarreraAlumnoHandler>();
+        services.AddScoped<BorrarAlumnoHandler>();
+
         // Académica: inscripción de materias.
         services.AddScoped<ICursadaQuery, CursadaQuery>();
         services.AddScoped<IMateriasQuery, MateriasQuery>();

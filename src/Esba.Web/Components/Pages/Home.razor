@@ -159,7 +159,14 @@
         Estado.CodigoSeleccionado = fila.Item.Codigo;
         Estado.CarreraSeleccionada = fila.Item.CodigoCarrera;
         var parametros = new DialogParameters<AccionesAlumnoDialog> { { x => x.Alumno, fila.Item } };
-        await DialogService.ShowAsync<AccionesAlumnoDialog>("Alumno seleccionado", parametros);
+        var dialogo = await DialogService.ShowAsync<AccionesAlumnoDialog>("Alumno seleccionado", parametros);
+
+        // Copiar/mover/borrar cambian el padrón: la grilla se recarga con los mismos filtros.
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false, Data: true } && _grilla is not null)
+        {
+            await _grilla.ReloadServerData();
+        }
     }
 
     private string ClaseFila(AlumnoListItemDto alumno, int _) =>
