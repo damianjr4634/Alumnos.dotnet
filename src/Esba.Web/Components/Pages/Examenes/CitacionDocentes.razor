@@ -52,15 +52,13 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="FirmanteCitacion" @bind-Value="_firmante" Label="Firma" Variant="Variant.Outlined" Margin="Margin.Dense">
+        <MudItem xs="12" sm="6" md="6">
+            <MudSelect T="FirmanteCitacion" @bind-Value="_firmante" Label="Firma" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       HelperText="La imagen de la firma acompaña al nombre si está configurada">
                 <MudSelectItem T="FirmanteCitacion" Value="FirmanteCitacion.Rector">Rector/a</MudSelectItem>
                 <MudSelectItem T="FirmanteCitacion" Value="FirmanteCitacion.Secretaria">Secretaria</MudSelectItem>
                 <MudSelectItem T="FirmanteCitacion" Value="FirmanteCitacion.DirectorEstudios">Dir. de Estudios</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudCheckBox T="bool" @bind-Value="_conImagenFirma" Label="Imagen de firma" Dense="true" />
         </MudItem>
         <MudItem xs="12" md="6">
             <MudAutocomplete T="CarreraListItemDto" Label="Autoridades de la carrera" Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -94,7 +92,6 @@
     private DateTime? _fechaDesde = DateTime.Today;
     private DateTime? _fechaHasta = DateTime.Today.AddMonths(1);
     private FirmanteCitacion _firmante = FirmanteCitacion.Rector;
-    private bool _conImagenFirma;
 
     private bool PuedeGenerar => _fechaDesde is not null && _fechaHasta is not null && CarreraFirma is not null;
 
@@ -143,7 +140,7 @@
 
         var url = "/examenes/citacion-docentes/pdf"
             + $"?desde={Iso(_fechaDesde!.Value)}&hasta={Iso(_fechaHasta!.Value)}"
-            + $"&firmante={_firmante}&imagen={_conImagenFirma}"
+            + $"&firmante={_firmante}"
             + $"&carreFirma={Uri.EscapeDataString(CarreraFirma!.Codigo)}";
 
         if (_docenteDesde is not null && _docenteHasta is not null)

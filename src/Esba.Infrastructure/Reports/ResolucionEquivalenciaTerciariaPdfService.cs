@@ -35,6 +35,7 @@ public sealed class ResolucionEquivalenciaTerciariaPdfService : IResolucionEquiv
         ArgumentNullException.ThrowIfNull(model);
 
         var membrete = CargarMembrete(_institucion.MembreteResolucionPath);
+        var imagenes = ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion);
         var fecha = $"Buenos Aires, {model.Fecha.Day} de {TextoCastellano.MesEnLetras(model.Fecha.Month)} de {model.Fecha.Year}";
 
         var documento = Document.Create(contenedor =>
@@ -69,11 +70,9 @@ public sealed class ResolucionEquivalenciaTerciariaPdfService : IResolucionEquiv
                         col.Item().PaddingLeft(12).Text(materia).Justify();
                     }
 
-                    col.Item().PaddingTop(48).AlignRight().Column(firma =>
-                    {
-                        firma.Item().Text(model.Rector ?? string.Empty).Bold();
-                        firma.Item().Text("Rector/a").FontColor(Colors.Grey.Darken1);
-                    });
+                    // Como el legacy: sello (7–11,5 cm) a la izquierda de la firma del Rector/a (13 cm).
+                    col.Item().PaddingTop(32).Element(c =>
+                        ReporteConstanciaLayout.FirmaUnica(c, model.Rector, "Rector/a", imagenes.FirmaRector, imagenes));
                 });
             });
         });

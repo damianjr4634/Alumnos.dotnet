@@ -37,6 +37,7 @@ public sealed class ConstanciaAnaliticoPdfService : IConstanciaAnaliticoReportSe
         ArgumentNullException.ThrowIfNull(model);
 
         var membrete = ReporteConstanciaLayout.CargarFondo(_institucion.MembreteConstanciaPath);
+        var imagenes = ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion);
 
         var documento = Document.Create(contenedor =>
         {
@@ -62,7 +63,7 @@ public sealed class ConstanciaAnaliticoPdfService : IConstanciaAnaliticoReportSe
                     col.Item().PaddingTop(4).Element(c => Tabla(c, model.Filas));
                     col.Item().PaddingTop(8).Text($"Para ser presentada ante: {model.AnteQuien}");
                     col.Item().PaddingTop(36).Element(c =>
-                        ReporteConstanciaLayout.Firmas(c, model.Secretaria, model.Rector));
+                        ReporteConstanciaLayout.Firmas(c, model.Secretaria, model.Rector, imagenes));
                 });
             });
         });

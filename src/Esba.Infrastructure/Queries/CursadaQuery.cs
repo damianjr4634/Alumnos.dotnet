@@ -47,4 +47,20 @@ public sealed class CursadaQuery : ICursadaQuery
 
         return filas.AsList();
     }
+
+    public async Task<IReadOnlySet<string>> ListarMateriasRegistradasAsync(
+        string codigoCarrera, string codigoAlumno, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT TRIM(C.COD_MAT) FROM CURSADA C WHERE C.CARRE = @Carre AND C.COD_ALU = @CodAlu
+            UNION
+            SELECT TRIM(A.COD_MAT) FROM ANALITIC A WHERE A.CARRE = @Carre AND A.COD_ALU = @CodAlu
+            """;
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+        var codigos = await connection.QueryAsync<string>(new CommandDefinition(
+            sql, new { Carre = codigoCarrera, CodAlu = codigoAlumno }, cancellationToken: ct)).ConfigureAwait(false);
+
+        return codigos.Where(c => !string.IsNullOrWhiteSpace(c)).ToHashSet(StringComparer.Ordinal);
+    }
 }

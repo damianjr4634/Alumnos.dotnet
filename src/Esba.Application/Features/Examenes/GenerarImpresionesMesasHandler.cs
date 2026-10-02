@@ -77,7 +77,6 @@ public sealed class GenerarImpresionesMesasHandler
                 FirmanteCitacion.Secretaria => autoridades.Secretaria,
                 _ => autoridades.DirectorEstudios,
             },
-            ConImagenFirma = command.ConImagenFirma,
             Docentes = docentes.Select(d => new CitacionDocenteSeccion
             {
                 CodigoProfesor = d.CodigoProfesor,

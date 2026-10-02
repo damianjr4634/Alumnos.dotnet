@@ -22,7 +22,13 @@ Fuentes legacy: `Formulario constancia alumno2/constanciaalumnos2.pas`
   9.2 (analítico tabular). Marcado para 9.2.
 - **Firmas/sello como imágenes** (`firma_secre.jpg`/`firma_recto.jpg`/`sello2.jpg`):
   por ser sensible y depender de assets ausentes, 9.1 imprime las firmas como texto
-  (nombre + cargo desde `CARRERA`).
+  (nombre + cargo desde `CARRERA`). **Resuelto 2026-10-01**: el usuario entregó los
+  assets (`wwwroot/plantillas/sello.jpg`, `firma_recto.jpg`, `firma_secre.jpg`, más los
+  membretes nuevos A4 y Oficio) y `ReporteConstanciaLayout` centraliza la regla: en toda
+  impresión con membrete, la última hoja cierra con el **sello** al lado de las firmas, y la
+  imagen de la firma de la rectora/secretaria sale **solo si su nombre está impreso**. Rutas
+  en `Institucion:SelloPath/FirmaRectorPath/FirmaSecretariaPath/MembreteOficioPath`; sin
+  archivo, cada pieza degrada a texto o espacio en blanco.
 - **Analítico tabular** (grilla de materias) y **Equivalencias** (ABM + impresión
   bachiller/terciaria): 9.2 y 9.3.
 

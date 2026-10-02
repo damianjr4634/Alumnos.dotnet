@@ -1,9 +1,13 @@
+@using Esba.Application.Abstractions
 @using Esba.Application.DTOs.Alumnos
+@using Esba.Domain.Certificados
 @using Esba.Domain.Enums
 @using Esba.Web.Seguridad
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navegacion
 @inject IDialogService DialogService
+@inject ICarrerasQuery CarrerasQuery
+@inject IJSRuntime JS
 
 @* Sucesor del panel ALUMNO SELECCIONADO de FrmEsba: las acciones sobre el alumno
    elegido en el buscador. Antes vivía debajo de la grilla; ahora es modal para
@@ -40,6 +44,19 @@
                        StartIcon="@Icons.Material.Filled.Grading" OnClick="AbrirNotasFinales">Notas de finales</MudButton>
             <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
                        StartIcon="@Icons.Material.Filled.Description" OnClick="AbrirConstancias">Constancias</MudButton>
+            @* Impresión de las equivalencias cargadas: resolución (formato nuevo de
+               lst_impresion_equivalencia_terc.pas) para terciarias, equivalencia bachiller
+               para BAC. El servidor revalida el tipo de carrera. *@
+            @if (_esTerciaria)
+            {
+                <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                           StartIcon="@Icons.Material.Filled.Gavel" OnClick="ImprimirResolucionTerciaria">Imprimir resolución de equivalencia</MudButton>
+            }
+            else if (_esBachiller)
+            {
+                <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                           StartIcon="@Icons.Material.Filled.Print" OnClick="ImprimirEquivalenciaBachiller">Imprimir equivalencia</MudButton>
+            }
         </div>
 
         @* Sucesores de "Copiar/Mover alumno a la carrera…" y "Borrar alumno" del menú
@@ -71,6 +88,8 @@
     [Parameter] public AlumnoListItemDto Alumno { get; set; } = default!;
 
     private bool _esSupervisor;
+    private bool _esTerciaria;
+    private bool _esBachiller;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,6 +97,30 @@
         {
             _esSupervisor = (await EstadoAutenticacion).User.EsSupervisor();
         }
+
+        var tipoCarrera = await CarrerasQuery.ObtenerTipoAsync(Alumno.CodigoCarrera, CancellationToken.None);
+        _esTerciaria = string.Equals(tipoCarrera?.Trim(), "TER", StringComparison.OrdinalIgnoreCase);
+        _esBachiller = EquivalenciaBachillerFormatter.EsTipoBachiller(tipoCarrera);
+    }
+
+    /// <summary>Sucesor de BtnImprimirFormatoNuevoClick: pide los cuatrimestres y abre el PDF de la resolución.</summary>
+    private async Task ImprimirResolucionTerciaria()
+    {
+        var dialogo = await DialogService.ShowAsync<ResolucionTerciariaDialog>("Imprimir resolución de equivalencia");
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false, Data: string cuatrimestres } && !string.IsNullOrWhiteSpace(cuatrimestres))
+        {
+            var url = $"/constancias/alumno/equivalencia-terciaria?carre={Uri.EscapeDataString(Alumno.CodigoCarrera)}" +
+                      $"&cod={Uri.EscapeDataString(Alumno.Codigo)}&cuatrimestres={Uri.EscapeDataString(cuatrimestres)}";
+            await JS.InvokeVoidAsync("open", url, "_blank");
+        }
+    }
+
+    private async Task ImprimirEquivalenciaBachiller()
+    {
+        var url = $"/constancias/alumno/equivalencia-bachiller?carre={Uri.EscapeDataString(Alumno.CodigoCarrera)}" +
+                  $"&cod={Uri.EscapeDataString(Alumno.Codigo)}";
+        await JS.InvokeVoidAsync("open", url, "_blank");
     }
 
     private async Task CambiarCarrera(bool mover)

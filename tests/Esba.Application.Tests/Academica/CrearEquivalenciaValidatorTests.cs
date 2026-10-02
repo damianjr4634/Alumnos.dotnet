@@ -39,6 +39,38 @@ public class CrearEquivalenciaValidatorTests
     }
 
     [Fact]
+    public void Validar_DatosDeOrigenEnElLimiteFisico_Pasa()
+    {
+        var comando = ComandoValido() with
+        {
+            InstitutoOrigen = new string('I', 30),
+            DocenteOrigen = "001",
+            MateriaOrigen = new string('M', 50),
+            CarreraOrigen = new string('C', 100),
+        };
+
+        _validator.TestValidate(comando).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Validar_DatosDeOrigenExcedenLaColumna_Falla()
+    {
+        var comando = ComandoValido() with
+        {
+            InstitutoOrigen = new string('I', 31),
+            DocenteOrigen = "0001",
+            MateriaOrigen = new string('M', 51),
+            CarreraOrigen = new string('C', 101),
+        };
+
+        var resultado = _validator.TestValidate(comando);
+        resultado.ShouldHaveValidationErrorFor(c => c.InstitutoOrigen);
+        resultado.ShouldHaveValidationErrorFor(c => c.DocenteOrigen);
+        resultado.ShouldHaveValidationErrorFor(c => c.MateriaOrigen);
+        resultado.ShouldHaveValidationErrorFor(c => c.CarreraOrigen);
+    }
+
+    [Fact]
     public void Validar_Dgegp_SinNumero_Falla()
     {
         var comando = ComandoValido() with { TipoActuacion = TipoActuacionEquivalencia.Dgegp, NumeroDgegp = null };

@@ -44,6 +44,9 @@ public sealed class NominaMinisterioPdfService : INominaMinisterioReportService
         var membrete = model.ConMembrete
             ? ReporteConstanciaLayout.CargarFondo(_institucion.MembreteConstanciaPath)
             : null;
+        var imagenes = membrete is not null
+            ? ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion)
+            : ReporteConstanciaLayout.ImagenesAutoridades.Ninguna;
 
         // El legacy achicaba un punto la letra cuando entraban las columnas extra.
         var tamanoEncabezado = model.ConEdadYNacionalidad ? 9 : 10;
@@ -80,6 +83,12 @@ public sealed class NominaMinisterioPdfService : INominaMinisterioReportService
                         {
                             col.Item().PageBreak();
                         }
+                    }
+
+                    // Con membrete, el sello cierra la última hoja (la nómina no lleva firmas).
+                    if (membrete is not null)
+                    {
+                        col.Item().PaddingTop(16).Element(c => ReporteConstanciaLayout.SoloSello(c, imagenes));
                     }
                 });
 

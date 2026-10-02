@@ -136,4 +136,32 @@ public class InscripcionRoundtripTests
         Assert.NotEmpty(lista);
         Assert.All(lista, c => Assert.False(string.IsNullOrWhiteSpace(c.Condicion)));
     }
+
+    [Fact]
+    public async Task CursadaQuery_MateriasRegistradas_UneCursadaYAnalitico()
+    {
+        await using var conexion = await Factory.CreateOpenConnectionAsync(CancellationToken.None);
+        // Un alumno con filas en ambas tablas, para que la unión tenga algo que aportar de cada lado.
+        var caso = await conexion.QueryFirstOrDefaultAsync<(string Carre, string CodAlu)?>("""
+            SELECT FIRST 1 TRIM(C.CARRE), C.COD_ALU
+            FROM CURSADA C
+            WHERE EXISTS (SELECT 1 FROM ANALITIC A WHERE A.CARRE = C.CARRE AND A.COD_ALU = C.COD_ALU)
+            ORDER BY C.CARRE, C.COD_ALU
+            """);
+        Assert.True(caso is not null, "Se necesita un alumno con cursada y analítico.");
+
+        var registradas = await new CursadaQuery(Factory)
+            .ListarMateriasRegistradasAsync(caso!.Value.Carre, caso.Value.CodAlu, CancellationToken.None);
+
+        var enCursada = await conexion.QueryAsync<string>(
+            "SELECT TRIM(COD_MAT) FROM CURSADA WHERE CARRE = @Carre AND COD_ALU = @CodAlu",
+            new { caso.Value.Carre, caso.Value.CodAlu });
+        var enAnalitico = await conexion.QueryAsync<string>(
+            "SELECT TRIM(COD_MAT) FROM ANALITIC WHERE CARRE = @Carre AND COD_ALU = @CodAlu",
+            new { caso.Value.Carre, caso.Value.CodAlu });
+
+        var esperadas = enCursada.Concat(enAnalitico).Where(c => !string.IsNullOrWhiteSpace(c)).ToHashSet(StringComparer.Ordinal);
+        Assert.NotEmpty(esperadas);
+        Assert.Equal(esperadas, registradas);
+    }
 }

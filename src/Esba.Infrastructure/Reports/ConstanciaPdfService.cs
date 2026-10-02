@@ -34,6 +34,7 @@ public sealed class ConstanciaPdfService : IConstanciaReportService
         ArgumentNullException.ThrowIfNull(model);
 
         var membrete = ReporteConstanciaLayout.CargarFondo(_institucion.MembreteConstanciaPath);
+        var imagenes = ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion);
 
         var documento = Document.Create(contenedor =>
         {
@@ -81,7 +82,7 @@ public sealed class ConstanciaPdfService : IConstanciaReportService
                     });
 
                     col.Item().PaddingTop(36).Element(c =>
-                        ReporteConstanciaLayout.Firmas(c, model.Secretaria, model.Rector));
+                        ReporteConstanciaLayout.Firmas(c, model.Secretaria, model.Rector, imagenes));
                 });
             });
         });

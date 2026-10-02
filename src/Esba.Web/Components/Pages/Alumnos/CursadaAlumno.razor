@@ -175,11 +175,16 @@ else
 
     private async Task CargarEquivalencia()
     {
+        // Solo materias que el alumno no tenga ya en CURSADA ni en ANALITIC (el mismo
+        // criterio con que el alta rechazaría la equivalencia vía XXX_INSC_VALMAT).
+        var registradas = await CursadaQuery.ListarMateriasRegistradasAsync(Carre, Codigo, CancellationToken.None);
+        var disponibles = _materias.Where(m => !registradas.Contains(m.Codigo.Trim())).ToList();
+
         var parametros = new DialogParameters<EquivalenciaDialog>
         {
             { d => d.Carre, Carre },
             { d => d.CodigoAlumno, Codigo },
-            { d => d.Materias, _materias },
+            { d => d.Materias, disponibles },
         };
 
         var dialogo = await DialogService.ShowAsync<EquivalenciaDialog>("Cargar equivalencia", parametros);

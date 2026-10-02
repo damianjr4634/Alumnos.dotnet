@@ -17,20 +17,20 @@ public class ImpresionesMesasPdfServiceTests
     private static readonly byte[] FirmaPdf = [0x25, 0x50, 0x44, 0x46];   // "%PDF"
     private static readonly DateOnly Fecha = new(2026, 12, 10);
 
-    private static IOptions<InstitucionSettings> Settings(string? firmaRector = null) => Options.Create(new InstitucionSettings
+    private static IOptions<InstitucionSettings> Settings(string? firmaRector = null, string? sello = null) => Options.Create(new InstitucionSettings
     {
         Nombre = "Instituto de Estudios Superiores de Buenos Aires",
         Caracteristica = "A-781",
         MembreteConstanciaPath = "no-existe/membrete.jpg",
         FirmaRectorPath = firmaRector,
+        SelloPath = sello,
     });
 
-    private static CitacionDocentesModel Citacion(bool conImagen) => new()
+    private static CitacionDocentesModel Citacion() => new()
     {
         FechaEmision = new DateOnly(2026, 9, 29),
         Firmante = FirmanteCitacion.Rector,
         NombreFirmante = "RECTORA UNO",
-        ConImagenFirma = conImagen,
         Docentes =
         [
             new CitacionDocenteSeccion
@@ -80,22 +80,37 @@ public class ImpresionesMesasPdfServiceTests
     };
 
     [Fact]
-    public void Citacion_SinImagenDeFirma_ProduceUnPdf()
+    public void Citacion_SinImagenesConfiguradas_ProduceUnPdf()
     {
-        var pdf = new CitacionDocentesPdfService(Settings()).GenerarCitacion(Citacion(conImagen: false));
+        var pdf = new CitacionDocentesPdfService(Settings()).GenerarCitacion(Citacion());
 
         Assert.NotEmpty(pdf);
         Assert.Equal(FirmaPdf, pdf[..4]);
     }
 
     [Fact]
-    public void Citacion_ConImagenPedidaPeroSinArchivo_ImprimeSoloNombreYCargo()
+    public void Citacion_ConRutasInexistentes_ImprimeSoloNombreYCargo()
     {
-        var pdf = new CitacionDocentesPdfService(Settings(firmaRector: "no-existe/firma.jpg"))
-            .GenerarCitacion(Citacion(conImagen: true));
+        var pdf = new CitacionDocentesPdfService(Settings(firmaRector: "no-existe/firma.jpg", sello: "no-existe/sello.jpg"))
+            .GenerarCitacion(Citacion());
 
         Assert.NotEmpty(pdf);
         Assert.Equal(FirmaPdf, pdf[..4]);
+    }
+
+    [Fact]
+    public void Citacion_ConFirmaYSello_IncrustaLasImagenes()
+    {
+        using var imagenes = ImagenesDePrueba.Crear();
+
+        var pdf = new CitacionDocentesPdfService(Settings(firmaRector: imagenes.Firma, sello: imagenes.Sello))
+            .GenerarCitacion(Citacion());
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(FirmaPdf, pdf[..4]);
+        // Con las imágenes incrustadas el PDF crece respecto de la versión solo texto.
+        var soloTexto = new CitacionDocentesPdfService(Settings()).GenerarCitacion(Citacion());
+        Assert.True(pdf.Length > soloTexto.Length);
     }
 
     [Fact]

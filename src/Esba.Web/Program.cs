@@ -375,7 +375,7 @@ app.MapGet("/asistencias/carpeta/excel", async (
 // de Impresiones.pas): citación a profesores y parte diario, PDF inline.
 app.MapGet("/examenes/citacion-docentes/pdf", async (
     DateOnly desde, DateOnly hasta, string? profDesde, string? profHasta, string[]? carre,
-    FirmanteCitacion firmante, bool? imagen, string carreFirma,
+    FirmanteCitacion firmante, string carreFirma,
     GenerarImpresionesMesasHandler handler, CancellationToken ct) =>
 {
     var command = new GenerarCitacionDocentesCommand
@@ -386,7 +386,6 @@ app.MapGet("/examenes/citacion-docentes/pdf", async (
         CodigoProfesorHasta = string.IsNullOrWhiteSpace(profHasta) ? null : profHasta,
         CodigosCarrera = carre ?? [],
         Firmante = firmante,
-        ConImagenFirma = imagen ?? false,
         CodigoCarreraFirma = carreFirma,
     };
     var resultado = await handler.GenerarCitacionPdfAsync(command, ct);

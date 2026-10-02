@@ -23,7 +23,6 @@ public sealed class CitacionDocentesPdfService : ICitacionDocentesReportService
     private const float MargenSuperiorCm = 4f;
     private const float MargenInferiorCm = 1.5f;
     private const float MargenHorizontalCm = 1.5f;
-    private const float AltoFirmaCm = 3f;
 
     private readonly InstitucionSettings _institucion;
 
@@ -43,7 +42,13 @@ public sealed class CitacionDocentesPdfService : ICitacionDocentesReportService
 
         // El legacy siempre imprimía sobre membrete_con_direccion.jpg.
         var membrete = ReporteConstanciaLayout.CargarFondo(_institucion.MembreteConstanciaPath);
-        var firma = model.ConImagenFirma ? ReporteConstanciaLayout.CargarFondo(RutaFirma(model.Firmante)) : null;
+        var imagenes = ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion);
+        var firma = model.Firmante switch
+        {
+            FirmanteCitacion.Rector => imagenes.FirmaRector,
+            FirmanteCitacion.Secretaria => imagenes.FirmaSecretaria,
+            _ => imagenes.FirmaDirectorEstudios,
+        };
 
         var copias = model.Docentes
             .SelectMany(d => new[] { (Docente: d, Copia: CitacionDocentesTextos.Original), (Docente: d, Copia: CitacionDocentesTextos.Duplicado) })
@@ -74,7 +79,7 @@ public sealed class CitacionDocentesPdfService : ICitacionDocentesReportService
                             carta.Spacing(4);
                             Encabezado(carta, model, docente, copia);
                             carta.Item().PaddingTop(4).Element(c => TablaMesas(c, docente.Mesas));
-                            Pie(carta, model, firma);
+                            Pie(carta, model, firma, imagenes);
                         });
 
                         if (i < copias.Count - 1)
@@ -88,13 +93,6 @@ public sealed class CitacionDocentesPdfService : ICitacionDocentesReportService
 
         return documento.GeneratePdf();
     }
-
-    private string? RutaFirma(FirmanteCitacion firmante) => firmante switch
-    {
-        FirmanteCitacion.Rector => _institucion.FirmaRectorPath,
-        FirmanteCitacion.Secretaria => _institucion.FirmaSecretariaPath,
-        _ => _institucion.FirmaDirectorEstudiosPath,
-    };
 
     private void Encabezado(ColumnDescriptor col, CitacionDocentesModel model, CitacionDocenteSeccion docente, string copia)
     {
@@ -143,28 +141,17 @@ public sealed class CitacionDocentesPdfService : ICitacionDocentesReportService
         });
     }
 
-    private static void Pie(ColumnDescriptor col, CitacionDocentesModel model, byte[]? firma)
+    private static void Pie(
+        ColumnDescriptor col, CitacionDocentesModel model, byte[]? firma, ReporteConstanciaLayout.ImagenesAutoridades imagenes)
     {
         col.Item().PaddingTop(16).Text(CitacionDocentesTextos.Notificado);
         col.Item().PaddingTop(6).Text(CitacionDocentesTextos.FechaEnBlanco);
         col.Item().PaddingTop(10).Text(CitacionDocentesTextos.Saludo);
 
-        // Firma a la derecha, como el legacy (x = 10..15 cm): imagen opcional arriba del
-        // nombre y el cargo debajo.
-        col.Item().AlignRight().Width(6, Unit.Centimetre).Column(bloque =>
-        {
-            if (firma is not null)
-            {
-                bloque.Item().Height(AltoFirmaCm, Unit.Centimetre).Image(firma).FitArea();
-            }
-            else
-            {
-                bloque.Item().Height(AltoFirmaCm / 2, Unit.Centimetre);
-            }
-
-            bloque.Item().AlignCenter().Text(model.NombreFirmante ?? string.Empty).Bold();
-            bloque.Item().AlignCenter().Text(model.Firmante.Cargo());
-        });
+        // Firma a la derecha, como el legacy (x = 10..15 cm), con la imagen de la firma
+        // del firmante sobre su nombre y el sello a su izquierda.
+        col.Item().PaddingTop(4).Element(c =>
+            ReporteConstanciaLayout.FirmaUnica(c, model.NombreFirmante, model.Firmante.Cargo(), firma, imagenes));
 
         col.Item().PaddingTop(10).Text(CitacionDocentesTextos.Reglamento).FontSize(9).Justify();
     }

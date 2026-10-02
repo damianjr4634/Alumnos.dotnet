@@ -45,12 +45,25 @@ public class NominaMinisterioPdfServiceTests
         ],
     };
 
-    private static NominaMinisterioPdfService CrearServicio(string? membrete = null) => new(
+    private static NominaMinisterioPdfService CrearServicio(string? membrete = null, string? sello = null) => new(
         Options.Create(new InstitucionSettings
         {
             Nombre = "Instituto de Estudios Superiores de Buenos Aires",
             MembreteConstanciaPath = membrete,
+            SelloPath = sello,
         }));
+
+    [Fact]
+    public void Nomina_ConMembreteYSello_IncrustaLasImagenesEnLaUltimaHoja()
+    {
+        using var imagenes = ImagenesDePrueba.Crear();
+
+        var pdf = CrearServicio(membrete: imagenes.Membrete, sello: imagenes.Sello)
+            .GenerarNomina(Modelo(conEdad: false, conMembrete: true));
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(FirmaPdf, pdf[..4]);
+    }
 
     [Fact]
     public void Nomina_SinEdad_ProduceUnPdf()

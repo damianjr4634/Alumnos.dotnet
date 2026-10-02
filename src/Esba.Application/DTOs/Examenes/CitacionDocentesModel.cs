@@ -15,8 +15,6 @@ public sealed record CitacionDocentesModel
     /// <summary>Nombre de la autoridad que firma (RECTOR/SECRETARIA/DIRESTU de la carrera de firma).</summary>
     public string? NombreFirmante { get; init; }
 
-    public required bool ConImagenFirma { get; init; }
-
     public required IReadOnlyList<CitacionDocenteSeccion> Docentes { get; init; }
 }
 

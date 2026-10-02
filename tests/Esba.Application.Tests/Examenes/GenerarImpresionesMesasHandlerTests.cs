@@ -46,7 +46,6 @@ public class GenerarImpresionesMesasHandlerTests
         CodigoProfesorHasta = profHasta,
         CodigosCarrera = carreras ?? [],
         Firmante = firmante,
-        ConImagenFirma = true,
         CodigoCarreraFirma = carreraFirma,
     };
 
@@ -167,7 +166,6 @@ public class GenerarImpresionesMesasHandlerTests
         Assert.Equal(new DateOnly(2026, 9, 29), capturado!.FechaEmision);
         Assert.Equal(FirmanteCitacion.Secretaria, capturado.Firmante);
         Assert.Equal("SECRETARIA DOS", capturado.NombreFirmante);
-        Assert.True(capturado.ConImagenFirma);
         Assert.Equal(2, capturado.Docentes.Count);
         Assert.Equal(2, capturado.Docentes[0].Mesas.Count);      // PÉREZ: mesas 10 y 11
         Assert.Single(capturado.Docentes[1].Mesas);              // GÓMEZ: mesa 10

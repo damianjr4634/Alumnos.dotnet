@@ -33,6 +33,7 @@ public sealed class ConstanciaRegularPdfService : IConstanciaRegularReportServic
         ArgumentNullException.ThrowIfNull(model);
 
         var membrete = CargarMembrete(_institucion.MembreteConstanciaRegularPath);
+        var imagenes = ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion);
 
         var documento = Document.Create(contenedor =>
         {
@@ -61,23 +62,10 @@ public sealed class ConstanciaRegularPdfService : IConstanciaRegularReportServic
                         col.Item().Text(parrafo).Justify();
                     }
 
-                    // Firmas (Secretaria izquierda, Rector/a derecha) con el sello al medio.
-                    col.Item().PaddingTop(56).Row(row =>
-                    {
-                        row.RelativeItem().AlignCenter().Column(firma =>
-                        {
-                            firma.Item().AlignCenter().Text(model.Secretaria ?? string.Empty).Bold();
-                            firma.Item().AlignCenter().Text("Secretaria");
-                        });
-
-                        row.RelativeItem().AlignCenter().Text("SELLO").FontColor(Colors.Grey.Medium);
-
-                        row.RelativeItem().AlignCenter().Column(firma =>
-                        {
-                            firma.Item().AlignCenter().Text(model.Rector ?? string.Empty).Bold();
-                            firma.Item().AlignCenter().Text("Rector/a");
-                        });
-                    });
+                    // Firmas (Secretaria izquierda, Rector/a derecha) con el sello al medio;
+                    // las imágenes de firma salen porque ambos nombres van impresos.
+                    col.Item().PaddingTop(40).Element(c =>
+                        ReporteConstanciaLayout.Firmas(c, model.Secretaria, model.Rector, imagenes, "Rector/a"));
 
                     col.Item().PaddingTop(24).Text(model.NotaLegal).FontSize(9).Italic();
 

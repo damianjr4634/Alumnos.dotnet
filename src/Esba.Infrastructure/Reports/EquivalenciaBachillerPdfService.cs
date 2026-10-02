@@ -37,6 +37,7 @@ public sealed class EquivalenciaBachillerPdfService : IEquivalenciaBachillerRepo
         ArgumentNullException.ThrowIfNull(model);
 
         var membrete = ReporteConstanciaLayout.CargarFondo(_institucion.MembreteConstanciaPath);
+        var imagenes = ReporteConstanciaLayout.ImagenesAutoridades.Cargar(_institucion);
         var fecha = $"Buenos Aires, {model.Fecha.Day} de {TextoCastellano.MesEnLetras(model.Fecha.Month)} de {model.Fecha.Year}";
 
         var documento = Document.Create(contenedor =>
@@ -77,6 +78,12 @@ public sealed class EquivalenciaBachillerPdfService : IEquivalenciaBachillerRepo
                     }
 
                     col.Item().PaddingTop(24).AlignCenter().Text(model.NombreCarrera).Bold().FontColor(ColorPrimario);
+
+                    // Impresión con membrete sin firmas: solo el sello al pie de la última hoja.
+                    if (membrete is not null)
+                    {
+                        col.Item().PaddingTop(16).Element(c => ReporteConstanciaLayout.SoloSello(c, imagenes));
+                    }
                 });
             });
         });

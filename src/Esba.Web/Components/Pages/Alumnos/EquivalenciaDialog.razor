@@ -4,6 +4,7 @@
 @using Esba.Domain.Enums
 @inject CrearEquivalenciaHandler CrearEquivalencia
 @inject IEquivalenciaNumeracionProcedure Numeracion
+@inject IDocentesQuery Docentes
 @inject ISnackbar Snackbar
 
 @* Alta de equivalencia (solapa "Equivalencia" de Equivalencia.pas): inserta en el
@@ -20,7 +21,7 @@
             <MudItem xs="12">
                 <MudSelect T="string" @bind-Value="_codigoMateria" Label="Materia a equivaler" Required="true"
                            Variant="Variant.Outlined" Margin="Margin.Dense">
-                    @foreach (var materia in Materias)
+                    @foreach (var materia in Materias.OrderBy(m => m.Codigo, StringComparer.Ordinal))
                     {
                         <MudSelectItem Value="@materia.Codigo">
                             @($"{materia.Codigo} — {materia.Nombre} (cuat. {materia.Cuatrimestre})")
@@ -74,17 +75,21 @@
                 </MudRadioGroup>
             </MudItem>
 
-            <MudItem xs="12" sm="4">
+            @* Datos de origen que van a ANALITIC.FEQMATE / FEQCARRE / FEQDOCE (FEQINST
+               toma la institución de arriba). A ancho completo: son textos largos. *@
+            <MudItem xs="12">
                 <MudTextField @bind-Value="_materiaOrigen" Label="Materia cursada en origen" MaxLength="50"
                               Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="12" sm="5">
+            <MudItem xs="12">
                 <MudTextField @bind-Value="_carreraOrigen" Label="Carrera cursada en origen" MaxLength="100"
                               Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="12" sm="3">
-                <MudTextField @bind-Value="_docenteOrigen" Label="Docente (cód.)" MaxLength="3"
-                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudItem xs="12" sm="8">
+                <MudAutocomplete T="DocenteListItemDto" Label="Docente" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 Clearable="true" Value="_docenteSel" ValueChanged="@(d => _docenteSel = d)"
+                                 SearchFunc="BuscarDocente"
+                                 ToStringFunc="@(d => d is null ? string.Empty : $"{d.Codigo} — {d.Nombre}")" />
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -115,10 +120,11 @@
     private string? _colegio;
     private string? _plan;
     private DocumentoEquivalencia? _documento;
-    private string? _docenteOrigen;
+    private DocenteListItemDto? _docenteSel;
     private string? _materiaOrigen;
     private string? _carreraOrigen;
 
+    private IReadOnlyList<DocenteListItemDto> _docentes = [];
     private NumeroEquivalenciaDto? _numero;
     private bool _guardando;
     private string? _error;
@@ -127,6 +133,18 @@
     {
         // Número interno sugerido (solo informativo; el alta lo re-resuelve en el servidor).
         _numero = await Numeracion.ObtenerProximoNumeroAsync(CodigoAlumno, Carre, CancellationToken.None);
+        // Como el ComboDocente del legacy (lookup a DOCENTES): se guarda el código en FEQDOCE.
+        _docentes = await Docentes.ListarActivosAsync(CancellationToken.None);
+    }
+
+    private Task<IEnumerable<DocenteListItemDto>> BuscarDocente(string? texto, CancellationToken ct)
+    {
+        IEnumerable<DocenteListItemDto> filtrados = string.IsNullOrWhiteSpace(texto)
+            ? _docentes
+            : _docentes.Where(d =>
+                d.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (d.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtrados);
     }
 
     private async Task Guardar()
@@ -155,7 +173,7 @@
                 Colegio = _colegio,
                 Plan = _plan,
                 Documento = _documento,
-                DocenteOrigen = _docenteOrigen,
+                DocenteOrigen = _docenteSel?.Codigo,
                 MateriaOrigen = _materiaOrigen,
                 CarreraOrigen = _carreraOrigen,
             }, usuario, CancellationToken.None);

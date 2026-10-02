@@ -16,6 +16,17 @@ public class ConstanciaAnaliticoPdfServiceTests
     private static ConstanciaAnaliticoPdfService Crear() =>
         new(Options.Create(new InstitucionSettings { Nombre = "ESBA", Caracteristica = "A-781" }));
 
+    private static ConstanciaAnaliticoPdfService CrearServicioConImagenes(ImagenesDePrueba imagenes) =>
+        new(Options.Create(new InstitucionSettings
+        {
+            Nombre = "ESBA",
+            Caracteristica = "A-781",
+            MembreteConstanciaPath = imagenes.Membrete,
+            SelloPath = imagenes.Sello,
+            FirmaRectorPath = imagenes.Firma,
+            FirmaSecretariaPath = imagenes.Firma,
+        }));
+
     private static ConstanciaMateriasAprobadasModel Modelo() => new()
     {
         Introduccion = "En Buenos Aires a los 18 días del mes de junio de 2026 …",
@@ -39,6 +50,33 @@ public class ConstanciaAnaliticoPdfServiceTests
         Assert.NotEmpty(pdf);
         // Firma de archivo PDF ("%PDF").
         Assert.Equal(new byte[] { 0x25, 0x50, 0x44, 0x46 }, pdf[..4]);
+    }
+
+    [Fact]
+    public void GenerarMateriasAprobadas_ConMembreteSelloYFirmas_IncrustaLasImagenes()
+    {
+        using var imagenes = ImagenesDePrueba.Crear();
+
+        var pdf = CrearServicioConImagenes(imagenes).GenerarMateriasAprobadas(Modelo());
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(new byte[] { 0x25, 0x50, 0x44, 0x46 }, pdf[..4]);
+        Assert.True(pdf.Length > Crear().GenerarMateriasAprobadas(Modelo()).Length);
+    }
+
+    [Fact]
+    public void GenerarMateriasAprobadas_SinFirmantes_NoIncrustaFirmas()
+    {
+        using var imagenes = ImagenesDePrueba.Crear();
+        var sinNombres = Modelo() with { Secretaria = null, Rector = null };
+
+        // Las imágenes de firma solo acompañan a un nombre impreso: sin nombres, el PDF
+        // lleva membrete y sello pero ninguna firma, y pesa menos que con ambas.
+        var sinFirmas = CrearServicioConImagenes(imagenes).GenerarMateriasAprobadas(sinNombres);
+        var conFirmas = CrearServicioConImagenes(imagenes).GenerarMateriasAprobadas(Modelo());
+
+        Assert.Equal(new byte[] { 0x25, 0x50, 0x44, 0x46 }, sinFirmas[..4]);
+        Assert.True(conFirmas.Length > sinFirmas.Length);
     }
 
     [Fact]
