@@ -1,0 +1,38 @@
+@inherits LayoutComponentBase
+
+@* Shell del ÁREA DOCENTE (hito 19 / 12.3.1): misma anatomía que el de secretaría
+   (appbar + drawer + contenido, tema único) pero con su propio menú, acotado a lo
+   que el docente tiene a cargo. Lo elige PerfilLayout cuando el usuario es de tipo
+   docente; las páginas de /docente exigen la policy Docentes (el servidor deniega). *@
+
+<MudLayout>
+    <MudAppBar Elevation="0" Class="esba-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="AlternarDrawer" aria-label="Abrir menú" />
+        <MudIcon Icon="@Icons.Material.Filled.School" Color="Color.Secondary" Class="ml-1 mr-2" />
+        <div>
+            <MudText Typo="Typo.h6" Style="line-height: 1.1;">ESBA</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-none d-sm-block">Portal docente</MudText>
+        </div>
+        <MudSpacer />
+        <BotonModoOscuro />
+        <MenuUsuario />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerAbierto" ClipMode="DrawerClipMode.Always" Elevation="0"
+               Variant="@DrawerVariant.Responsive" Breakpoint="Breakpoint.Md" Class="esba-drawer">
+        <DocenteNavMenu />
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 py-4 px-md-6 py-md-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerAbierto = true;
+
+    private void AlternarDrawer() => _drawerAbierto = !_drawerAbierto;
+}

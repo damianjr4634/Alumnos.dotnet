@@ -42,5 +42,15 @@ public sealed class UsuarioRepository : IUsuarioRepository
     public Task<int> ContarSupervisoresActivosAsync(CancellationToken ct) =>
         _contexto.Usuarios.CountAsync(u => u.EsSupervisor && u.FechaBaja == null, ct);
 
+    public Task<bool> ExisteVinculoDocenteAsync(string codigoDocente, int? codigoExcluido, CancellationToken ct)
+    {
+        // CODPROFES es CHAR(3): Firebird compara CHAR ignorando el relleno, así que
+        // el valor sin padding matchea igual.
+        var codigo = codigoDocente.Trim();
+        return _contexto.Usuarios.AnyAsync(u => u.CodigoDocente == codigo
+            && u.FechaBaja == null
+            && (codigoExcluido == null || u.Codigo != codigoExcluido), ct);
+    }
+
     public void Agregar(Usuario usuario) => _contexto.Usuarios.Add(usuario);
 }

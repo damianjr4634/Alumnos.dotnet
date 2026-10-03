@@ -1,0 +1,20 @@
+@* Menú del área docente. Las opciones de carga (comisiones y mesas) se habilitan a
+   medida que llegan las etapas del hito 19; hoy el inicio ya lista lo que el docente
+   tiene a cargo. *@
+
+<MudNavMenu Rounded="true" Color="Color.Primary" Margin="Margin.Dense" Class="pa-2">
+    <MudNavLink Href="/docente" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Inicio</MudNavLink>
+
+    <MudDivider Class="my-2" />
+
+    <MudNavLink Href="/docente#comisiones" Icon="@Icons.Material.Filled.Groups">Mis comisiones</MudNavLink>
+    <MudNavLink Href="/docente#mesas" Icon="@Icons.Material.Filled.Grading">Mis mesas</MudNavLink>
+
+    <MudDivider Class="my-2" />
+    <form method="post" action="/auth/logout" class="ma-0 px-2">
+        <AntiforgeryToken />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error"
+                   FullWidth="true" StartIcon="@Icons.Material.Filled.Logout"
+                   Class="justify-start">Cerrar sesión</MudButton>
+    </form>
+</MudNavMenu>

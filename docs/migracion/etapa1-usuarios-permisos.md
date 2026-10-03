@@ -18,6 +18,9 @@
 | CAMPASS | DebeCambiarPassword | bool | 'S'/'N': fuerza cambio de contraseña en el próximo login |
 | UID | SesionUid | string? | sesión única (`seciones.pas`): el login nuevo lo pisa e invalida la sesión anterior |
 | IMGFIRMA | ImagenFirma | string? | archivo de firma (CARPETA_FIRMAS) para constancias |
+| TIPO | Tipo | `TipoUsuario` (enum) | **Agregada por .NET 2026-10-02** (`migrations/2026-10-02_usuarios_tipo_vinculo.sql`): `SEC` secretaría (default, filas existentes), `DOC` docente, `ALU` alumno. Base del claim `esba:tipo` y de las policies por área (12.3 ampliado). ⚠️ El Delphi no la mira: un usuario DOC/ALU no debe tener `PASSWD` descifrable |
+| CODPROFES | CodigoDocente | string? | misma migración; obligatorio si TIPO=DOC → `DOCENTES.CODPROFES`. Regla en el validador del ABM, sin FK ni CHECK |
+| ALU_CARRE / ALU_COD_ALU | AlumnoCarrera / AlumnoCodigo | string? | misma migración; obligatorios si TIPO=ALU → PK de `ALUMNOS` (portal futuro) |
 
 ## BARRA_SEGU → `Esba.Domain.Entities.PermisoUsuario`
 

@@ -7,8 +7,9 @@ namespace Esba.Application.Features.Administracion;
 
 /// <summary>
 /// Blanqueo de contraseña por un administrador. Fija una clave temporal —en
-/// NPASSWD hasheada (login web) y en PASSWD con el cifrado legacy (escritorio)—
-/// y deja CAMPASS='S' para forzar el cambio en el próximo login del usuario.
+/// NPASSWD hasheada (login web) y, solo para secretaría, en PASSWD con el cifrado
+/// legacy (escritorio); docentes y alumnos conservan PASSWD bloqueado— y deja
+/// CAMPASS='S' para forzar el cambio en el próximo login del usuario.
 /// Reemplaza el blanqueo legacy (PASSWD='/' + CAMPASS='S'), incompatible con PBKDF2.
 /// </summary>
 public sealed class BlanquearPasswordHandler
@@ -50,7 +51,9 @@ public sealed class BlanquearPasswordHandler
         }
 
         usuario.PasswordHashNuevo = _hasher.Hash(command.PasswordTemporal);
-        usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.PasswordTemporal);
+        usuario.PasswordLegacy = usuario.UsaEscritorio
+            ? _cipherLegacy.Cifrar(command.PasswordTemporal)
+            : PasswordEscritorio.GenerarBloqueo();
         usuario.DebeCambiarPassword = true;
         await _unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
 

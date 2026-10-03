@@ -1,4 +1,5 @@
 @page "/"
+@attribute [Authorize(Policy = EsbaPolicies.Secretaria)]
 @using Esba.Application.Abstractions
 @using Esba.Application.DTOs.Alumnos
 @using Esba.Application.DTOs.Carreras

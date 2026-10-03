@@ -1,12 +1,18 @@
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Academica
 @using Esba.Application.DTOs.Administracion
 @using Esba.Application.Features.Administracion
+@using Esba.Domain.Enums
 @inject CrearUsuarioHandler CrearUsuario
 @inject ActualizarUsuarioHandler ActualizarUsuario
+@inject IDocentesQuery DocentesQuery
 @inject ISnackbar Snackbar
 
 @* Alta/modificación de un usuario del sistema (sucesor de AltaUsuario.pas). La
    contraseña solo se fija en el alta; el cambio y el blanqueo son flujos aparte
-   (hito 10.1c). Solo binding y llamadas a Application (§2.1). *@
+   (hito 10.1c). Quien da de alta elige el tipo (secretaría / docente / alumno) y
+   a quién queda atado el usuario (decisión 2026-10-02). Solo binding y llamadas
+   a Application (§2.1): las reglas tipo↔vínculo viven en el validador y el handler. *@
 
 <MudDialog>
     <DialogContent>
@@ -41,12 +47,57 @@
                               Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
 
-            <MudItem xs="12" Class="d-flex align-center mt-2">
-                <MudSwitch T="bool" @bind-Value="_esSupervisor" Label="Supervisor" Color="Color.Primary" />
-                <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2">
-                    Ve todas las carreras y administra el sistema.
-                </MudText>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="TipoUsuario" Value="_tipo" ValueChanged="CambiarTipo" Label="Tipo de usuario"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="TipoUsuario" Value="TipoUsuario.Secretaria">@TipoUsuarioCodigo.Etiqueta(TipoUsuario.Secretaria)</MudSelectItem>
+                    <MudSelectItem T="TipoUsuario" Value="TipoUsuario.Docente">@TipoUsuarioCodigo.Etiqueta(TipoUsuario.Docente)</MudSelectItem>
+                    @* Portal de alumnos: el vínculo ya se persiste y valida, pero el área
+                       web todavía no existe; se habilita en el selector cuando llegue. *@
+                    <MudSelectItem T="TipoUsuario" Value="TipoUsuario.Alumno" Disabled="true">@TipoUsuarioCodigo.Etiqueta(TipoUsuario.Alumno) (próximamente)</MudSelectItem>
+                </MudSelect>
             </MudItem>
+
+            @if (_tipo == TipoUsuario.Docente)
+            {
+                <MudItem xs="12">
+                    <MudAutocomplete T="DocenteListItemDto" Label="Docente vinculado" Required="true"
+                                     Value="_docenteSel" ValueChanged="SeleccionarDocente" Clearable="true"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     SearchFunc="BuscarDocente"
+                                     ToStringFunc="@(d => d is null ? string.Empty : $"{d.Codigo} — {d.Nombre}")"
+                                     HelperText="Al elegirlo se completan apellido y nombres. El usuario verá solo las comisiones y mesas de este docente." />
+                </MudItem>
+            }
+            else if (_tipo == TipoUsuario.Alumno)
+            {
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_alumnoCarrera" Label="Carrera" MaxLength="6" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_alumnoCodigo" Label="Código de alumno" MaxLength="11" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            }
+
+            @if (_tipo == TipoUsuario.Secretaria)
+            {
+                <MudItem xs="12" Class="d-flex align-center mt-2">
+                    <MudSwitch T="bool" @bind-Value="_esSupervisor" Label="Supervisor" Color="Color.Primary" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2">
+                        Ve todas las carreras y administra el sistema.
+                    </MudText>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Los usuarios docentes y alumnos ingresan solo por la web: no pueden usar el sistema de escritorio.
+                    </MudText>
+                </MudItem>
+            }
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -71,11 +122,18 @@
     private string? _apellido;
     private string? _cargo;
     private bool _esSupervisor;
+    private TipoUsuario _tipo = TipoUsuario.Secretaria;
+    private DocenteListItemDto? _docenteSel;
+    private string? _alumnoCarrera;
+    private string? _alumnoCodigo;
+    private IReadOnlyList<DocenteListItemDto> _docentes = [];
     private bool _guardando;
     private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _docentes = await DocentesQuery.ListarActivosAsync(CancellationToken.None);
+
         if (Usuario is { } u)
         {
             _nombreUsuario = u.NombreUsuario;
@@ -83,7 +141,49 @@
             _apellido = u.Apellido;
             _cargo = u.Cargo;
             _esSupervisor = u.EsSupervisor;
+            _tipo = u.Tipo;
+            _alumnoCarrera = u.AlumnoCarrera;
+            _alumnoCodigo = u.AlumnoCodigo;
+            _docenteSel = _docentes.FirstOrDefault(d => d.Codigo == u.CodigoDocente)
+                ?? (u.CodigoDocente is null ? null : new DocenteListItemDto { Codigo = u.CodigoDocente, Nombre = u.NombreDocente });
         }
+    }
+
+    private void CambiarTipo(TipoUsuario tipo)
+    {
+        _tipo = tipo;
+        if (tipo != TipoUsuario.Secretaria)
+        {
+            _esSupervisor = false;
+        }
+    }
+
+    /// <summary>
+    /// Al elegir un docente, el apellido y los nombres del usuario se precargan
+    /// desde DOCENTES.DOCENTE (regla de corte en el dominio). Siguen editables; al
+    /// limpiar el docente no se borran.
+    /// </summary>
+    private void SeleccionarDocente(DocenteListItemDto? docente)
+    {
+        _docenteSel = docente;
+        if (docente is null)
+        {
+            return;
+        }
+
+        var (apellido, nombres) = Esba.Domain.Entities.Docente.SepararApellidoYNombres(docente.Nombre);
+        _apellido = apellido;
+        _nombres = nombres;
+    }
+
+    private Task<IEnumerable<DocenteListItemDto>> BuscarDocente(string? texto, CancellationToken ct)
+    {
+        IEnumerable<DocenteListItemDto> filtrados = string.IsNullOrWhiteSpace(texto)
+            ? _docentes
+            : _docentes.Where(d =>
+                d.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                || (d.Nombre?.Contains(texto, StringComparison.OrdinalIgnoreCase) ?? false));
+        return Task.FromResult(filtrados);
     }
 
     private async Task Guardar()
@@ -101,6 +201,10 @@
                     Apellido = _apellido,
                     Cargo = _cargo,
                     EsSupervisor = _esSupervisor,
+                    Tipo = _tipo,
+                    CodigoDocente = _docenteSel?.Codigo,
+                    AlumnoCarrera = _alumnoCarrera,
+                    AlumnoCodigo = _alumnoCodigo,
                 }, CancellationToken.None)
                 : await CrearUsuario.HandleAsync(new CrearUsuarioCommand
                 {
@@ -110,11 +214,23 @@
                     Apellido = _apellido,
                     Cargo = _cargo,
                     EsSupervisor = _esSupervisor,
+                    Tipo = _tipo,
+                    CodigoDocente = _docenteSel?.Codigo,
+                    AlumnoCarrera = _alumnoCarrera,
+                    AlumnoCodigo = _alumnoCodigo,
                 }, CancellationToken.None);
 
             if (resultado.IsSuccess)
             {
-                Snackbar.Add(EsModificacion ? "Usuario actualizado." : "Usuario creado.", MudBlazor.Severity.Success);
+                if (resultado.Status == Esba.Domain.Common.OperationStatus.Warning)
+                {
+                    Snackbar.Add(resultado.Message!, MudBlazor.Severity.Warning);
+                }
+                else
+                {
+                    Snackbar.Add(EsModificacion ? "Usuario actualizado." : "Usuario creado.", MudBlazor.Severity.Success);
+                }
+
                 MudDialog?.Close(DialogResult.Ok(true));
             }
             else

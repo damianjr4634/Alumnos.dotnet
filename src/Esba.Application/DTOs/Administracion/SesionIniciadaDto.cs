@@ -1,3 +1,5 @@
+using Esba.Domain.Enums;
+
 namespace Esba.Application.DTOs.Administracion;
 
 /// <summary>
@@ -22,4 +24,16 @@ public sealed record SesionIniciadaDto
 
     /// <summary>Códigos de carrera/opción habilitados (BARRA_SEGU) para las políticas de autorización.</summary>
     public required IReadOnlyList<string> Permisos { get; init; }
+
+    /// <summary>Perfil de acceso (USUARIOS.TIPO): decide el área de la aplicación y las políticas (12.3 ampliado).</summary>
+    public TipoUsuario Tipo { get; init; } = TipoUsuario.Secretaria;
+
+    /// <summary>CODPROFES del docente vinculado (solo tipo Docente): alcance de datos de su área.</summary>
+    public string? CodigoDocente { get; init; }
+
+    /// <summary>Carrera del alumno vinculado (solo tipo Alumno).</summary>
+    public string? AlumnoCarrera { get; init; }
+
+    /// <summary>Código del alumno vinculado (solo tipo Alumno).</summary>
+    public string? AlumnoCodigo { get; init; }
 }

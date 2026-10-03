@@ -52,17 +52,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
-        options.AccessDeniedPath = "/login";
+        // Autenticado pero sin la policy (otro perfil) en un endpoint: página propia,
+        // no el login. En las páginas Blazor lo resuelve Routes.razor con el mismo destino.
+        options.AccessDeniedPath = "/acceso-denegado";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
-builder.Services.AddAuthorization(options =>
-{
-    // Acceso a las pantallas de Administración: solo supervisores (SUPERV='S').
-    // La autorización fina por área (mapa BARRA_OPC/BARRA_SEGU) es del hito 12.
-    options.AddPolicy(EsbaPolicies.Supervisores, policy =>
-        policy.RequireClaim(EsbaClaims.Supervisor, "S"));
-});
+// Policies por perfil (Secretaria/Docentes/Alumnos) + Supervisores: ver EsbaPolicies.
+// La autorización fina por opción de menú/carrera (BARRA_SEGU → MNUOPC) es 12.3.
+builder.Services.AddAuthorization(EsbaPolicies.Configurar);
 builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
@@ -102,11 +100,25 @@ app.MapPost("/auth/login", async (
         return Results.Redirect($"/login?error={Uri.EscapeDataString(resultado.Message ?? "No se pudo iniciar sesión.")}");
     }
 
+    // TODO-migrar (portal de alumnos): no existe todavía el área /portal ni sus
+    // policies en uso, así que un alumno no inicia sesión. Se retira al construirla.
+    if (resultado.Value.Tipo == TipoUsuario.Alumno)
+    {
+        return Results.Redirect($"/login?error={Uri.EscapeDataString("El portal de alumnos todavía no está habilitado.")}");
+    }
+
     await http.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, EsbaClaims.CrearPrincipal(resultado.Value));
 
     // CAMPASS='S': el usuario aterriza en el cambio de contraseña forzado (10.1c).
     // El bloqueo estricto de navegación hasta cambiarla es del hito 12.
-    return Results.Redirect(resultado.Value.DebeCambiarPassword ? "/cambiar-password" : "/");
+    if (resultado.Value.DebeCambiarPassword)
+    {
+        return Results.Redirect("/cambiar-password");
+    }
+
+    // Cada perfil aterriza en su área. Esto es UX: lo que cada uno puede abrir lo
+    // deciden las policies por carpeta (12.3.1), no este redirect.
+    return Results.Redirect(resultado.Value.Tipo == TipoUsuario.Docente ? "/docente" : "/");
 });
 
 app.MapPost("/auth/logout", async (HttpContext http) =>
@@ -147,7 +159,7 @@ app.MapGet("/constancias/alumno", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Constancia de Alumno Regular (hito 10.4a): hoja A4 con membrete de fondo. El servidor
 // revalida que el alumno esté CURSANDO/RECURSANDO en el cuatrimestre vigente (sucesor de
@@ -173,7 +185,7 @@ app.MapGet("/constancias/alumno/regular", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Constancia de Materias Aprobadas (hito 9.2b): reporte tabular del analítico,
 // servido inline para previsualizar/imprimir en el navegador (sucesor de
@@ -192,7 +204,7 @@ app.MapGet("/constancias/alumno/materias-aprobadas", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Constancia de Examen Final (hito 9.2c): se emite por materia (acción de fila del
 // analítico). Servida inline (sucesor de Impresion_Constancia_Examen, §3.3).
@@ -211,7 +223,7 @@ app.MapGet("/constancias/alumno/examen-final", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Equivalencia bachiller (hito 9.3c): impresión del listado de materias por
 // equivalencia, servida inline (sucesor de lst_impresion_equivalencia_bac.pas, §3.3).
@@ -229,7 +241,7 @@ app.MapGet("/constancias/alumno/equivalencia-bachiller", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Resolución de equivalencia terciaria (hito 9.3d): VISTO/CONSIDERANDO/RESUELVE para
 // los cuatrimestres indicados, servida inline (sucesor del formato nuevo de
@@ -248,7 +260,7 @@ app.MapGet("/constancias/alumno/equivalencia-terciaria", async (
     }
 
     return Results.File(resultado.Value, "application/pdf");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Actas de examen por comisión (hito 14): A/REGULAR, Reincorporación o Exámenes.
 // PDF Oficio inline (sucesor de lstactasARegular/lstactasreincorporacion/lstactasexamenes).
@@ -277,7 +289,7 @@ app.MapGet("/actas/comision", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 app.MapGet("/actas/comision/excel", async (
     string tipo, string carre, string cua, short? cutuco, string? codmat,
@@ -292,7 +304,7 @@ app.MapGet("/actas/comision/excel", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, ExcelMime, $"acta_{tipo.ToLowerInvariant()}.xlsx")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Acta volante por mesa (hito 14): PDF Oficio inline + Excel (sucesor de lstactasMesas).
 app.MapGet("/actas/mesa", async (
@@ -304,7 +316,7 @@ app.MapGet("/actas/mesa", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 app.MapGet("/actas/mesa/excel", async (
     string carre, int mesa, string tipoExamen,
@@ -315,7 +327,7 @@ app.MapGet("/actas/mesa/excel", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, ExcelMime, $"acta_mesa_{mesa}.xlsx")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el acta.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Carpetas por comisión (planillas en blanco de asistencia, trabajos prácticos o
 // calificaciones para el docente): PDF inline y export Excel (sucesor de
@@ -341,7 +353,7 @@ app.MapGet("/asistencias/carpeta/pdf", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 app.MapGet("/asistencias/carpeta/excel", async (
     string tipo, string carre, string cua, short? cutuco, string? codmat,
@@ -369,7 +381,7 @@ app.MapGet("/asistencias/carpeta/excel", async (
             resultado.Value.EsZip ? "application/zip" : ExcelMime,
             resultado.Value.NombreArchivo)
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la carpeta.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Impresiones de mesas (hito 17, sucesores de Imp_Mesas_citacion / Imp_Mesas_ParteDiario
 // de Impresiones.pas): citación a profesores y parte diario, PDF inline.
@@ -392,7 +404,7 @@ app.MapGet("/examenes/citacion-docentes/pdf", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la citación.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 app.MapGet("/examenes/parte-diario/pdf", async (
     DateOnly desde, DateOnly hasta, string? carre,
@@ -408,7 +420,7 @@ app.MapGet("/examenes/parte-diario/pdf", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el parte diario.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 // Comisiones al Ministerio (hito 16, sucesor de ComisionesAlMinisterio.pas): nómina
 // impresa por comisión (PDF inline) y padrón Excel con el layout del Ministerio.
@@ -429,7 +441,7 @@ app.MapGet("/ministerio/comisiones/pdf", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, "application/pdf")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar la nómina.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 app.MapGet("/ministerio/comisiones/excel", async (
     string carre, string cua, short? cutuco, bool? separadas,
@@ -447,6 +459,6 @@ app.MapGet("/ministerio/comisiones/excel", async (
     return resultado.IsSuccess && resultado.Value is not null
         ? Results.File(resultado.Value, ExcelMime, $"comisiones_ministerio_{carre}_{cuatrimestre}.xlsx")
         : Results.BadRequest(resultado.Message ?? "No se pudo generar el padrón.");
-}).RequireAuthorization();
+}).RequireAuthorization(EsbaPolicies.Secretaria);
 
 app.Run();

@@ -1,3 +1,5 @@
+using Esba.Domain.Enums;
+
 namespace Esba.Domain.Entities;
 
 /// <summary>
@@ -6,6 +8,8 @@ namespace Esba.Domain.Entities;
 /// (decisión 2026-07-06): PASSWD conserva el cifrado reversible legacy que lee
 /// el Delphi (sesion.pas + EncriptoCadena2) y NPASSWD guarda el hash PBKDF2
 /// que usa el login web. Al retirar el escritorio se dropea PASSWD.
+/// Desde 2026-10-02 la tabla también aloja docentes y alumnos (<see cref="Tipo"/>
+/// + vínculo): un solo login para los tres perfiles.
 /// </summary>
 public class Usuario
 {
@@ -57,9 +61,31 @@ public class Usuario
     /// </summary>
     public DateOnly? FechaBaja { get; set; }
 
+    /// <summary>
+    /// TIPO CHAR(3) NOT NULL DEFAULT 'SEC' (migración 2026-10-02): perfil de acceso
+    /// web. Las filas previas a la migración son de secretaría.
+    /// </summary>
+    public TipoUsuario Tipo { get; set; } = TipoUsuario.Secretaria;
+
+    /// <summary>CODPROFES CHAR(3): docente vinculado (DOCENTES.CODPROFES). Obligatorio si <see cref="Tipo"/> es Docente; null en los demás.</summary>
+    public string? CodigoDocente { get; set; }
+
+    /// <summary>ALU_CARRE VARCHAR(6): carrera del alumno vinculado (ALUMNOS.CARRE). Obligatoria si <see cref="Tipo"/> es Alumno.</summary>
+    public string? AlumnoCarrera { get; set; }
+
+    /// <summary>ALU_COD_ALU CHAR(11): código del alumno vinculado (ALUMNOS.COD_ALU). Obligatorio si <see cref="Tipo"/> es Alumno.</summary>
+    public string? AlumnoCodigo { get; set; }
+
     /// <summary>Carreras/opciones habilitadas (BARRA_SEGU).</summary>
     public ICollection<PermisoUsuario> Permisos { get; set; } = [];
 
     /// <summary>true si el usuario está dado de baja (FECHA_BAJ no nula).</summary>
     public bool EstaDeBaja => FechaBaja is not null;
+
+    /// <summary>
+    /// true si el usuario puede entrar al ESBA de escritorio (Delphi). Solo el
+    /// personal de secretaría: para docentes y alumnos PASSWD lleva un sentinela
+    /// indescifrable y nunca se sincroniza (ver PasswordEscritorio en Application).
+    /// </summary>
+    public bool UsaEscritorio => Tipo == TipoUsuario.Secretaria;
 }

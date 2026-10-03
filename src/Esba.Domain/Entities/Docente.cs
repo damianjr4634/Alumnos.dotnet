@@ -64,4 +64,33 @@ public class Docente
 
     /// <summary>true si el docente está dado de baja (FECHA_BAJ no nula).</summary>
     public bool EstaDeBaja => FechaBaja is not null;
+
+    /// <summary>
+    /// Separa DOCENTE ("apellido y nombre" en un solo campo) en apellido y nombres.
+    /// Convención real de la base (2026-10-03: 155 de 166 docentes activos):
+    /// "APELLIDO, NOMBRES" → se corta en la primera coma. Sin coma el corte es
+    /// ambiguo (apellidos compuestos como "DI BARTOLOMEO LAURA"), así que todo
+    /// queda en apellido y nombres vacío, para que el operador lo acomode.
+    /// Se usa para precargar el usuario web de un docente.
+    /// </summary>
+    public static (string? Apellido, string? Nombres) SepararApellidoYNombres(string? docente)
+    {
+        if (string.IsNullOrWhiteSpace(docente))
+        {
+            return (null, null);
+        }
+
+        var texto = docente.Trim();
+        var coma = texto.IndexOf(',', StringComparison.Ordinal);
+        if (coma < 0)
+        {
+            return (texto, null);
+        }
+
+        var apellido = texto[..coma].Trim();
+        var nombres = texto[(coma + 1)..].Trim();
+        return (
+            apellido.Length == 0 ? null : apellido,
+            nombres.Length == 0 ? null : nombres);
+    }
 }

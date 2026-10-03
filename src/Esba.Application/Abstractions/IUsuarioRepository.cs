@@ -16,5 +16,12 @@ public interface IUsuarioRepository
     /// <summary>Cantidad de supervisores activos (SUPERV='S' y FECHA_BAJ nula): evita dejar el sistema sin administrador.</summary>
     Task<int> ContarSupervisoresActivosAsync(CancellationToken ct);
 
+    /// <summary>
+    /// true si otro usuario activo ya está vinculado a ese docente (CODPROFES),
+    /// opcionalmente excluyendo un código (al editar). Un docente tiene a lo sumo
+    /// un usuario web activo.
+    /// </summary>
+    Task<bool> ExisteVinculoDocenteAsync(string codigoDocente, int? codigoExcluido, CancellationToken ct);
+
     void Agregar(Usuario usuario);
 }

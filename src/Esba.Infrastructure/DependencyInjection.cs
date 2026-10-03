@@ -232,6 +232,10 @@ public static class DependencyInjection
         services.AddScoped<IValidator<GenerarParteDiarioMesasCommand>, GenerarParteDiarioMesasValidator>();
         services.AddScoped<GenerarImpresionesMesasHandler>();
 
+        // Área docente (hito 19): lo que el docente logueado tiene a cargo (alcance por
+        // el CODPROFES del claim). Lecturas solamente; la precarga llega con las etapas 1-2.
+        services.AddScoped<IAreaDocenteQuery, AreaDocenteQuery>();
+
         // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();
         services.AddScoped<ITipoMesaQuery, TipoMesaQuery>();

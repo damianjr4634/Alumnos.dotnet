@@ -1,9 +1,8 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider @ref="_proveedorTema" Theme="EsbaTheme.Tema" @bind-IsDarkMode="_modoOscuro" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+@* Shell de SECRETARÍA (sucesor de FrmEsba): appbar + drawer con el menú por área
+   funcional + contenido. Providers y tema viven en EsbaRootLayout; este layout se
+   elige por perfil desde PerfilLayout (los docentes van a DocenteLayout). *@
 
 <MudLayout>
     <MudAppBar Elevation="0" Class="esba-appbar">
@@ -15,42 +14,8 @@
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-none d-sm-block">Gestión Académica</MudText>
         </div>
         <MudSpacer />
-        <MudTooltip Text="@(_modoOscuro ? "Modo claro" : "Modo oscuro")">
-            <MudIconButton Icon="@(_modoOscuro ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                           Color="Color.Inherit" OnClick="AlternarModoOscuro" aria-label="Cambiar modo claro/oscuro" />
-        </MudTooltip>
-        <AuthorizeView Context="estadoAuth">
-            <Authorized>
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                    <ActivatorContent>
-                        <MudButton Color="Color.Inherit" Class="px-2 ml-1" aria-label="Menú de usuario">
-                            <MudAvatar Size="Size.Small" Color="Color.Primary">
-                                @Iniciales(estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value)
-                            </MudAvatar>
-                            <MudText Class="ml-2 d-none d-sm-block">
-                                @estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value
-                            </MudText>
-                        </MudButton>
-                    </ActivatorContent>
-                    <ChildContent>
-                        <div class="px-4 py-2">
-                            <MudText Typo="Typo.body2">@estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@estadoAuth.User.Identity?.Name</MudText>
-                        </div>
-                        <MudDivider Class="mb-1" />
-                        <MudButton Href="/cambiar-password" Variant="Variant.Text" Color="Color.Inherit"
-                                   FullWidth="true" StartIcon="@Icons.Material.Filled.Password"
-                                   Class="justify-start px-4">Cambiar mi contraseña</MudButton>
-                        <form method="post" action="/auth/logout" class="ma-0">
-                            <AntiforgeryToken />
-                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error"
-                                       FullWidth="true" StartIcon="@Icons.Material.Filled.Logout"
-                                       Class="justify-start px-4">Cerrar sesión</MudButton>
-                        </form>
-                    </ChildContent>
-                </MudMenu>
-            </Authorized>
-        </AuthorizeView>
+        <BotonModoOscuro />
+        <MenuUsuario />
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerAbierto" ClipMode="DrawerClipMode.Always" Elevation="0"
@@ -66,43 +31,7 @@
 </MudLayout>
 
 @code {
-    private MudThemeProvider? _proveedorTema;
     private bool _drawerAbierto = true;
-    private bool _modoOscuro;
-
-    // TODO-migrar: persistir la preferencia de modo en BD como el resto de las
-    // preferencias de usuario (sucesoras de los .bar/.not, §3.2); por ahora
-    // arranca con la preferencia del sistema operativo.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && _proveedorTema is not null)
-        {
-            _modoOscuro = await _proveedorTema.GetSystemDarkModeAsync();
-            await _proveedorTema.WatchSystemDarkModeAsync(CambioModoSistema);
-            StateHasChanged();
-        }
-    }
-
-    private Task CambioModoSistema(bool oscuro)
-    {
-        _modoOscuro = oscuro;
-        return InvokeAsync(StateHasChanged);
-    }
 
     private void AlternarDrawer() => _drawerAbierto = !_drawerAbierto;
-
-    private void AlternarModoOscuro() => _modoOscuro = !_modoOscuro;
-
-    private static string Iniciales(string? nombreCompleto)
-    {
-        if (string.IsNullOrWhiteSpace(nombreCompleto))
-        {
-            return "?";
-        }
-
-        var partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return partes.Length == 1
-            ? char.ToUpperInvariant(partes[0][0]).ToString()
-            : $"{char.ToUpperInvariant(partes[0][0])}{char.ToUpperInvariant(partes[^1][0])}";
-    }
 }

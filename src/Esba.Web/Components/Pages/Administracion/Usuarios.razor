@@ -5,6 +5,7 @@
 @using Esba.Application.Common
 @using Esba.Application.DTOs.Administracion
 @using Esba.Application.Features.Administracion
+@using Esba.Domain.Enums
 @using Esba.Web.Components.Shared
 @using Esba.Web.Seguridad
 @inject IUsuariosQuery UsuariosQuery
@@ -49,6 +50,15 @@
         new() { Titulo = "Cargo", Valor = u => u.Cargo, ClaveOrden = "Cargo", OcultarEnChico = true },
         new()
         {
+            Titulo = "Tipo",
+            Valor = u => TipoUsuarioCodigo.Etiqueta(u.Tipo),
+            ClaveOrden = "Tipo",
+            Celda = u =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                Color="@ColorTipo(u.Tipo)">@TipoUsuarioCodigo.Etiqueta(u.Tipo)</MudChip>,
+        },
+        new() { Titulo = "Vinculado a", Valor = u => u.Vinculo, OcultarEnChico = true },
+        new()
+        {
             Titulo = "Supervisor",
             Valor = u => u.EsSupervisor ? "Sí" : "No",
             OcultarEnChico = true,
@@ -87,13 +97,31 @@
     {
         _campos =
         [
-            new() { Clave = "Texto", Etiqueta = "Usuario, nombre o cargo", Tipo = EsbaFilterKind.Texto, AnchoMd = 4 },
+            new() { Clave = "Texto", Etiqueta = "Usuario, nombre, cargo o docente", Tipo = EsbaFilterKind.Texto, AnchoMd = 4 },
+            new()
+            {
+                Clave = "Tipo", Etiqueta = "Tipo de usuario", Tipo = EsbaFilterKind.Seleccion, AnchoMd = 3,
+                Opciones =
+                [
+                    new(TipoUsuarioCodigo.Secretaria, TipoUsuarioCodigo.Etiqueta(TipoUsuario.Secretaria)),
+                    new(TipoUsuarioCodigo.Docente, TipoUsuarioCodigo.Etiqueta(TipoUsuario.Docente)),
+                    new(TipoUsuarioCodigo.Alumno, TipoUsuarioCodigo.Etiqueta(TipoUsuario.Alumno)),
+                ],
+            },
             new() { Clave = "IncluirBajas", Etiqueta = "Incluir dados de baja", Tipo = EsbaFilterKind.Booleano, AnchoMd = 3 },
         ];
     }
 
     private static string NombreCompleto(UsuarioListItemDto u) =>
         string.Join(", ", new[] { u.Apellido, u.Nombres }.Where(p => !string.IsNullOrWhiteSpace(p)));
+
+    // Mapa de colores del perfil (análogo al de estados del alumno, CLAUDE.md §4.5).
+    private static Color ColorTipo(TipoUsuario tipo) => tipo switch
+    {
+        TipoUsuario.Docente => Color.Secondary,
+        TipoUsuario.Alumno => Color.Info,
+        _ => Color.Default,
+    };
 
     private async Task Aplicar(EsbaFilterValores valores)
     {
@@ -109,6 +137,7 @@
         var filtro = new UsuariosFiltro
         {
             Texto = _filtros?.Texto("Texto"),
+            Tipo = _filtros?.Texto("Tipo") is { Length: > 0 } codigoTipo ? TipoUsuarioCodigo.DesdeCodigo(codigoTipo) : null,
             IncluirBajas = _filtros?.Booleano("IncluirBajas") ?? false,
             OrdenarPor = req.OrdenarPor,
             Descendente = req.Descendente,

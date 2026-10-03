@@ -1,8 +1,17 @@
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.PerfilLayout)">
             <NotAuthorized>
-                <RedirectToLogin />
+                @* Sin sesión → login. Con sesión pero sin la policy (otro perfil) →
+                   acceso denegado con el camino de vuelta a su propio inicio. *@
+                @if (context.User.Identity?.IsAuthenticated == true)
+                {
+                    <RedirectToAccesoDenegado />
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />

@@ -1,0 +1,9 @@
+@inject NavigationManager Navegacion
+
+@* Usuario autenticado pero sin la policy de la página (otro perfil): va a la
+   página de acceso denegado en vez de rebotar al login sin explicación. *@
+
+@code {
+    protected override void OnInitialized() =>
+        Navegacion.NavigateTo("/acceso-denegado");
+}

@@ -1,0 +1,35 @@
+@inherits LayoutComponentBase
+@layout EsbaRootLayout
+@using Esba.Domain.Enums
+
+@* Layout por defecto de las páginas autenticadas: elige el shell según el perfil
+   del usuario (USUARIOS.TIPO en el claim esba:tipo). Así las páginas compartidas
+   (/cambiar-password, /not-found) salen con el shell correcto sin declarar layout,
+   y cada área tiene el suyo. Esto es solo presentación: quién puede ENTRAR a cada
+   página lo deciden las policies por carpeta (el servidor deniega, la UI oculta). *@
+
+@if (_tipo == TipoUsuario.Docente)
+{
+    <DocenteLayout Body="@Body" />
+}
+else
+{
+    <MainLayout Body="@Body" />
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private TipoUsuario _tipo = TipoUsuario.Secretaria;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (EstadoAutenticacion is null)
+        {
+            return;
+        }
+
+        var usuario = (await EstadoAutenticacion).User;
+        _tipo = usuario.Identity?.IsAuthenticated == true ? usuario.TipoDeUsuario() : TipoUsuario.Secretaria;
+    }
+}

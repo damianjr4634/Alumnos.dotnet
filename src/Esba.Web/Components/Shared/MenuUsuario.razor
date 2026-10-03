@@ -1,0 +1,52 @@
+@* Menú del usuario logueado en la appbar (avatar de iniciales, nombre, cambio de
+   contraseña y cierre de sesión). Compartido por los shells de secretaría y docente.
+   El logout es un POST nativo con antiforgery: la cookie solo se limpia en una
+   request HTTP real, no desde el circuito (igual que el login, §Program.cs). *@
+
+<AuthorizeView Context="estadoAuth">
+    <Authorized>
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <ActivatorContent>
+                <MudButton Color="Color.Inherit" Class="px-2 ml-1" aria-label="Menú de usuario">
+                    <MudAvatar Size="Size.Small" Color="Color.Primary">
+                        @Iniciales(estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value)
+                    </MudAvatar>
+                    <MudText Class="ml-2 d-none d-sm-block">
+                        @estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value
+                    </MudText>
+                </MudButton>
+            </ActivatorContent>
+            <ChildContent>
+                <div class="px-4 py-2">
+                    <MudText Typo="Typo.body2">@estadoAuth.User.FindFirst(EsbaClaims.NombreCompleto)?.Value</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@estadoAuth.User.Identity?.Name</MudText>
+                </div>
+                <MudDivider Class="mb-1" />
+                <MudButton Href="/cambiar-password" Variant="Variant.Text" Color="Color.Inherit"
+                           FullWidth="true" StartIcon="@Icons.Material.Filled.Password"
+                           Class="justify-start px-4">Cambiar mi contraseña</MudButton>
+                <form method="post" action="/auth/logout" class="ma-0">
+                    <AntiforgeryToken />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Error"
+                               FullWidth="true" StartIcon="@Icons.Material.Filled.Logout"
+                               Class="justify-start px-4">Cerrar sesión</MudButton>
+                </form>
+            </ChildContent>
+        </MudMenu>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private static string Iniciales(string? nombreCompleto)
+    {
+        if (string.IsNullOrWhiteSpace(nombreCompleto))
+        {
+            return "?";
+        }
+
+        var partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length == 1
+            ? char.ToUpperInvariant(partes[0][0]).ToString()
+            : $"{char.ToUpperInvariant(partes[0][0])}{char.ToUpperInvariant(partes[^1][0])}";
+    }
+}

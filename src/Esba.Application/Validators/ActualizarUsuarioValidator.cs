@@ -22,5 +22,8 @@ public sealed class ActualizarUsuarioValidator : AbstractValidator<ActualizarUsu
 
         RuleFor(c => c.Cargo)
             .MaximumLength(30).WithMessage("El cargo no puede superar los 30 caracteres.");
+
+        Include(new TipoYVinculoUsuarioRules<ActualizarUsuarioCommand>(
+            c => c.Tipo, c => c.EsSupervisor, c => c.CodigoDocente, c => c.AlumnoCarrera, c => c.AlumnoCodigo));
     }
 }

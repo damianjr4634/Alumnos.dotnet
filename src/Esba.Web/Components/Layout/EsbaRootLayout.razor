@@ -1,0 +1,48 @@
+@inherits LayoutComponentBase
+
+@* Raíz común de los shells autenticados (secretaría y docente): providers de
+   MudBlazor, tema único (EsbaTheme) y modo claro/oscuro. Los shells concretos
+   (MainLayout, DocenteLayout) solo arman appbar + drawer + contenido y reciben el
+   estado del tema por cascada (TemaEstado). Login y Error usan LoginLayout aparte. *@
+
+<MudThemeProvider @ref="_proveedorTema" Theme="EsbaTheme.Tema" @bind-IsDarkMode="_modoOscuro" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingValue Value="@(new TemaEstado(_modoOscuro, _alternar))">
+    @Body
+</CascadingValue>
+
+@code {
+    private MudThemeProvider? _proveedorTema;
+    private bool _modoOscuro;
+    private Func<Task> _alternar = () => Task.CompletedTask;
+
+    protected override void OnInitialized() => _alternar = AlternarModoOscuroAsync;
+
+    // TODO-migrar: persistir la preferencia de modo en BD como el resto de las
+    // preferencias de usuario (sucesoras de los .bar/.not, §3.2); por ahora
+    // arranca con la preferencia del sistema operativo.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _proveedorTema is not null)
+        {
+            _modoOscuro = await _proveedorTema.GetSystemDarkModeAsync();
+            await _proveedorTema.WatchSystemDarkModeAsync(CambioModoSistema);
+            StateHasChanged();
+        }
+    }
+
+    private Task CambioModoSistema(bool oscuro)
+    {
+        _modoOscuro = oscuro;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task AlternarModoOscuroAsync()
+    {
+        _modoOscuro = !_modoOscuro;
+        return InvokeAsync(StateHasChanged);
+    }
+}

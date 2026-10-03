@@ -1,0 +1,40 @@
+@page "/acceso-denegado"
+@attribute [Authorize]
+@layout LoginLayout
+@using Esba.Domain.Enums
+
+<PageTitle>ESBA — Acceso denegado</PageTitle>
+
+@* Usuario autenticado que pidió una página de otro perfil (p. ej. un docente en una
+   URL de secretaría). Sin shell de ningún área: layout neutro y el camino de vuelta
+   a su propio inicio. La denegación la hizo el servidor (policy); esto solo la explica. *@
+
+<MudPaper Elevation="3" Class="pa-8 mx-auto" Style="width: 100%; max-width: 480px;">
+    <div class="d-flex align-center mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.Block" Color="Color.Error" Class="mr-2" />
+        <MudText Typo="Typo.h5">Acceso denegado</MudText>
+    </div>
+    <MudText Typo="Typo.body1" Class="mud-text-secondary">
+        Tu usuario no tiene acceso a esta sección del sistema. Si creés que deberías tenerlo,
+        comunicate con secretaría.
+    </MudText>
+    <MudButton Href="@_inicio" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6"
+               StartIcon="@Icons.Material.Filled.Home">Ir a mi inicio</MudButton>
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private string _inicio = "/";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EstadoAutenticacion is null)
+        {
+            return;
+        }
+
+        var usuario = (await EstadoAutenticacion).User;
+        _inicio = usuario.TipoDeUsuario() == TipoUsuario.Docente ? "/docente" : "/";
+    }
+}

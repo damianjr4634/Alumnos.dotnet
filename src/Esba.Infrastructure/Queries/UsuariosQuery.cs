@@ -2,6 +2,7 @@ using Dapper;
 using Esba.Application.Abstractions;
 using Esba.Application.Common;
 using Esba.Application.DTOs.Administracion;
+using Esba.Domain.Enums;
 using Esba.Infrastructure.Persistence;
 
 namespace Esba.Infrastructure.Queries;
@@ -13,25 +14,39 @@ namespace Esba.Infrastructure.Queries;
 /// </summary>
 public sealed class UsuariosQuery : IUsuariosQuery
 {
+    // TIPO se proyecta al valor numérico del enum TipoUsuario (SEC=0, DOC=1, ALU=2;
+    // misma correspondencia que TipoUsuarioCodigo, que usa el mapeo EF). El nombre
+    // del docente vinculado sale de DOCENTES para mostrarlo en la grilla.
     private const string ColumnasSelect = """
-        SELECT CODUSU                                  AS Codigo,
-               TRIM(NOMBRE)                            AS NombreUsuario,
-               TRIM(NOMUSU)                            AS Nombres,
-               TRIM(APELLIDO)                          AS Apellido,
-               TRIM(CARGO)                             AS Cargo,
-               CASE WHEN SUPERV = 'S' THEN 1 ELSE 0 END  AS EsSupervisor,
-               CASE WHEN CAMPASS = 'S' THEN 1 ELSE 0 END AS DebeCambiarPassword,
-               FECHA_BAJ                               AS FechaBaja
+        SELECT U.CODUSU                                    AS Codigo,
+               TRIM(U.NOMBRE)                              AS NombreUsuario,
+               TRIM(U.NOMUSU)                              AS Nombres,
+               TRIM(U.APELLIDO)                            AS Apellido,
+               TRIM(U.CARGO)                               AS Cargo,
+               CASE WHEN U.SUPERV = 'S' THEN 1 ELSE 0 END  AS EsSupervisor,
+               CASE WHEN U.CAMPASS = 'S' THEN 1 ELSE 0 END AS DebeCambiarPassword,
+               U.FECHA_BAJ                                 AS FechaBaja,
+               CASE TRIM(U.TIPO) WHEN 'DOC' THEN 1 WHEN 'ALU' THEN 2 ELSE 0 END AS Tipo,
+               TRIM(U.CODPROFES)                           AS CodigoDocente,
+               TRIM(D.DOCENTE)                             AS NombreDocente,
+               TRIM(U.ALU_CARRE)                           AS AlumnoCarrera,
+               TRIM(U.ALU_COD_ALU)                         AS AlumnoCodigo
         """;
 
-    private const string OrdenDefecto = "NOMBRE";
+    private const string From = """
+        FROM USUARIOS U
+        LEFT JOIN DOCENTES D ON D.CODPROFES = U.CODPROFES
+        """;
+
+    private const string OrdenDefecto = "U.NOMBRE";
 
     private static readonly Dictionary<string, string> ColumnasOrdenables =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["NombreUsuario"] = "NOMBRE",
-            ["Apellido"] = "APELLIDO",
-            ["Cargo"] = "CARGO",
+            ["NombreUsuario"] = "U.NOMBRE",
+            ["Apellido"] = "U.APELLIDO",
+            ["Cargo"] = "U.CARGO",
+            ["Tipo"] = "U.TIPO",
         };
 
     private readonly FbConnectionFactory _connectionFactory;
@@ -51,7 +66,7 @@ public sealed class UsuariosQuery : IUsuariosQuery
 
         var sqlItems = $"""
             {ColumnasSelect}
-            FROM USUARIOS
+            {From}
             {where}
             ORDER BY {orderBy}
             OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY
@@ -59,7 +74,7 @@ public sealed class UsuariosQuery : IUsuariosQuery
         parametros.Add("Skip", filtro.Skip);
         parametros.Add("Take", filtro.Take);
 
-        var sqlTotal = $"SELECT COUNT(*) FROM USUARIOS {where}";
+        var sqlTotal = $"SELECT COUNT(*) {From} {where}";
 
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
 
@@ -77,14 +92,21 @@ public sealed class UsuariosQuery : IUsuariosQuery
 
         if (!filtro.IncluirBajas)
         {
-            condiciones.Add("FECHA_BAJ IS NULL");
+            condiciones.Add("U.FECHA_BAJ IS NULL");
         }
 
         if (!string.IsNullOrWhiteSpace(filtro.Texto))
         {
-            condiciones.Add("(NOMBRE CONTAINING @Texto OR NOMUSU CONTAINING @Texto"
-                + " OR APELLIDO CONTAINING @Texto OR CARGO CONTAINING @Texto)");
+            condiciones.Add("(U.NOMBRE CONTAINING @Texto OR U.NOMUSU CONTAINING @Texto"
+                + " OR U.APELLIDO CONTAINING @Texto OR U.CARGO CONTAINING @Texto"
+                + " OR D.DOCENTE CONTAINING @Texto)");
             parametros.Add("Texto", filtro.Texto.Trim());
+        }
+
+        if (filtro.Tipo is { } tipo)
+        {
+            condiciones.Add("U.TIPO = @Tipo");
+            parametros.Add("Tipo", TipoUsuarioCodigo.ACodigo(tipo));
         }
 
         return condiciones.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", condiciones);

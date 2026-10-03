@@ -1,0 +1,223 @@
+@page "/docente"
+@using Esba.Domain.Examenes
+@inject IAreaDocenteQuery AreaDocente
+
+<PageTitle>ESBA — Portal docente</PageTitle>
+
+@* Inicio del área docente (hito 19): lo que el docente logueado tiene a cargo.
+   El alcance es el CODPROFES del claim; la página nunca recibe el docente por URL.
+   Las acciones de precarga (notas de cursado, notas de final) llegan con las
+   etapas 1-2 del hito: hoy las filas muestran el estado de su carga, si existe. *@
+
+<div class="d-flex align-center flex-wrap gap-2 mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Mis comisiones y mesas</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Cursos y mesas de examen en los que sos titular
+        </MudText>
+    </div>
+</div>
+
+@if (_codigoDocente is null)
+{
+    <MudAlert Severity="MudBlazor.Severity.Warning" Dense="true">
+        Tu usuario no está vinculado a ningún docente. Pedile a secretaría que lo revise.
+    </MudAlert>
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4" id="comisiones">
+        <div class="d-flex align-center flex-wrap gap-2 mb-3">
+            <MudText Typo="Typo.h6">Comisiones</MudText>
+            <MudSpacer />
+            @if (_periodos.Count > 1)
+            {
+                <MudSelect T="string" Value="_periodoSel" ValueChanged="CambiarPeriodo" Label="Período"
+                           ToStringFunc="@(p => CuatrimestreAnio.Etiqueta(p))"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Style="min-width: 220px;">
+                    @foreach (var p in _periodos)
+                    {
+                        <MudSelectItem T="string" Value="@p">@CuatrimestreAnio.Etiqueta(p)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        </div>
+
+        @if (_cargando)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_comisionesPeriodo.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">No tenés comisiones a cargo en este período.</MudText>
+        }
+        else
+        {
+            <MudTable T="ComisionDocenteDto" Items="_comisionesPeriodo" Dense="true" Hover="true" Striped="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Carrera</MudTh>
+                    <MudTh>Materia</MudTh>
+                    <MudTh>Comisión</MudTh>
+                    <MudTh Class="d-none d-md-table-cell">Horario</MudTh>
+                    <MudTh Style="text-align: right;">Alumnos</MudTh>
+                    <MudTh>Precarga</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Carrera">@(context.NombreCarrera ?? context.CodigoCarrera)</MudTd>
+                    <MudTd DataLabel="Materia">
+                        <MudText Typo="Typo.body2">@(context.SiglaMateria ?? context.CodigoMateria)</MudText>
+                        @if (!string.IsNullOrWhiteSpace(context.NombreMateria))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.NombreMateria</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Comisión">@context.Cutuco</MudTd>
+                    <MudTd DataLabel="Horario" Class="d-none d-md-table-cell">@Horario(context)</MudTd>
+                    <MudTd DataLabel="Alumnos" Style="text-align: right;">@context.CantidadAlumnos</MudTd>
+                    <MudTd DataLabel="Precarga">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorCarga(context.EstadoCarga)">
+                            @TextoCarga(context.EstadoCarga)
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4" id="mesas">
+        <div class="d-flex align-center flex-wrap gap-4 mb-3">
+            <MudText Typo="Typo.h6">Mesas de examen</MudText>
+            <MudSpacer />
+            <MudCheckBox T="bool" Value="_incluirPasadas" ValueChanged="CambiarIncluirPasadas"
+                         Label="Incluir mesas anteriores" Dense="true" />
+        </div>
+
+        @if (_cargando)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_mesas.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @(_incluirPasadas ? "No tenés mesas como titular." : "No tenés mesas próximas como titular.")
+            </MudText>
+        }
+        else
+        {
+            <MudTable T="MesaDocenteDto" Items="_mesas" Dense="true" Hover="true" Striped="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Fecha</MudTh>
+                    <MudTh>Carrera</MudTh>
+                    <MudTh>Materia</MudTh>
+                    <MudTh Class="d-none d-md-table-cell">Mesa</MudTh>
+                    <MudTh Class="d-none d-md-table-cell">Aula</MudTh>
+                    <MudTh Style="text-align: right;">Inscriptos</MudTh>
+                    <MudTh>Precarga</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Fecha">
+                        <MudText Typo="Typo.body2">@(context.FechaExamen?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@FormatoMesa.Hora(context.Hora)</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Carrera">@(context.NombreCarrera ?? context.CodigoCarrera)</MudTd>
+                    <MudTd DataLabel="Materia">
+                        <MudText Typo="Typo.body2">@(context.SiglaMateria ?? context.CodigoMateria)</MudText>
+                        @if (!string.IsNullOrWhiteSpace(context.DescripcionTipo))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.DescripcionTipo</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Mesa" Class="d-none d-md-table-cell">
+                        @context.NumeroMesa @(context.Llamado is { } ll ? $"· {ll}º llamado" : string.Empty)
+                    </MudTd>
+                    <MudTd DataLabel="Aula" Class="d-none d-md-table-cell">@(context.Aula?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "—")</MudTd>
+                    <MudTd DataLabel="Inscriptos" Style="text-align: right;">@context.CantidadInscriptos</MudTd>
+                    <MudTd DataLabel="Precarga">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorCarga(context.EstadoCarga)">
+                            @TextoCarga(context.EstadoCarga)
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private string? _codigoDocente;
+    private bool _cargando = true;
+    private IReadOnlyList<ComisionDocenteDto> _comisiones = [];
+    private IReadOnlyList<string> _periodos = [];
+    private string? _periodoSel;
+    private IReadOnlyList<ComisionDocenteDto> _comisionesPeriodo = [];
+    private IReadOnlyList<MesaDocenteDto> _mesas = [];
+    private bool _incluirPasadas;
+
+    // Las mesas de los últimos días siguen siendo "actuales" para cargar notas.
+    private static DateOnly DesdePorDefecto => DateOnly.FromDateTime(DateTime.Today).AddDays(-45);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _codigoDocente = (await EstadoAutenticacion!).User.CodigoDocente();
+        if (_codigoDocente is null)
+        {
+            _cargando = false;
+            return;
+        }
+
+        _comisiones = await AreaDocente.ListarComisionesAsync(_codigoDocente, CancellationToken.None);
+        _periodos = _comisiones.Select(c => c.CuatrimestreAnio).Distinct()
+            .OrderByDescending(CuatrimestreAnio.ClaveOrden).ToList();
+        _periodoSel = _periodos.FirstOrDefault();
+        FiltrarPeriodo();
+
+        _mesas = await AreaDocente.ListarMesasAsync(_codigoDocente, DesdePorDefecto, CancellationToken.None);
+        _cargando = false;
+    }
+
+    private void CambiarPeriodo(string periodo)
+    {
+        _periodoSel = periodo;
+        FiltrarPeriodo();
+    }
+
+    private void FiltrarPeriodo() =>
+        _comisionesPeriodo = _comisiones.Where(c => c.CuatrimestreAnio == _periodoSel).ToList();
+
+    private async Task CambiarIncluirPasadas(bool incluir)
+    {
+        _incluirPasadas = incluir;
+        if (_codigoDocente is not null)
+        {
+            _mesas = await AreaDocente.ListarMesasAsync(_codigoDocente, incluir ? null : DesdePorDefecto, CancellationToken.None);
+        }
+    }
+
+    private static string Horario(ComisionDocenteDto c)
+    {
+        var bloques = new[] { (c.Dia1, c.Bloque1), (c.Dia2, c.Bloque2), (c.Dia3, c.Bloque3) }
+            .Where(b => !string.IsNullOrWhiteSpace(b.Item1))
+            .Select(b => string.IsNullOrWhiteSpace(b.Item2) ? b.Item1 : $"{b.Item1} {b.Item2}");
+        var texto = string.Join(" · ", bloques);
+        return texto.Length == 0 ? "—" : texto;
+    }
+
+    // Mapa de colores del estado de la precarga (análogo al de estados del alumno, CLAUDE.md §4.5).
+    private static Color ColorCarga(string? estado) => estado switch
+    {
+        "BOR" => Color.Warning,
+        "FIN" => Color.Info,
+        "EFE" => Color.Success,
+        _ => Color.Default,
+    };
+
+    private static string TextoCarga(string? estado) => estado switch
+    {
+        "BOR" => "En borrador",
+        "FIN" => "Finalizada",
+        "EFE" => "Efectivizada",
+        _ => "Sin cargar",
+    };
+}

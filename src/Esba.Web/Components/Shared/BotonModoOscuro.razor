@@ -1,0 +1,14 @@
+@* Alternancia claro/oscuro para las appbars. El estado viene por cascada desde
+   EsbaRootLayout (TemaEstado); el botón no asume modo ni guarda nada. *@
+
+@if (Tema is not null)
+{
+    <MudTooltip Text="@(Tema.Oscuro ? "Modo claro" : "Modo oscuro")">
+        <MudIconButton Icon="@(Tema.Oscuro ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit" OnClick="@(() => Tema.Alternar())" aria-label="Cambiar modo claro/oscuro" />
+    </MudTooltip>
+}
+
+@code {
+    [CascadingParameter] private TemaEstado? Tema { get; set; }
+}

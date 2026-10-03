@@ -8,8 +8,9 @@ namespace Esba.Application.Features.Administracion;
 /// <summary>
 /// Cambio de contraseña por el propio usuario (sucesor de CambioPassword.GrabaClick).
 /// Verifica la clave actual con el mismo esquema dual del login (NPASSWD si existe;
-/// si no, PASSWD legacy o pisado con "$E1$"), guarda la nueva en NPASSWD (PBKDF2) y
-/// en PASSWD (cifrado legacy, para que el escritorio Delphi la acepte) y deja CAMPASS='N'.
+/// si no, PASSWD legacy o pisado con "$E1$"), guarda la nueva en NPASSWD (PBKDF2) y,
+/// solo para secretaría, en PASSWD (cifrado legacy, para que el escritorio Delphi la
+/// acepte; docentes y alumnos conservan PASSWD bloqueado) y deja CAMPASS='N'.
 /// </summary>
 public sealed class CambiarPasswordHandler
 {
@@ -67,7 +68,9 @@ public sealed class CambiarPasswordHandler
         }
 
         usuario.PasswordHashNuevo = _hasher.Hash(command.PasswordNueva);
-        usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.PasswordNueva);
+        usuario.PasswordLegacy = usuario.UsaEscritorio
+            ? _cipherLegacy.Cifrar(command.PasswordNueva)
+            : PasswordEscritorio.GenerarBloqueo();
         usuario.DebeCambiarPassword = false;
         await _unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
 

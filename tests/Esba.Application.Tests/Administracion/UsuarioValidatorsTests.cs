@@ -1,5 +1,6 @@
 using Esba.Application.DTOs.Administracion;
 using Esba.Application.Validators;
+using Esba.Domain.Enums;
 using FluentValidation.TestHelper;
 
 namespace Esba.Application.Tests.Administracion;
@@ -57,6 +58,56 @@ public class UsuarioValidatorsTests
             .ShouldHaveValidationErrorFor(c => c.Apellido);
 
     [Fact]
+    public void Crear_DocenteConCodigo_Pasa() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Docente, CodigoDocente = "017" })
+            .ShouldNotHaveAnyValidationErrors();
+
+    [Fact]
+    public void Crear_DocenteSinCodigo_Falla() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Docente })
+            .ShouldHaveValidationErrorFor("CodigoDocente");
+
+    [Fact]
+    public void Crear_DocenteConCodigoLargo_Falla() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Docente, CodigoDocente = "0017" })
+            .ShouldHaveValidationErrorFor("CodigoDocente");
+
+    [Fact]
+    public void Crear_SecretariaSinCodigoDocente_NoExigeVinculo() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Secretaria })
+            .ShouldNotHaveValidationErrorFor("CodigoDocente");
+
+    [Fact]
+    public void Crear_DocenteSupervisor_Falla() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Docente, CodigoDocente = "017", EsSupervisor = true })
+            .ShouldHaveValidationErrorFor("EsSupervisor");
+
+    [Fact]
+    public void Crear_SecretariaSupervisor_Pasa() =>
+        _crear.TestValidate(AltaValida() with { EsSupervisor = true })
+            .ShouldNotHaveAnyValidationErrors();
+
+    [Fact]
+    public void Crear_AlumnoConCarreraYCodigo_Pasa() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Alumno, AlumnoCarrera = "TER", AlumnoCodigo = "12345678" })
+            .ShouldNotHaveAnyValidationErrors();
+
+    [Fact]
+    public void Crear_AlumnoSinCarrera_Falla() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Alumno, AlumnoCodigo = "12345678" })
+            .ShouldHaveValidationErrorFor("AlumnoCarrera");
+
+    [Fact]
+    public void Crear_AlumnoSinCodigo_Falla() =>
+        _crear.TestValidate(AltaValida() with { Tipo = TipoUsuario.Alumno, AlumnoCarrera = "TER" })
+            .ShouldHaveValidationErrorFor("AlumnoCodigo");
+
+    [Fact]
+    public void Crear_TipoFueraDelEnum_Falla() =>
+        _crear.TestValidate(AltaValida() with { Tipo = (TipoUsuario)99 })
+            .ShouldHaveValidationErrorFor("Tipo");
+
+    [Fact]
     public void Actualizar_ComandoValido_Pasa() =>
         _actualizar.TestValidate(ModifValida()).ShouldNotHaveAnyValidationErrors();
 
@@ -74,4 +125,14 @@ public class UsuarioValidatorsTests
     public void Actualizar_CargoDemasiadoLargo_Falla() =>
         _actualizar.TestValidate(ModifValida() with { Cargo = new string('x', 31) })
             .ShouldHaveValidationErrorFor(c => c.Cargo);
+
+    [Fact]
+    public void Actualizar_DocenteSinCodigo_Falla() =>
+        _actualizar.TestValidate(ModifValida() with { Tipo = TipoUsuario.Docente })
+            .ShouldHaveValidationErrorFor("CodigoDocente");
+
+    [Fact]
+    public void Actualizar_DocenteSupervisor_Falla() =>
+        _actualizar.TestValidate(ModifValida() with { Tipo = TipoUsuario.Docente, CodigoDocente = "017", EsSupervisor = true })
+            .ShouldHaveValidationErrorFor("EsSupervisor");
 }

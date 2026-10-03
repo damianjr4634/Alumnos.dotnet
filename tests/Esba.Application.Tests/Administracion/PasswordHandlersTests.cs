@@ -4,6 +4,7 @@ using Esba.Application.Features.Administracion;
 using Esba.Application.Validators;
 using Esba.Domain.Common;
 using Esba.Domain.Entities;
+using Esba.Domain.Enums;
 using NSubstitute;
 
 namespace Esba.Application.Tests.Administracion;
@@ -147,6 +148,65 @@ public class PasswordHandlersTests
         Assert.Equal("cifradoTemp", usuario.PasswordLegacy);
         Assert.True(usuario.DebeCambiarPassword);
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cambiar_UsuarioDocente_NoSincronizaPasswdYLoDejaBloqueado()
+    {
+        var usuario = Usuario();
+        usuario.Tipo = TipoUsuario.Docente;
+        usuario.CodigoDocente = "017";
+        usuario.PasswordLegacy = PasswordEscritorio.GenerarBloqueo();
+        _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
+        _hasher.Verify("$E1$viejo", "actual1").Returns(true);
+        _hasher.Hash("nueva123").Returns("$E1$nuevo");
+
+        var resultado = await CambiarHandler().HandleAsync(Cambio(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        Assert.Equal("$E1$nuevo", usuario.PasswordHashNuevo);
+        // Un docente nunca recibe su contraseña en PASSWD: el escritorio no debe aceptarlo.
+        Assert.True(PasswordEscritorio.EstaBloqueado(usuario.PasswordLegacy));
+        _cipher.DidNotReceiveWithAnyArgs().Cifrar(default!);
+    }
+
+    [Fact]
+    public async Task Cambiar_SecretariaQueVeniaDeDocente_SincronizaPasswdYDesbloqueaElEscritorio()
+    {
+        // Caso del cambio de tipo docente → secretaría: PASSWD quedó bloqueado y
+        // CAMPASS='S'; el cambio de contraseña lo repara.
+        var usuario = Usuario();
+        usuario.PasswordLegacy = PasswordEscritorio.GenerarBloqueo();
+        _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
+        _hasher.Verify("$E1$viejo", "actual1").Returns(true);
+        _hasher.Hash("nueva123").Returns("$E1$nuevo");
+        _cipher.Cifrar("nueva123").Returns("cifradoNuevo");
+
+        var resultado = await CambiarHandler().HandleAsync(Cambio(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        Assert.Equal("cifradoNuevo", usuario.PasswordLegacy);
+        Assert.False(usuario.DebeCambiarPassword);
+    }
+
+    [Fact]
+    public async Task Blanquear_UsuarioDocente_NoSincronizaPasswdYLoDejaBloqueado()
+    {
+        var usuario = Usuario();
+        usuario.Tipo = TipoUsuario.Docente;
+        usuario.CodigoDocente = "017";
+        usuario.PasswordLegacy = PasswordEscritorio.GenerarBloqueo();
+        _usuarios.ObtenerPorCodigoAsync(7, Arg.Any<CancellationToken>()).Returns(usuario);
+        _hasher.Hash("temporal1").Returns("$E1$temp");
+
+        var resultado = await BlanquearHandler().HandleAsync(
+            new BlanquearPasswordCommand { CodigoUsuario = 7, PasswordTemporal = "temporal1" }, CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        Assert.Equal("$E1$temp", usuario.PasswordHashNuevo);
+        Assert.True(PasswordEscritorio.EstaBloqueado(usuario.PasswordLegacy));
+        Assert.True(usuario.DebeCambiarPassword);
+        _cipher.DidNotReceiveWithAnyArgs().Cifrar(default!);
     }
 
     [Fact]

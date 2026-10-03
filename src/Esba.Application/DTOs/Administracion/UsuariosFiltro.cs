@@ -12,6 +12,9 @@ public sealed record UsuariosFiltro
     /// <summary>Si es false (default), solo trae usuarios activos (FECHA_BAJ nula).</summary>
     public bool IncluirBajas { get; init; }
 
+    /// <summary>Filtro opcional por perfil de acceso (USUARIOS.TIPO); null = todos.</summary>
+    public Domain.Enums.TipoUsuario? Tipo { get; init; }
+
     public string? OrdenarPor { get; init; }
 
     public bool Descendente { get; init; }

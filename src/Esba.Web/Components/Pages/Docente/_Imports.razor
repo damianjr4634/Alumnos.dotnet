@@ -1,0 +1,7 @@
+@* Área docente (hito 19): todas sus páginas exigen el perfil docente. El shell
+   (DocenteLayout) lo resuelve PerfilLayout por el mismo claim. *@
+@attribute [Authorize(Policy = EsbaPolicies.Docentes)]
+@using Esba.Application.Abstractions
+@using Esba.Application.DTOs.Docente
+@using Esba.Domain.Academica
+@using Esba.Domain.Enums

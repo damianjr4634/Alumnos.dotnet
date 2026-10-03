@@ -76,8 +76,12 @@ public sealed class IniciarSesionHandler
             {
                 usuario.PasswordHashNuevo = _hasher.Hash(command.Password);
                 // Garantiza que PASSWD quede legible para el escritorio: repara
-                // los pisados con "$E1$" y es un no-op para los demás.
-                usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.Password);
+                // los pisados con "$E1$" y es un no-op para los demás. Solo para
+                // secretaría: docentes y alumnos no entran al escritorio.
+                if (usuario.UsaEscritorio)
+                {
+                    usuario.PasswordLegacy = _cipherLegacy.Cifrar(command.Password);
+                }
             }
         }
 
@@ -98,6 +102,10 @@ public sealed class IniciarSesionHandler
             DebeCambiarPassword = usuario.DebeCambiarPassword,
             SesionUid = usuario.SesionUid,
             Permisos = usuario.Permisos.Select(p => p.CodigoOpcion).ToList(),
+            Tipo = usuario.Tipo,
+            CodigoDocente = usuario.CodigoDocente?.Trim(),
+            AlumnoCarrera = usuario.AlumnoCarrera?.Trim(),
+            AlumnoCodigo = usuario.AlumnoCodigo?.Trim(),
         });
     }
 }

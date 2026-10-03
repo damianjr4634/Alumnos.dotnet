@@ -46,6 +46,16 @@ internal static class FbConverters
             v => v == null ? null : ((char)v).ToString(),
             v => string.IsNullOrWhiteSpace(v) ? null : (EstadoAlumno?)v.Trim()[0]);
 
+    /// <summary>
+    /// USUARIOS.TIPO CHAR(3) 'SEC'/'DOC'/'ALU' ↔ <see cref="TipoUsuario"/>. La
+    /// correspondencia es de dominio (TipoUsuarioCodigo); blanco = secretaría y
+    /// un código desconocido lanza excepción (fail-closed).
+    /// </summary>
+    public static readonly ValueConverter<TipoUsuario, string> TipoUsuarioChar =
+        new(
+            v => TipoUsuarioCodigo.ACodigo(v),
+            v => TipoUsuarioCodigo.DesdeCodigo(v));
+
     /// <summary>DNI CHAR(1) dígito '0'..'3' (índice del combo legacy). Valores no numéricos se leen como null.</summary>
     public static readonly ValueConverter<SituacionDni?, string?> SituacionDniChar =
         new(

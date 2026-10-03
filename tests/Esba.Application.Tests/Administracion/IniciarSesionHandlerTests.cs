@@ -3,6 +3,7 @@ using Esba.Application.Features.Administracion;
 using Esba.Application.Validators;
 using Esba.Domain.Common;
 using Esba.Domain.Entities;
+using Esba.Domain.Enums;
 using NSubstitute;
 
 namespace Esba.Application.Tests.Administracion;
@@ -149,6 +150,53 @@ public class IniciarSesionHandlerTests
         Assert.Equal("cifradoLegacy", usuario.PasswordLegacy);
         _hasher.DidNotReceiveWithAnyArgs().Hash(default!);
         await _unitOfWork.DidNotReceiveWithAnyArgs().SaveChangesAsync(default);
+    }
+
+    [Fact]
+    public async Task IniciarSesion_Secretaria_ExponeTipoSinVinculo()
+    {
+        ConUsuarioEnRepositorio(UsuarioDePrueba("cifradoLegacy", npasswd: "$E1$hash"));
+        _hasher.Verify("$E1$hash", "clave").Returns(true);
+
+        var resultado = await CrearHandler().HandleAsync(ComandoValido(), CancellationToken.None);
+
+        Assert.Equal(TipoUsuario.Secretaria, resultado.Value!.Tipo);
+        Assert.Null(resultado.Value.CodigoDocente);
+    }
+
+    [Fact]
+    public async Task IniciarSesion_Docente_ExponeTipoYCodigoDocenteSinRelleno()
+    {
+        var usuario = UsuarioDePrueba(PasswordEscritorio.GenerarBloqueo(), npasswd: "$E1$hash");
+        usuario.Tipo = TipoUsuario.Docente;
+        usuario.CodigoDocente = "17 "; // CHAR(3) llega con relleno desde Firebird
+        ConUsuarioEnRepositorio(usuario);
+        _hasher.Verify("$E1$hash", "clave").Returns(true);
+
+        var resultado = await CrearHandler().HandleAsync(ComandoValido(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Ok, resultado.Status);
+        Assert.Equal(TipoUsuario.Docente, resultado.Value!.Tipo);
+        Assert.Equal("17", resultado.Value.CodigoDocente);
+    }
+
+    [Fact]
+    public async Task IniciarSesion_DocenteSinNpasswdConPasswdBloqueado_NoEntraNiReparaPasswd()
+    {
+        // Estado que no debería darse (el alta web siempre puebla NPASSWD), pero si
+        // se da, el sentinela no descifra a nada tipeable y PASSWD no se toca.
+        var bloqueado = PasswordEscritorio.GenerarBloqueo();
+        var usuario = UsuarioDePrueba(bloqueado);
+        usuario.Tipo = TipoUsuario.Docente;
+        ConUsuarioEnRepositorio(usuario);
+        _hasher.CanVerify(bloqueado).Returns(false);
+        _cipherLegacy.Descifrar(bloqueado).Returns("basura-indescifrable");
+
+        var resultado = await CrearHandler().HandleAsync(ComandoValido(), CancellationToken.None);
+
+        Assert.Equal(OperationStatus.Error, resultado.Status);
+        Assert.Equal(bloqueado, usuario.PasswordLegacy);
+        _cipherLegacy.DidNotReceiveWithAnyArgs().Cifrar(default!);
     }
 
     [Fact]

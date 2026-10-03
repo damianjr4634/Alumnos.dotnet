@@ -29,8 +29,16 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.ImagenFirma).HasColumnName("IMGFIRMA").HasMaxLength(30);
         builder.Property(u => u.FechaBaja).HasColumnName("FECHA_BAJ");
 
-        // EstaDeBaja es calculada (FECHA_BAJ no nula): no se mapea.
+        // Perfil de acceso y vínculo (migración 2026-10-02_usuarios_tipo_vinculo.sql).
+        builder.Property(u => u.Tipo).HasColumnName("TIPO").HasMaxLength(3).IsRequired()
+            .HasConversion(FbConverters.TipoUsuarioChar);
+        builder.Property(u => u.CodigoDocente).HasColumnName("CODPROFES").HasMaxLength(3);
+        builder.Property(u => u.AlumnoCarrera).HasColumnName("ALU_CARRE").HasMaxLength(6);
+        builder.Property(u => u.AlumnoCodigo).HasColumnName("ALU_COD_ALU").HasMaxLength(11);
+
+        // EstaDeBaja y UsaEscritorio son calculadas: no se mapean.
         builder.Ignore(u => u.EstaDeBaja);
+        builder.Ignore(u => u.UsaEscritorio);
 
         builder.HasMany(u => u.Permisos)
             .WithOne(p => p.Usuario)
