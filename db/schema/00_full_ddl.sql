@@ -11158,6 +11158,8 @@ CREATE TABLE DOC_CARGA_COMISION_DET (ID INTEGER NOT NULL,
         TP_EVA2 NUMERIC(5, 2),
         RECUP2 NUMERIC(5, 2),
         TP_EVA3 NUMERIC(5, 2),
+        REGULAR NUMERIC(5, 2), /* nota a regularizar (BAC) — ver migrations/2026-10-04_doc_carga_comision_det_regular_final.sql */
+        FINAL1 NUMERIC(5, 2), /* nota final (CNA) — misma migración */
         TOT_HORAS NUMERIC(3, 0),
         INASIST NUMERIC(3, 0),
         JUSTIF NUMERIC(3, 0),

@@ -1,0 +1,476 @@
+@page "/docente/comisiones/{Carrera}/{Cutuco:int}/{Materia}/{Cuatrimestre}"
+@using Esba.Application.Features.AreaDocente
+@inject ICargaComisionDocenteQuery Consulta
+@inject GuardarCargaComisionHandler Guardar
+@inject FinalizarCargaComisionHandler Finalizar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Precarga de comisión</PageTitle>
+
+@* Precarga de notas de una comisión por su docente titular (hito 19). Pide exactamente
+   los campos que secretaría edita en la regularización de esa carrera
+   (EsquemaCargaCursado: terciaria / bachillerato / secundario / CNA), pero acá NO se
+   regulariza: queda un borrador que secretaría revisa y efectiviza. Solo markup,
+   binding y estado de presentación; quién puede editar/finalizar lo decide el servidor
+   (AutorizacionCargaDocente) — la UI solo deshabilita. *@
+
+@if (_cargando)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+}
+else if (_datos is null)
+{
+    <MudAlert Severity="MudBlazor.Severity.Error">La comisión no existe.</MudAlert>
+    <MudButton Href="/docente" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-2">Volver</MudButton>
+}
+else
+{
+    <div class="d-flex align-center flex-wrap gap-2 mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/docente" aria-label="Volver al inicio" />
+        <div>
+            <MudText Typo="Typo.h5">@(_datos.SiglaMateria ?? _datos.CodigoMateria) · Comisión @_datos.Cutuco</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @(_datos.NombreCarrera ?? _datos.CodigoCarrera) · @CuatrimestreAnio.Etiqueta(_datos.CuatrimestreAnio)
+                @if (!string.IsNullOrWhiteSpace(_datos.NombreMateria)) { <text> · @_datos.NombreMateria</text> }
+            </MudText>
+        </div>
+        <MudSpacer />
+        <MudChip T="string" Size="Size.Medium" Variant="Variant.Text" Color="@ColorEstado(_datos.Estado)">
+            @EstadoCargaDocenteCodigo.Etiqueta(_datos.Estado)
+        </MudChip>
+    </div>
+
+    @if (!_esquema.Disponible)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Warning" Dense="true" Class="mb-4">
+            La regularización de esta carrera todavía no está disponible en el sistema nuevo, así que la precarga tampoco.
+        </MudAlert>
+    }
+    else if (!_esTitular && !_esSecretaria)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Warning" Dense="true" Class="mb-4">
+            Esta comisión tiene como titular a @(_datos.NombreDocenteTitular ?? _datos.CodigoDocenteTitular ?? "otro docente"): podés verla, pero no cargar notas.
+        </MudAlert>
+    }
+    else if (_datos.Estado == EstadoCargaDocente.Finalizada)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="mb-4">
+            Carga finalizada el @Fecha(_datos.FechaFinalizacion). Si necesitás corregir algo, pedile a secretaría que la reabra.
+        </MudAlert>
+    }
+    else if (_datos.Estado == EstadoCargaDocente.Efectivizada)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Success" Dense="true" Class="mb-4">
+            Secretaría efectivizó esta carga el @Fecha(_datos.FechaEfectivizacion). Ya no se puede modificar.
+        </MudAlert>
+    }
+    else if (!_datos.TieneCarga)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="mb-4">
+            Todavía no hay precarga: los valores que ves son los que secretaría tiene hoy en el sistema. Editá y guardá el borrador.
+        </MudAlert>
+    }
+
+    <MudPaper Outlined="true" Class="pa-2 mb-4">
+        <MudTable T="FilaVm" Items="_filas" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Alumno</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Condición</MudTh>
+                @if (_esquema.Evaluacion1) { <MudTh>@_esquema.EtiquetaEvaluacion1</MudTh> }
+                @if (_esquema.Evaluacion2) { <MudTh>@_esquema.EtiquetaEvaluacion2</MudTh> }
+                @if (_esquema.Recuperatorio) { <MudTh>Recup.</MudTh> }
+                @if (_esquema.Evaluacion3) { <MudTh>@_esquema.EtiquetaEvaluacion3</MudTh> }
+                @if (_esquema.NotaRegular) { <MudTh>A reg.</MudTh> }
+                @if (_esquema.NotaFinal) { <MudTh>Nota final</MudTh> }
+                @if (_esquema.Horas) { <MudTh Class="d-none d-lg-table-cell">Hs.</MudTh> }
+                @if (_esquema.Inasistencias) { <MudTh Class="d-none d-lg-table-cell">Inasist.</MudTh> }
+                @if (_esquema.Justificadas) { <MudTh Class="d-none d-lg-table-cell">Justif.</MudTh> }
+                <MudTh Class="d-none d-xl-table-cell">Observación</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Alumno">
+                    <MudText Typo="Typo.body2">@context.Apellido, @context.Nombre</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.CodigoAlumno</MudText>
+                </MudTd>
+                <MudTd DataLabel="Condición" Class="d-none d-md-table-cell">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@context.Condicion</MudChip>
+                </MudTd>
+                @if (_esquema.Evaluacion1)
+                {
+                    <MudTd DataLabel="@_esquema.EtiquetaEvaluacion1">
+                        <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][0]" @bind-Value="context.Evaluacion1" Min="0" Max="99"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 0))" />
+                    </MudTd>
+                }
+                @if (_esquema.Evaluacion2)
+                {
+                    <MudTd DataLabel="@_esquema.EtiquetaEvaluacion2">
+                        <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][1]" @bind-Value="context.Evaluacion2" Min="0" Max="99"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 1))" />
+                    </MudTd>
+                }
+                @if (_esquema.Recuperatorio)
+                {
+                    <MudTd DataLabel="Recup.">
+                        <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][2]" @bind-Value="context.Recuperatorio" Min="0" Max="99"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 2))" />
+                    </MudTd>
+                }
+                @if (_esquema.Evaluacion3)
+                {
+                    <MudTd DataLabel="@_esquema.EtiquetaEvaluacion3">
+                        <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][3]" @bind-Value="context.Evaluacion3" Min="0" Max="99"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 3))" />
+                    </MudTd>
+                }
+                @if (_esquema.NotaRegular)
+                {
+                    <MudTd DataLabel="A reg.">
+                        <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][4]" @bind-Value="context.NotaRegular" Min="0" Max="99"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 4))" />
+                    </MudTd>
+                }
+                @if (_esquema.NotaFinal)
+                {
+                    <MudTd DataLabel="Nota final">
+                        <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice][5]" @bind-Value="context.NotaFinal" Min="0" Max="99"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 5))" />
+                    </MudTd>
+                }
+                @if (_esquema.Horas)
+                {
+                    <MudTd DataLabel="Hs." Class="d-none d-lg-table-cell">
+                        <MudNumericField T="short?" @ref="_refsEnteros[context.Indice][0]" @bind-Value="context.TotalHoras" Min="0"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 6))" />
+                    </MudTd>
+                }
+                @if (_esquema.Inasistencias)
+                {
+                    <MudTd DataLabel="Inasist." Class="d-none d-lg-table-cell">
+                        <MudNumericField T="short?" @ref="_refsEnteros[context.Indice][1]" @bind-Value="context.Inasistencias" Min="0"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 7))" />
+                    </MudTd>
+                }
+                @if (_esquema.Justificadas)
+                {
+                    <MudTd DataLabel="Justif." Class="d-none d-lg-table-cell">
+                        <MudNumericField T="short?" @ref="_refsEnteros[context.Indice][2]" @bind-Value="context.Justificadas" Min="0"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                         Immediate="true" Disabled="@(!_puedeEditar)" OnKeyDown="@(e => SaltarSiEnter(e, context.Indice, 8))" />
+                    </MudTd>
+                }
+                <MudTd DataLabel="Observación" Class="d-none d-xl-table-cell">
+                    <MudTextField T="string" @bind-Value="context.Observaciones" MaxLength="500" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Style="min-width:160px" Disabled="@(!_puedeEditar)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">La comisión no tiene alumnos cursando.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudTextField T="string" @bind-Value="_observaciones" Label="Observaciones generales para secretaría" Lines="2"
+                      MaxLength="500" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_puedeEditar)" Class="mb-3" />
+        <div class="d-flex flex-wrap gap-2 justify-end">
+            @if (_datos.FechaModificacion is not null)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary align-self-center mr-auto">
+                    Último guardado: @Fecha(_datos.FechaModificacion)
+                </MudText>
+            }
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@(!_puedeEditar || _procesando)" OnClick="GuardarBorrador">Guardar borrador</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll"
+                       Disabled="@(!_puedeEditar || _procesando)" OnClick="FinalizarCarga">Finalizar carga</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Carrera { get; set; } = string.Empty;
+    [Parameter] public int Cutuco { get; set; }
+    [Parameter] public string Materia { get; set; } = string.Empty;
+    [Parameter] public string Cuatrimestre { get; set; } = string.Empty;
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private bool _cargando = true;
+    private bool _procesando;
+    private CargaComisionDocenteDto? _datos;
+    private EsquemaCargaCursado _esquema = EsquemaCargaCursado.Para(VarianteRegularizacion.NoDisponible);
+    private List<FilaVm> _filas = [];
+    private string? _observaciones;
+    private ActorCargaDocente? _actor;
+    private bool _esTitular;
+    private bool _esSecretaria;
+    private bool _puedeEditar;
+
+    // Navegación con Enter entre casilleros (como RegularizacionEditor de secretaría):
+    // referencias por fila y "slot" de campo; el orden visible depende del esquema.
+    private MudNumericField<decimal?>?[][] _refsNotas = [];
+    private MudNumericField<short?>?[][] _refsEnteros = [];
+    private List<int> _ordenCampos = [];
+
+    private ClaveComision Clave => new()
+    {
+        CodigoCarrera = Carrera,
+        Cutuco = (short)Cutuco,
+        CodigoMateria = Materia,
+        CuatrimestreAnio = Cuatrimestre,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        _esSecretaria = usuario.TipoDeUsuario() == TipoUsuario.Secretaria;
+        _actor = new ActorCargaDocente
+        {
+            CodigoUsuario = usuario.CodigoUsuario() ?? 0,
+            EsSecretaria = _esSecretaria,
+            CodigoDocente = usuario.CodigoDocente(),
+        };
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _datos = await Consulta.ObtenerAsync(Clave, CancellationToken.None);
+        if (_datos is not null)
+        {
+            _esquema = EsquemaCargaCursado.Para(_datos.CodigoCarrera, _datos.TipoCarrera);
+            _esTitular = _actor?.CodigoDocente is not null
+                && string.Equals(_actor.CodigoDocente, _datos.CodigoDocenteTitular, StringComparison.OrdinalIgnoreCase);
+            _puedeEditar = _esquema.Disponible
+                && (_esSecretaria || _esTitular)
+                && _datos.Estado is null or EstadoCargaDocente.Borrador;
+            _observaciones = _datos.ObservacionesCarga;
+            // Sin detalle, la fila arranca con lo que CURSADA tiene hoy (lo que secretaría ya cargó).
+            _filas = _datos.Alumnos.Select(a => new FilaVm
+            {
+                CodigoAlumno = a.CodigoAlumno,
+                Apellido = a.Apellido,
+                Nombre = a.Nombre,
+                Condicion = a.Condicion,
+                CursadaIndice = a.CursadaIndice,
+                Evaluacion1 = a.TieneDetalle ? a.Evaluacion1 : a.CursadaEvaluacion1,
+                Recuperatorio = a.TieneDetalle ? a.Recuperatorio : a.CursadaRecuperatorio,
+                Evaluacion2 = a.TieneDetalle ? a.Evaluacion2 : a.CursadaEvaluacion2,
+                Evaluacion3 = a.TieneDetalle ? a.Evaluacion3 : a.CursadaEvaluacion3,
+                NotaRegular = a.TieneDetalle ? a.NotaRegular : a.CursadaNotaRegular,
+                NotaFinal = a.TieneDetalle ? a.NotaFinal : a.CursadaNotaFinal,
+                TotalHoras = a.TieneDetalle ? a.TotalHoras : a.CursadaTotalHoras,
+                Inasistencias = a.TieneDetalle ? a.Inasistencias : a.CursadaInasistencias,
+                Justificadas = a.TieneDetalle ? a.Justificadas : a.CursadaJustificadas,
+                Observaciones = a.Observaciones,
+            }).ToList();
+            for (var i = 0; i < _filas.Count; i++)
+            {
+                _filas[i].Indice = i;
+            }
+
+            _refsNotas = [.. Enumerable.Range(0, _filas.Count).Select(_ => new MudNumericField<decimal?>?[6])];
+            _refsEnteros = [.. Enumerable.Range(0, _filas.Count).Select(_ => new MudNumericField<short?>?[3])];
+            _ordenCampos = OrdenCampos(_esquema);
+        }
+
+        _cargando = false;
+    }
+
+    // Slots: 0 eval. 1, 1 eval. 2, 2 recuperatorio, 3 eval. 3, 4 a regularizar, 5 nota final
+    // (decimales); 6 horas, 7 inasistencias, 8 justificadas (enteros). Mismo orden que las columnas.
+    private static List<int> OrdenCampos(EsquemaCargaCursado e)
+    {
+        var orden = new List<int>();
+        if (e.Evaluacion1) { orden.Add(0); }
+        if (e.Evaluacion2) { orden.Add(1); }
+        if (e.Recuperatorio) { orden.Add(2); }
+        if (e.Evaluacion3) { orden.Add(3); }
+        if (e.NotaRegular) { orden.Add(4); }
+        if (e.NotaFinal) { orden.Add(5); }
+        if (e.Horas) { orden.Add(6); }
+        if (e.Inasistencias) { orden.Add(7); }
+        if (e.Justificadas) { orden.Add(8); }
+        return orden;
+    }
+
+    /// <summary>
+    /// Enter avanza al siguiente casillero de la fila y, al terminar la fila, al primero de
+    /// la siguiente. Las horas de la comisión se repiten de un alumno al siguiente si el
+    /// próximo no las tiene (misma comodidad que el editor de secretaría).
+    /// </summary>
+    private async Task SaltarSiEnter(KeyboardEventArgs e, int fila, int slot)
+    {
+        if (e.Key != "Enter" || _ordenCampos.Count == 0)
+        {
+            return;
+        }
+
+        var posicion = _ordenCampos.IndexOf(slot);
+        var (f, p) = posicion >= _ordenCampos.Count - 1 ? (fila + 1, 0) : (fila, posicion + 1);
+        if (f >= _filas.Count)
+        {
+            return;
+        }
+
+        if (f != fila && _filas[f].TotalHoras is null or 0 && _filas[fila].TotalHoras is > 0)
+        {
+            _filas[f].TotalHoras = _filas[fila].TotalHoras;
+        }
+
+        var destino = _ordenCampos[p];
+        if (destino < 6)
+        {
+            if (_refsNotas[f][destino] is { } nota)
+            {
+                await nota.FocusAsync();
+            }
+        }
+        else if (_refsEnteros[f][destino - 6] is { } entero)
+        {
+            await entero.FocusAsync();
+        }
+    }
+
+    // Solo viajan los campos de la variante; el resto va en null para no arrastrar
+    // valores que la pantalla no muestra.
+    private GuardarCargaComisionCommand ArmarComando() => new()
+    {
+        Comision = Clave,
+        Actor = _actor!,
+        Observaciones = _observaciones,
+        Filas = _filas.Select(f => new FilaCargaComisionInput
+        {
+            CodigoAlumno = f.CodigoAlumno,
+            CursadaIndice = f.CursadaIndice,
+            Evaluacion1 = _esquema.Evaluacion1 ? f.Evaluacion1 : null,
+            Recuperatorio = _esquema.Recuperatorio ? f.Recuperatorio : null,
+            Evaluacion2 = _esquema.Evaluacion2 ? f.Evaluacion2 : null,
+            Evaluacion3 = _esquema.Evaluacion3 ? f.Evaluacion3 : null,
+            NotaRegular = _esquema.NotaRegular ? f.NotaRegular : null,
+            NotaFinal = _esquema.NotaFinal ? f.NotaFinal : null,
+            TotalHoras = _esquema.Horas ? f.TotalHoras : null,
+            Inasistencias = _esquema.Inasistencias ? f.Inasistencias : null,
+            Justificadas = _esquema.Justificadas ? f.Justificadas : null,
+            Observaciones = f.Observaciones,
+        }).ToList(),
+    };
+
+    private async Task GuardarBorrador()
+    {
+        _procesando = true;
+        try
+        {
+            var resultado = await Guardar.HandleAsync(ArmarComando(), CancellationToken.None);
+            if (!Mostrar(resultado, "Borrador guardado."))
+            {
+                return;
+            }
+
+            await CargarAsync();
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task FinalizarCarga()
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Finalizar carga",
+            "Se guarda el borrador y la carga pasa a finalizada: vas a seguir viendo la comisión pero no podrás modificar nada. ¿Continuar?",
+            yesText: "Finalizar", cancelText: "Cancelar");
+        if (confirmar != true)
+        {
+            return;
+        }
+
+        _procesando = true;
+        try
+        {
+            // Primero el borrador (lo que está en pantalla), después el cambio de estado.
+            var guardado = await Guardar.HandleAsync(ArmarComando(), CancellationToken.None);
+            if (!Mostrar(guardado, null))
+            {
+                return;
+            }
+
+            var resultado = await Finalizar.HandleAsync(
+                new CambiarEstadoCargaComisionCommand { Comision = Clave, Actor = _actor! }, CancellationToken.None);
+            if (!Mostrar(resultado, "Carga finalizada. Secretaría ya puede revisarla."))
+            {
+                return;
+            }
+
+            await CargarAsync();
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private bool Mostrar(Esba.Domain.Common.Result<int> resultado, string? mensajeOk)
+    {
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Error)
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo completar la operación.", MudBlazor.Severity.Error);
+            return false;
+        }
+
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Warning)
+        {
+            Snackbar.Add(resultado.Message!, MudBlazor.Severity.Warning);
+        }
+        else if (mensajeOk is not null)
+        {
+            Snackbar.Add(mensajeOk, MudBlazor.Severity.Success);
+        }
+
+        return true;
+    }
+
+    private static string Fecha(DateTime? fecha) =>
+        fecha?.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+
+    private static Color ColorEstado(EstadoCargaDocente? estado) => estado switch
+    {
+        EstadoCargaDocente.Borrador => Color.Warning,
+        EstadoCargaDocente.Finalizada => Color.Info,
+        EstadoCargaDocente.Efectivizada => Color.Success,
+        _ => Color.Default,
+    };
+
+    /// <summary>Estado de edición de una fila (solo presentación).</summary>
+    private sealed class FilaVm
+    {
+        public int Indice { get; set; }
+        public required string CodigoAlumno { get; init; }
+        public string? Apellido { get; init; }
+        public string? Nombre { get; init; }
+        public string? Condicion { get; init; }
+        public int CursadaIndice { get; init; }
+        public decimal? Evaluacion1 { get; set; }
+        public decimal? Recuperatorio { get; set; }
+        public decimal? Evaluacion2 { get; set; }
+        public decimal? Evaluacion3 { get; set; }
+        public decimal? NotaRegular { get; set; }
+        public decimal? NotaFinal { get; set; }
+        public short? TotalHoras { get; set; }
+        public short? Inasistencias { get; set; }
+        public short? Justificadas { get; set; }
+        public string? Observaciones { get; set; }
+    }
+}

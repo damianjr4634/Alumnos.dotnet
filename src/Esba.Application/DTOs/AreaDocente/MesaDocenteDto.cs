@@ -1,4 +1,4 @@
-namespace Esba.Application.DTOs.Docente;
+namespace Esba.Application.DTOs.AreaDocente;
 
 /// <summary>Una mesa de examen donde el docente es titular (MESAS + materia + tipo + resumen de PERMEXA y de su precarga).</summary>
 public sealed record MesaDocenteDto

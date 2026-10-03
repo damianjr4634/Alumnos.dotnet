@@ -1,6 +1,7 @@
 @page "/docente"
 @using Esba.Domain.Examenes
 @inject IAreaDocenteQuery AreaDocente
+@inject NavigationManager Navegacion
 
 <PageTitle>ESBA — Portal docente</PageTitle>
 
@@ -53,7 +54,8 @@ else
         }
         else
         {
-            <MudTable T="ComisionDocenteDto" Items="_comisionesPeriodo" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <MudTable T="ComisionDocenteDto" Items="_comisionesPeriodo" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      OnRowClick="AbrirComision" RowClass="cursor-pointer">
                 <HeaderContent>
                     <MudTh>Carrera</MudTh>
                     <MudTh>Materia</MudTh>
@@ -78,6 +80,8 @@ else
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorCarga(context.EstadoCarga)">
                             @TextoCarga(context.EstadoCarga)
                         </MudChip>
+                        <MudIconButton Icon="@Icons.Material.Filled.EditNote" Size="Size.Small" aria-label="Cargar notas de la comisión"
+                                       Href="@RutaComision(context)" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -104,7 +108,8 @@ else
         }
         else
         {
-            <MudTable T="MesaDocenteDto" Items="_mesas" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <MudTable T="MesaDocenteDto" Items="_mesas" Dense="true" Hover="true" Striped="true" Elevation="0"
+                      OnRowClick="AbrirMesa" RowClass="cursor-pointer">
                 <HeaderContent>
                     <MudTh>Fecha</MudTh>
                     <MudTh>Carrera</MudTh>
@@ -136,6 +141,8 @@ else
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorCarga(context.EstadoCarga)">
                             @TextoCarga(context.EstadoCarga)
                         </MudChip>
+                        <MudIconButton Icon="@Icons.Material.Filled.EditNote" Size="Size.Small" aria-label="Cargar notas de la mesa"
+                                       Href="@RutaMesa(context)" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -186,6 +193,28 @@ else
     private void FiltrarPeriodo() =>
         _comisionesPeriodo = _comisiones.Where(c => c.CuatrimestreAnio == _periodoSel).ToList();
 
+    private static string RutaComision(ComisionDocenteDto c) =>
+        $"/docente/comisiones/{Uri.EscapeDataString(c.CodigoCarrera)}/{c.Cutuco}/{Uri.EscapeDataString(c.CodigoMateria)}/{Uri.EscapeDataString(c.CuatrimestreAnio)}";
+
+    private void AbrirComision(TableRowClickEventArgs<ComisionDocenteDto> fila)
+    {
+        if (fila.Item is not null)
+        {
+            Navegacion.NavigateTo(RutaComision(fila.Item));
+        }
+    }
+
+    private static string RutaMesa(MesaDocenteDto m) =>
+        $"/docente/mesas/{Uri.EscapeDataString(m.CodigoCarrera)}/{m.NumeroMesa}";
+
+    private void AbrirMesa(TableRowClickEventArgs<MesaDocenteDto> fila)
+    {
+        if (fila.Item is not null)
+        {
+            Navegacion.NavigateTo(RutaMesa(fila.Item));
+        }
+    }
+
     private async Task CambiarIncluirPasadas(bool incluir)
     {
         _incluirPasadas = incluir;
@@ -205,19 +234,14 @@ else
     }
 
     // Mapa de colores del estado de la precarga (análogo al de estados del alumno, CLAUDE.md §4.5).
-    private static Color ColorCarga(string? estado) => estado switch
+    private static Color ColorCarga(string? estado) => EstadoCargaDocenteCodigo.DesdeCodigoOpcional(estado) switch
     {
-        "BOR" => Color.Warning,
-        "FIN" => Color.Info,
-        "EFE" => Color.Success,
+        EstadoCargaDocente.Borrador => Color.Warning,
+        EstadoCargaDocente.Finalizada => Color.Info,
+        EstadoCargaDocente.Efectivizada => Color.Success,
         _ => Color.Default,
     };
 
-    private static string TextoCarga(string? estado) => estado switch
-    {
-        "BOR" => "En borrador",
-        "FIN" => "Finalizada",
-        "EFE" => "Efectivizada",
-        _ => "Sin cargar",
-    };
+    private static string TextoCarga(string? estado) =>
+        EstadoCargaDocenteCodigo.Etiqueta(EstadoCargaDocenteCodigo.DesdeCodigoOpcional(estado));
 }

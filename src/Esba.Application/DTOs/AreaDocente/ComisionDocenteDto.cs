@@ -1,4 +1,4 @@
-namespace Esba.Application.DTOs.Docente;
+namespace Esba.Application.DTOs.AreaDocente;
 
 /// <summary>Una comisión a cargo del docente (COMARM + carrera + materia + resumen de CURSADA y de su precarga).</summary>
 public sealed record ComisionDocenteDto

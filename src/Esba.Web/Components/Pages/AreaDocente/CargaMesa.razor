@@ -1,0 +1,332 @@
+@page "/docente/mesas/{Carrera}/{Mesa:int}"
+@using Esba.Application.Features.AreaDocente
+@using Esba.Domain.Examenes
+@inject ICargaMesaDocenteQuery Consulta
+@inject GuardarCargaMesaHandler Guardar
+@inject FinalizarCargaMesaHandler Finalizar
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>ESBA — Precarga de mesa</PageTitle>
+
+@* Precarga de notas de final de una mesa por su docente titular (hito 19). Una nota (o la
+   marca de ausente) por alumno con permiso; secretaría la revisa y efectiviza con la carga
+   de notas de finales (hito 14). Solo markup, binding y estado de presentación; quién
+   puede editar/finalizar lo decide el servidor (AutorizacionCargaDocente). *@
+
+@if (_cargando)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+}
+else if (_datos is null)
+{
+    <MudAlert Severity="MudBlazor.Severity.Error">La mesa no existe.</MudAlert>
+    <MudButton Href="/docente" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-2">Volver</MudButton>
+}
+else
+{
+    <div class="d-flex align-center flex-wrap gap-2 mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/docente" aria-label="Volver al inicio" />
+        <div>
+            <MudText Typo="Typo.h5">@(_datos.SiglaMateria ?? _datos.CodigoMateria) · Mesa @_datos.NumeroMesa</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @(_datos.NombreCarrera ?? _datos.CodigoCarrera)
+                · @(_datos.FechaExamen?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) ?? "sin fecha") @FormatoMesa.Hora(_datos.Hora)
+                @if (_datos.Llamado is { } ll) { <text> · @(ll)º llamado</text> }
+                @if (_datos.Aula is { } aula) { <text> · Aula @aula</text> }
+                @if (!string.IsNullOrWhiteSpace(_datos.DescripcionTipo)) { <text> · @_datos.DescripcionTipo</text> }
+            </MudText>
+        </div>
+        <MudSpacer />
+        <MudChip T="string" Size="Size.Medium" Variant="Variant.Text" Color="@ColorEstado(_datos.Estado)">
+            @EstadoCargaDocenteCodigo.Etiqueta(_datos.Estado)
+        </MudChip>
+    </div>
+
+    @if (!_esTitular && !_esSecretaria)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Warning" Dense="true" Class="mb-4">
+            Esta mesa tiene como titular a @(_datos.NombreDocenteTitular ?? _datos.CodigoDocenteTitular ?? "otro docente"): podés verla, pero no cargar notas.
+        </MudAlert>
+    }
+    else if (_datos.Estado == EstadoCargaDocente.Finalizada)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="mb-4">
+            Carga finalizada el @Fecha(_datos.FechaFinalizacion). Si necesitás corregir algo, pedile a secretaría que la reabra.
+        </MudAlert>
+    }
+    else if (_datos.Estado == EstadoCargaDocente.Efectivizada)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Success" Dense="true" Class="mb-4">
+            Secretaría efectivizó esta carga el @Fecha(_datos.FechaEfectivizacion). Ya no se puede modificar.
+        </MudAlert>
+    }
+    else if (!_datos.TieneCarga)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Class="mb-4">
+            Todavía no hay precarga. Cargá la nota de cada alumno o marcalo como ausente, y guardá el borrador.
+        </MudAlert>
+    }
+
+    <MudPaper Outlined="true" Class="pa-2 mb-4">
+        <MudTable T="FilaVm" Items="_filas" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Alumno</MudTh>
+                <MudTh Class="d-none d-md-table-cell">Condición</MudTh>
+                <MudTh>Nota</MudTh>
+                <MudTh>Ausente</MudTh>
+                <MudTh Class="d-none d-lg-table-cell">Observación</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Alumno">
+                    <MudText Typo="Typo.body2">@context.Apellido, @context.Nombre</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.CodigoAlumno</MudText>
+                </MudTd>
+                <MudTd DataLabel="Condición" Class="d-none d-md-table-cell">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@(context.Condicion ?? "—")</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Nota">
+                    <MudNumericField T="decimal?" @ref="_refsNotas[context.Indice]" @bind-Value="context.Nota" Min="0" Max="10"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:80px" HideSpinButtons="true"
+                                     Immediate="true" Disabled="@(!_puedeEditar || context.Ausente)"
+                                     OnKeyDown="@(e => SaltarSiEnter(e, context.Indice))" />
+                </MudTd>
+                <MudTd DataLabel="Ausente">
+                    <MudCheckBox T="bool" Value="context.Ausente" ValueChanged="@(v => MarcarAusente(context, v))"
+                                 Dense="true" Disabled="@(!_puedeEditar)" aria-label="Alumno ausente" />
+                </MudTd>
+                <MudTd DataLabel="Observación" Class="d-none d-lg-table-cell">
+                    <MudTextField T="string" @bind-Value="context.Observaciones" MaxLength="500" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Style="min-width:160px" Disabled="@(!_puedeEditar)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">La mesa no tiene alumnos con permiso de examen.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudTextField T="string" @bind-Value="_observaciones" Label="Observaciones generales para secretaría" Lines="2"
+                      MaxLength="500" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_puedeEditar)" Class="mb-3" />
+        <div class="d-flex flex-wrap gap-2 justify-end">
+            @if (_datos.FechaModificacion is not null)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary align-self-center mr-auto">
+                    Último guardado: @Fecha(_datos.FechaModificacion)
+                </MudText>
+            }
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="@(!_puedeEditar || _procesando)" OnClick="GuardarBorrador">Guardar borrador</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll"
+                       Disabled="@(!_puedeEditar || _procesando)" OnClick="FinalizarCarga">Finalizar carga</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Carrera { get; set; } = string.Empty;
+    [Parameter] public int Mesa { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private bool _cargando = true;
+    private bool _procesando;
+    private CargaMesaDocenteDto? _datos;
+    private List<FilaVm> _filas = [];
+    private MudNumericField<decimal?>?[] _refsNotas = [];
+    private string? _observaciones;
+    private ActorCargaDocente? _actor;
+    private bool _esTitular;
+    private bool _esSecretaria;
+    private bool _puedeEditar;
+
+    private ClaveMesa Clave => new() { CodigoCarrera = Carrera, NumeroMesa = Mesa };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        _esSecretaria = usuario.TipoDeUsuario() == TipoUsuario.Secretaria;
+        _actor = new ActorCargaDocente
+        {
+            CodigoUsuario = usuario.CodigoUsuario() ?? 0,
+            EsSecretaria = _esSecretaria,
+            CodigoDocente = usuario.CodigoDocente(),
+        };
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _datos = await Consulta.ObtenerAsync(Clave, CancellationToken.None);
+        if (_datos is not null)
+        {
+            _esTitular = _actor?.CodigoDocente is not null
+                && string.Equals(_actor.CodigoDocente, _datos.CodigoDocenteTitular, StringComparison.OrdinalIgnoreCase);
+            _puedeEditar = (_esSecretaria || _esTitular) && _datos.Estado is null or EstadoCargaDocente.Borrador;
+            _observaciones = _datos.ObservacionesCarga;
+            _filas = _datos.Alumnos.Select((a, i) => new FilaVm
+            {
+                Indice = i,
+                CodigoAlumno = a.CodigoAlumno,
+                CodigoMateria = a.CodigoMateria,
+                Apellido = a.Apellido,
+                Nombre = a.Nombre,
+                Condicion = a.Condicion,
+                PermisoIndice = a.PermisoIndice,
+                Nota = a.Nota,
+                Ausente = a.Ausente,
+                Observaciones = a.Observaciones,
+            }).ToList();
+            _refsNotas = new MudNumericField<decimal?>?[_filas.Count];
+        }
+
+        _cargando = false;
+    }
+
+    private static void MarcarAusente(FilaVm fila, bool ausente)
+    {
+        fila.Ausente = ausente;
+        if (ausente)
+        {
+            fila.Nota = null;
+        }
+    }
+
+    /// <summary>Enter baja a la nota del siguiente alumno (salteando los ausentes), como en el editor de secretaría.</summary>
+    private async Task SaltarSiEnter(KeyboardEventArgs e, int fila)
+    {
+        if (e.Key != "Enter")
+        {
+            return;
+        }
+
+        var f = fila + 1;
+        while (f < _filas.Count && _filas[f].Ausente)
+        {
+            f++;
+        }
+
+        if (f < _filas.Count && _refsNotas[f] is { } nota)
+        {
+            await nota.FocusAsync();
+        }
+    }
+
+    private GuardarCargaMesaCommand ArmarComando() => new()
+    {
+        Mesa = Clave,
+        Actor = _actor!,
+        Observaciones = _observaciones,
+        Filas = _filas.Select(f => new FilaCargaMesaInput
+        {
+            CodigoAlumno = f.CodigoAlumno,
+            CodigoMateria = f.CodigoMateria,
+            PermisoIndice = f.PermisoIndice,
+            Nota = f.Ausente ? null : f.Nota,
+            Ausente = f.Ausente,
+            Observaciones = f.Observaciones,
+        }).ToList(),
+    };
+
+    private async Task GuardarBorrador()
+    {
+        _procesando = true;
+        try
+        {
+            var resultado = await Guardar.HandleAsync(ArmarComando(), CancellationToken.None);
+            if (!Mostrar(resultado, "Borrador guardado."))
+            {
+                return;
+            }
+
+            await CargarAsync();
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task FinalizarCarga()
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Finalizar carga",
+            "Se guarda el borrador y la carga pasa a finalizada: vas a seguir viendo la mesa pero no podrás modificar nada. ¿Continuar?",
+            yesText: "Finalizar", cancelText: "Cancelar");
+        if (confirmar != true)
+        {
+            return;
+        }
+
+        _procesando = true;
+        try
+        {
+            var guardado = await Guardar.HandleAsync(ArmarComando(), CancellationToken.None);
+            if (!Mostrar(guardado, null))
+            {
+                return;
+            }
+
+            var resultado = await Finalizar.HandleAsync(
+                new CambiarEstadoCargaMesaCommand { Mesa = Clave, Actor = _actor! }, CancellationToken.None);
+            if (!Mostrar(resultado, "Carga finalizada. Secretaría ya puede revisarla."))
+            {
+                return;
+            }
+
+            await CargarAsync();
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private bool Mostrar(Esba.Domain.Common.Result<int> resultado, string? mensajeOk)
+    {
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Error)
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo completar la operación.", MudBlazor.Severity.Error);
+            return false;
+        }
+
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Warning)
+        {
+            Snackbar.Add(resultado.Message!, MudBlazor.Severity.Warning);
+        }
+        else if (mensajeOk is not null)
+        {
+            Snackbar.Add(mensajeOk, MudBlazor.Severity.Success);
+        }
+
+        return true;
+    }
+
+    private static string Fecha(DateTime? fecha) =>
+        fecha?.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+
+    private static Color ColorEstado(EstadoCargaDocente? estado) => estado switch
+    {
+        EstadoCargaDocente.Borrador => Color.Warning,
+        EstadoCargaDocente.Finalizada => Color.Info,
+        EstadoCargaDocente.Efectivizada => Color.Success,
+        _ => Color.Default,
+    };
+
+    /// <summary>Estado de edición de una fila (solo presentación).</summary>
+    private sealed class FilaVm
+    {
+        public int Indice { get; init; }
+        public required string CodigoAlumno { get; init; }
+        public required string CodigoMateria { get; init; }
+        public string? Apellido { get; init; }
+        public string? Nombre { get; init; }
+        public string? Condicion { get; init; }
+        public int PermisoIndice { get; init; }
+        public decimal? Nota { get; set; }
+        public bool Ausente { get; set; }
+        public string? Observaciones { get; set; }
+    }
+}

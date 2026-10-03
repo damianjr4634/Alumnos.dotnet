@@ -4,7 +4,9 @@
 
 <PageTitle>ESBA — Error</PageTitle>
 
-@* Error genérico sin stack trace al usuario (migration_improvements.md §2.5). *@
+@* Error genérico sin stack trace al usuario (migration_improvements.md §2.5). El
+   botón vuelve al inicio del perfil del usuario (si hay sesión); sin sesión, "/"
+   termina en el login. *@
 
 <MudPaper Elevation="3" Class="pa-8 mx-auto" Style="width: 100%; max-width: 480px;">
     <MudText Typo="Typo.h5" Class="mb-2">Ocurrió un error</MudText>
@@ -12,5 +14,25 @@
         Se produjo un error al procesar la solicitud. Si el problema persiste,
         comunicate con el administrador del sistema.
     </MudText>
-    <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6">Volver al inicio</MudButton>
+    <MudButton Href="@_inicio" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6">Volver al inicio</MudButton>
 </MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private string _inicio = "/";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EstadoAutenticacion is null)
+        {
+            return;
+        }
+
+        var usuario = (await EstadoAutenticacion).User;
+        if (usuario.Identity?.IsAuthenticated == true)
+        {
+            _inicio = usuario.RutaInicio();
+        }
+    }
+}

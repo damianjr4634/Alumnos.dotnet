@@ -1,4 +1,4 @@
-using Esba.Application.DTOs.Docente;
+using Esba.Application.DTOs.AreaDocente;
 
 namespace Esba.Application.Abstractions;
 
@@ -12,7 +12,8 @@ public interface IAreaDocenteQuery
     /// <summary>
     /// Comisiones donde el docente es el titular (COMARM.CODPROFES), todas las carreras
     /// y períodos, de la más reciente a la más vieja, con la cantidad de alumnos
-    /// cursando/recursando y el estado de su precarga (null = sin carga).
+    /// cursando/recursando no dados de baja (mismo universo que la pantalla de carga) y el
+    /// estado de su precarga (null = sin carga).
     /// </summary>
     Task<IReadOnlyList<ComisionDocenteDto>> ListarComisionesAsync(string codigoDocente, CancellationToken ct);
 

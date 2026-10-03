@@ -34,7 +34,6 @@
             return;
         }
 
-        var usuario = (await EstadoAutenticacion).User;
-        _inicio = usuario.TipoDeUsuario() == TipoUsuario.Docente ? "/docente" : "/";
+        _inicio = (await EstadoAutenticacion).User.RutaInicio();
     }
 }

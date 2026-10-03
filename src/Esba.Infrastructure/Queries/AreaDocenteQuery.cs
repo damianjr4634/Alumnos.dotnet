@@ -1,6 +1,6 @@
 using Dapper;
 using Esba.Application.Abstractions;
-using Esba.Application.DTOs.Docente;
+using Esba.Application.DTOs.AreaDocente;
 using Esba.Infrastructure.Persistence;
 
 namespace Esba.Infrastructure.Queries;
@@ -41,9 +41,11 @@ public sealed class AreaDocenteQuery : IAreaDocenteQuery
                    TRIM(C.BLOQUE3)   AS Bloque3,
                    (SELECT COUNT(*)
                       FROM CURSADA U
+                      JOIN ALUMNOS A ON A.COD_ALU = U.COD_ALU AND A.CARRE = U.CARRE
                      WHERE U.CARRE = C.CARRE AND U.CUTUCO = C.CUTUCO
                        AND U.COD_MAT = C.COD_MAT AND U.CUA_ANIO = C.CUA_ANIO
-                       AND TRIM(U.CONDICION) IN ('CURSANDO', 'RECURSANDO')) AS CantidadAlumnos,
+                       AND TRIM(U.CONDICION) IN ('CURSANDO', 'RECURSANDO')
+                       AND A.BAJA = 'N') AS CantidadAlumnos,
                    TRIM(DC.ESTADO)   AS EstadoCarga
             FROM COMARM C
             LEFT OUTER JOIN CARRERA K ON K.CARRE = C.CARRE
@@ -83,7 +85,8 @@ public sealed class AreaDocenteQuery : IAreaDocenteQuery
                    M.AULA            AS Aula,
                    TRIM(T.DESCRI)    AS DescripcionTipo,
                    (SELECT COUNT(*) FROM PERMEXA P
-                     WHERE P.CARRE = M.CARRE AND P.MESA = M.MESA) AS CantidadInscriptos,
+                      JOIN ALUMNOS AL ON AL.COD_ALU = P.COD_ALU AND AL.CARRE = P.CARRE
+                     WHERE P.CARRE = M.CARRE AND P.MESA = M.MESA AND AL.BAJA = 'N') AS CantidadInscriptos,
                    TRIM(DM.ESTADO)   AS EstadoCarga
             FROM MESAS M
             LEFT OUTER JOIN CARRERA K ON K.CARRE = M.CARRE

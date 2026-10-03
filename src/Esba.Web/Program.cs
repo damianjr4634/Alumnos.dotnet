@@ -118,7 +118,7 @@ app.MapPost("/auth/login", async (
 
     // Cada perfil aterriza en su área. Esto es UX: lo que cada uno puede abrir lo
     // deciden las policies por carpeta (12.3.1), no este redirect.
-    return Results.Redirect(resultado.Value.Tipo == TipoUsuario.Docente ? "/docente" : "/");
+    return Results.Redirect(EsbaClaims.RutaInicio(resultado.Value.Tipo));
 });
 
 app.MapPost("/auth/logout", async (HttpContext http) =>

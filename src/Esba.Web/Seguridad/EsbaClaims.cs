@@ -67,6 +67,16 @@ public static class EsbaClaims
     public static string? CodigoDocente(this ClaimsPrincipal usuario) =>
         usuario.FindFirstValue(Docente);
 
+    /// <summary>
+    /// Inicio de cada perfil: "/" (buscador de alumnos) para secretaría, "/docente" para
+    /// docentes. Único lugar que lo decide: lo usan el login, el cambio de contraseña
+    /// forzado, la página de acceso denegado y la de error. Mandar a "/" a un docente
+    /// termina en acceso denegado (la home de secretaría exige su policy).
+    /// </summary>
+    public static string RutaInicio(TipoUsuario tipo) => tipo == TipoUsuario.Docente ? "/docente" : "/";
+
+    public static string RutaInicio(this ClaimsPrincipal usuario) => RutaInicio(usuario.TipoDeUsuario());
+
     public static int? CodigoUsuario(this ClaimsPrincipal usuario) =>
         int.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var codigo) ? codigo : null;
 

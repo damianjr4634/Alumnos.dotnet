@@ -40,6 +40,14 @@ public class EsbaDbContext : DbContext
 
     public DbSet<ParametroConfiguracion> Configuraciones => Set<ParametroConfiguracion>();
 
+    public DbSet<CargaComisionDocente> CargasComisionDocente => Set<CargaComisionDocente>();
+
+    public DbSet<CargaComisionDocenteDetalle> CargasComisionDocenteDetalle => Set<CargaComisionDocenteDetalle>();
+
+    public DbSet<CargaMesaDocente> CargasMesaDocente => Set<CargaMesaDocente>();
+
+    public DbSet<CargaMesaDocenteDetalle> CargasMesaDocenteDetalle => Set<CargaMesaDocenteDetalle>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EsbaDbContext).Assembly);

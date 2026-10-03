@@ -4,6 +4,7 @@ using Esba.Application.DTOs.Administracion;
 using Esba.Application.DTOs.Alumnos;
 using Esba.Application.DTOs.Asistencias;
 using Esba.Application.DTOs.Certificados;
+using Esba.Application.DTOs.AreaDocente;
 using Esba.Application.DTOs.Examenes;
 using Esba.Application.DTOs.Ministerio;
 using Esba.Application.Features.Academica;
@@ -11,6 +12,7 @@ using Esba.Application.Features.Administracion;
 using Esba.Application.Features.Alumnos;
 using Esba.Application.Features.Asistencias;
 using Esba.Application.Features.Certificados;
+using Esba.Application.Features.AreaDocente;
 using Esba.Application.Features.Examenes;
 using Esba.Application.Features.Ministerio;
 using Esba.Application.Validators;
@@ -235,6 +237,22 @@ public static class DependencyInjection
         // Área docente (hito 19): lo que el docente logueado tiene a cargo (alcance por
         // el CODPROFES del claim). Lecturas solamente; la precarga llega con las etapas 1-2.
         services.AddScoped<IAreaDocenteQuery, AreaDocenteQuery>();
+
+        // Área docente (hito 19): precarga de notas por comisión (DOC_CARGA_COMISION).
+        services.AddScoped<ICargaComisionDocenteQuery, CargaComisionDocenteQuery>();
+        services.AddScoped<ICargaComisionDocenteRepository, CargaComisionDocenteRepository>();
+        services.AddScoped<IValidator<GuardarCargaComisionCommand>, GuardarCargaComisionValidator>();
+        services.AddScoped<GuardarCargaComisionHandler>();
+        services.AddScoped<FinalizarCargaComisionHandler>();
+        services.AddScoped<ReabrirCargaComisionHandler>();
+
+        // Área docente (hito 19): precarga de notas de final por mesa (DOC_CARGA_MESA).
+        services.AddScoped<ICargaMesaDocenteQuery, CargaMesaDocenteQuery>();
+        services.AddScoped<ICargaMesaDocenteRepository, CargaMesaDocenteRepository>();
+        services.AddScoped<IValidator<GuardarCargaMesaCommand>, GuardarCargaMesaValidator>();
+        services.AddScoped<GuardarCargaMesaHandler>();
+        services.AddScoped<FinalizarCargaMesaHandler>();
+        services.AddScoped<ReabrirCargaMesaHandler>();
 
         // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();

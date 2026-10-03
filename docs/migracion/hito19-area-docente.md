@@ -1,9 +1,53 @@
 # Hito 19 — Área docente: precarga de notas por comisión y por mesa
 
-> Estado: **diseño cerrado, esquema aplicado en dev y producción (2026-10-03)** y shell
-> del área listo (12.3.1 ✅: policies por perfil, `DocenteLayout`, `/docente` con las
-> comisiones y mesas del titular y el estado de su precarga; ver
-> `hito12-endurecimiento.md`). Pendientes: las pantallas de precarga (Etapas 1–4 abajo).
+> Estado: **diseño cerrado, esquema aplicado en dev y producción (2026-10-03/04)**, shell
+> del área listo (12.3.1 ✅, ver `hito12-endurecimiento.md`), **precarga por comisión ✅
+> 2026-10-03** y **precarga por mesa ✅ 2026-10-04** (lado docente: guardar borrador /
+> finalizar; secretaría: reabrir por handler). Pendiente: el lado secretaría (lista de
+> pendientes, "Tomar valores" en regularización y en carga de finales, efectivizar).
+
+## Precarga por mesa — hecho (2026-10-04)
+
+Mismo patrón que la comisión, con `AutorizacionCargaDocente` compartida (las dos cabeceras
+implementan `ICargaDocente`: titular + estado):
+
+| Capa | Artefactos |
+|---|---|
+| Domain | `CargaMesaDocente` (cabecera: `CodigoDocente` = `MESAS.TITULAR`, estado, auditoría) y `CargaMesaDocenteDetalle` (`Nota`, `Ausente`, `Observaciones`, `PermisoIndice`) |
+| Infrastructure | `CargaMesaDocenteConfiguration` (+ detalle, `AUSENTE` 'S'/'N' con `FbConverters.SiNo`), `CargaMesaDocenteRepository`, `CargaMesaDocenteQuery` (MESAS + tribunal + carga; alumnos = `PERMEXA` de la mesa ⨝ `ALUMNOS` activos ⨝ `CURSADA` para la condición actual) |
+| Application | `ClaveMesa`, `CargaMesaDocenteDto`/`AlumnoCargaMesaDto`, `GuardarCargaMesaCommand` (+ validador: nota vacía o en [1,10] como `CargaNotasFinalValidator`; ausente excluye nota), `Guardar`/`Finalizar`/`ReabrirCargaMesaHandler` |
+| Web | `/docente/mesas/{carre}/{mesa}` (`CargaMesa.razor`): fila por alumno con permiso (condición, nota, ausente, observación), Enter baja a la nota del siguiente alumno salteando ausentes; acceso desde la home. |
+| Tests | `CargaMesaHandlersTests` (validador + handlers), `CargaMesaRoundtripTests` (mesa real con ≥2 permisos activos y sin carga previa) |
+
+**Universo de alumnos de una mesa** = `PERMEXA` de la mesa con `ALUMNOS.BAJA='N'`, igual en la
+home (cantidad de inscriptos) y en la carga. Secretaría, al efectivizar, usará su propio
+candidato (`XXX_MESAS_ALUMNOS` por tipo de examen, hito 14) y cruzará por alumno+materia.
+
+## Precarga por comisión — hecho (2026-10-03)
+
+| Capa | Artefactos |
+|---|---|
+| Domain | `EstadoCargaDocente` + `EstadoCargaDocenteCodigo` (BOR/FIN/EFE, fail-closed); entidades `CargaComisionDocente` (cabecera: estado, titular, auditoría, `Finalizar/Reabrir/Efectivizar/RegistrarModificacion`) y `CargaComisionDocenteDetalle` (mismos campos que CURSADA, `EstaVacio`) |
+| Infrastructure | `CargaComisionDocenteConfiguration` (+ detalle, FK cascada), `CargaComisionDocenteRepository` (EF), `CargaComisionDocenteQuery` (Dapper: COMARM + carga + alumnos cursando/recursando activos con valores de CURSADA y del detalle), `AreaDocenteQuery` (home) |
+| Application | `ClaveComision`, `ActorCargaDocente` (de los claims: usuario, es secretaría, CODPROFES), `CargaComisionDocenteDto`/`AlumnoCargaComisionDto`, `GuardarCargaComisionCommand` (+ `GuardarCargaComisionValidator`: mismas reglas que la regularización, notas [1,10] o 99), `CambiarEstadoCargaComisionCommand`; `AutorizacionCargaDocente` (reglas de quién puede qué), `GuardarCargaComisionHandler` (crea cabecera con el titular del momento, upsert de detalles, ignora alumnos ajenos a la comisión, fila vacía nueva no se crea), `FinalizarCargaComisionHandler` (BOR→FIN), `ReabrirCargaComisionHandler` (solo secretaría; FIN/EFE→BOR, Warning si venía de EFE) |
+| Web | `/docente/comisiones/{carre}/{cutuco}/{codMat}/{cuaAnio}` (`CargaComision.razor`): grilla editable por alumno (1°/Rec1/2°/Rec2/3°, horas, inasistencias, justificadas, observación), observaciones generales, "Guardar borrador" y "Finalizar carga" (confirmación; guarda y después cambia el estado). Sin detalle, la fila arranca con lo que CURSADA tiene hoy. Solo lectura si no es titular o la carga está FIN/EFE (el servidor igual deniega). Acceso desde la home (`/docente`, click en la fila o botón) |
+| Tests | Unitarios: `GuardarCargaComisionValidatorTests`, `CargaComisionHandlersTests` (titularidad, estados, secretaría siempre, sin commit en error), `EstadoCargaDocenteCodigoTests`. Integración: `CargaComisionRoundtripTests` (comisión real con cursantes activos y sin carga previa: guardar → relectura Dapper → finalizar → titular bloqueado → reabrir → estado visible en la home; limpieza por cascada). Smoke HTTP de la página con un docente temporal |
+
+**Campos por variante** (corrección 2026-10-04, `EsquemaCargaCursado` en dominio): la grilla
+del docente pide exactamente lo que secretaría edita en la regularización de esa carrera
+(misma decisión de variante que `RegularizacionComision.razor`): **terciaria** (TIPO=TER) 1°
+y 2° parcial, recuperatorio, horas, inasistencias, justificadas · **bachillerato** (BAC) 1° y
+2° bimestre, recuperatorio, "a regularizar" (`REGULAR`), horas, inasistencias, justificadas ·
+**secundario** (333/650) 1°, 2° y 3° trimestre, horas, inasistencias (diciembre/marzo son de
+secretaría) · **CNA** nota final (`FINAL1`) · otras carreras: precarga no disponible. Para
+`REGULAR` y `FINAL1` hizo falta la migración
+`2026-10-04_doc_carga_comision_det_regular_final.sql` (la primera versión copiaba las columnas
+de CURSADA, con dos recuperatorios que ninguna pantalla usa; `RECUP2` queda sin uso).
+
+**Universo de alumnos** de una comisión = CURSADA con `CONDICION` CURSANDO/RECURSANDO y
+`ALUMNOS.BAJA='N'`, igual en la home (cantidad) y en la carga (filas). Detectado y
+corregido en el smoke: una comisión de 2021 cuyo único cursante está de baja mostraba 1 en la
+home y ninguna fila en la carga.
 
 ## Qué es
 
@@ -54,23 +98,15 @@ IDs por generador `G_DOC_CARGA_*` + trigger `*_BI0`, como el resto del esquema. 
 El `CODUSU_MODIF` del detalle distingue si el último que tocó la fila fue el docente o
 secretaría (ambos son `USUARIOS`).
 
-## Plan de implementación (Etapas 1→4)
+## Plan de implementación — lo que falta
 
-1. **Etapa 1**: entidades `CargaComisionDocente`/`CargaComisionDocenteDetalle`,
-   `CargaMesaDocente`/`CargaMesaDocenteDetalle` + enum `EstadoCargaDocente` (BOR/FIN/EFE) +
-   configuraciones EF; queries Dapper: comisiones del docente (`COMARM` por `CODPROFES` +
-   ciclo), alumnos de la comisión (`CURSADA` cursando/recursando, prefill de la carga si
-   existe), mesas del docente (`MESAS.TITULAR`), alumnos con permiso (`PERMEXA`).
-2. **Etapa 2**: `GuardarCargaComisionHandler` (crea la cabecera al primer guardado; rechaza
-   si no es el titular o si el estado no es `BOR` y el usuario no es secretaría),
-   `FinalizarCargaHandler`, `ReabrirCargaHandler` (solo secretaría), `EfectivizarCarga*Handler`
-   (solo secretaría; delega en los handlers de los hitos 14/15). Mismo juego para mesas.
-3. **Etapa 3**: `/docente` (home: mis comisiones y mis mesas), `/docente/comisiones/{...}`,
-   `/docente/mesas/{carre}/{mesa}` con `DocenteLayout`; en secretaría, columna "Precarga" en
-   regularización por comisión y en carga de notas de finales + acciones reabrir/efectivizar.
-4. **Etapa 4**: unitarios de handlers/validadores (titularidad, estados, permisos de
-   secretaría); integración: roundtrip EF↔Dapper y equivalencia "efectivizar = mismo resultado
-   que cargar a mano".
+1. **Lado secretaría**: lista de cargas pendientes (`ESTADO='FIN'`) por carrera; en
+   regularización por comisión, columna "Precarga del docente" + "Tomar valores" + botón
+   "Reabrir"; en carga de notas de finales, lo mismo para mesas; **efectivizar** =
+   correr `ConfirmarRegularizacion*Handler` / `ConfirmarCargaNotasFinalHandler` con los
+   valores del borrador y marcar `EFE` (`EfectivizarCarga*Handler`, solo secretaría).
+2. **Etapa 4 de lo anterior**: equivalencia "efectivizar = mismo resultado que cargar a
+   mano" sobre CURSADA/ANALITIC.
 
 ## Pendientes / a confirmar
 
