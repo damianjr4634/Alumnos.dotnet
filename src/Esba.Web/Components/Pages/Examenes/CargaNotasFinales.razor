@@ -10,8 +10,14 @@
 @inject IMesasQuery Mesas
 @inject ICargaFinalCandidatosQuery Candidatos
 @inject ConfirmarCargaNotasFinalHandler Confirmar
+@inject ICargaMesaDocenteQuery PrecargaQuery
+@inject ReabrirCargaMesaHandler ReabrirPrecarga
+@inject EfectivizarCargaMesaHandler EfectivizarPrecarga
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@using Esba.Application.DTOs.AreaDocente
+@using Esba.Application.Features.AreaDocente
+@using Esba.Domain.Enums
 
 <PageTitle>ESBA — Notas de Finales</PageTitle>
 
@@ -64,6 +70,41 @@
         </MudItem>
     </MudGrid>
 </MudPaper>
+
+@* Precarga del docente titular de la mesa (hito 19). "Tomar valores" pone la nota del
+   docente en el llamado vigente de cada alumno con la fecha de la mesa (los ausentes no
+   reciben nota); al procesar la mesa se ofrece marcar la precarga como efectivizada. *@
+@if (_buscado && !_cargando && _precarga is { TieneCarga: true })
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-4">
+        <div class="d-flex align-center flex-wrap gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Secondary" />
+            <div class="flex-grow-1">
+                <MudText Typo="Typo.subtitle2">
+                    Precarga del docente @(_precarga.NombreDocenteTitular ?? _precarga.CodigoDocenteTitular)
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorPrecarga(_precarga.Estado)" Class="ml-1">
+                        @EstadoCargaDocenteCodigo.Etiqueta(_precarga.Estado)
+                    </MudChip>
+                </MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @(_precarga.Alumnos.Count(a => a.TieneDetalle && !a.Ausente && a.Nota is not null)) con nota
+                    · @(_precarga.Alumnos.Count(a => a.Ausente)) ausente(s)
+                    @if (_precarga.FechaFinalizacion is { } ff) { <text> · finalizada el @ff.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)</text> }
+                    @if (!string.IsNullOrWhiteSpace(_precarga.ObservacionesCarga)) { <text> · "@_precarga.ObservacionesCarga"</text> }
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Download"
+                       Disabled="@(_valoresTomados || _guardando)" OnClick="TomarValoresDelDocente">
+                @(_valoresTomados ? "Valores tomados" : "Tomar valores del docente")
+            </MudButton>
+            @if (_precarga.Estado != EstadoCargaDocente.Borrador)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.LockOpen"
+                           Disabled="@_guardando" OnClick="ReabrirParaElDocente">Reabrir para el docente</MudButton>
+            }
+        </div>
+    </MudPaper>
+}
 
 @if (_cargando)
 {
@@ -137,8 +178,16 @@ else if (_buscado)
 @code {
     [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
 
+    // Llegada desde "Precargas de docentes": carrera y mesa vienen en la URL y se busca sola.
+    [SupplyParameterFromQuery(Name = "carrera")] public string? CarreraInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "mesa")] public int? MesaInicial { get; set; }
+
     private IReadOnlyList<CarreraListItemDto> _carreras = [];
     private readonly List<FilaVm> _filas = [];
+    private IReadOnlyList<CargaFinalAlumnoDto> _candidatos = [];
+    private CargaMesaDocenteDto? _precarga;
+    private bool _valoresTomados;
+    private ActorCargaDocente? _actor;
     private List<string> _tiposExamen = [];
 
     // Refs de los casilleros de carga para el salto con Enter, indexados por fila.
@@ -161,7 +210,122 @@ else if (_buscado)
         var usuario = (await EstadoAutenticacion!).User;
         IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
         _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        _actor = new ActorCargaDocente
+        {
+            CodigoUsuario = usuario.CodigoUsuario() ?? 0,
+            EsSecretaria = usuario.TipoDeUsuario() == TipoUsuario.Secretaria,
+            CodigoDocente = usuario.CodigoDocente(),
+        };
+
+        if (CarreraInicial is not null && MesaInicial is { } numeroMesa)
+        {
+            var carrera = _carreras.FirstOrDefault(c => string.Equals(c.Codigo, CarreraInicial, StringComparison.OrdinalIgnoreCase));
+            if (carrera is not null)
+            {
+                await SeleccionarCarrera(carrera);
+                var pagina = await Mesas.BuscarAsync(new MesasFiltro { CodigoCarrera = carrera.Codigo, Mesa = numeroMesa, Take = 1 }, CancellationToken.None);
+                var mesa = pagina.Items.FirstOrDefault(m => m.NumeroMesa == numeroMesa);
+                if (mesa is not null)
+                {
+                    SeleccionarMesa(mesa);
+                    await BuscarCandidatos();
+                }
+            }
+        }
     }
+
+    private ClaveMesa ClaveActual => new() { CodigoCarrera = _carrera!, NumeroMesa = _mesaSel!.NumeroMesa };
+
+    private void ArmarFilas(IReadOnlyList<CargaFinalAlumnoDto> candidatos)
+    {
+        _filas.Clear();
+        foreach (var c in candidatos)
+        {
+            var fila = FilaVm.Desde(c);
+            fila.Indice = _filas.Count;
+            _filas.Add(fila);
+        }
+
+        _refsNota = new MudNumericField<decimal?>?[_filas.Count];
+        _refsFecha = new MudDatePicker?[_filas.Count];
+        _refsActa = new MudTextField<string>?[_filas.Count];
+    }
+
+    private void TomarValoresDelDocente()
+    {
+        if (_precarga is null)
+        {
+            return;
+        }
+
+        var r = PrecargaAplicador.Mesa(_candidatos, _precarga);
+        ArmarFilas(r.Filas);
+        _valoresTomados = true;
+        var detalle = r.Ausentes > 0 ? $" {r.Ausentes} ausente(s) quedan sin nota." : string.Empty;
+        Snackbar.Add($"Se tomaron las notas del docente para {r.Aplicadas} alumno(s).{detalle} Revisá fecha y libro/acta y procesá la mesa.",
+            MudBlazor.Severity.Info);
+    }
+
+    private async Task ReabrirParaElDocente()
+    {
+        if (_actor is null)
+        {
+            return;
+        }
+
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Reabrir precarga",
+            "La precarga vuelve a borrador y el docente puede seguir cargando. ¿Continuar?",
+            yesText: "Reabrir", cancelText: "Cancelar");
+        if (confirmar != true)
+        {
+            return;
+        }
+
+        var resultado = await ReabrirPrecarga.HandleAsync(
+            new CambiarEstadoCargaMesaCommand { Mesa = ClaveActual, Actor = _actor }, CancellationToken.None);
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add(resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? resultado.Message! : "Precarga reabierta para el docente.",
+                resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? MudBlazor.Severity.Warning : MudBlazor.Severity.Success);
+            _precarga = await PrecargaQuery.ObtenerAsync(ClaveActual, CancellationToken.None);
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo reabrir la precarga.", MudBlazor.Severity.Error);
+        }
+    }
+
+    private async Task OfrecerEfectivizar()
+    {
+        if (_precarga is not { TieneCarga: true } || _precarga.Estado == EstadoCargaDocente.Efectivizada || _actor is null)
+        {
+            return;
+        }
+
+        var marcar = await DialogService.ShowMessageBoxAsync(
+            "Precarga del docente",
+            "Las notas quedaron en los archivos. ¿Marcar la precarga del docente como efectivizada? Así deja de figurar entre las pendientes y el docente la ve como procesada.",
+            yesText: "Marcar efectivizada", cancelText: "Todavía no");
+        if (marcar != true)
+        {
+            return;
+        }
+
+        var resultado = await EfectivizarPrecarga.HandleAsync(
+            new CambiarEstadoCargaMesaCommand { Mesa = ClaveActual, Actor = _actor }, CancellationToken.None);
+        Snackbar.Add(
+            resultado.IsSuccess ? "Precarga marcada como efectivizada." : resultado.Message ?? "No se pudo marcar la precarga.",
+            resultado.IsSuccess ? MudBlazor.Severity.Success : MudBlazor.Severity.Error);
+    }
+
+    private static Color ColorPrecarga(EstadoCargaDocente? estado) => estado switch
+    {
+        EstadoCargaDocente.Borrador => Color.Warning,
+        EstadoCargaDocente.Finalizada => Color.Info,
+        EstadoCargaDocente.Efectivizada => Color.Success,
+        _ => Color.Default,
+    };
 
     private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
     {
@@ -238,17 +402,10 @@ else if (_buscado)
         _filas.Clear();
         try
         {
-            var candidatos = await Candidatos.ObtenerAsync(_mesaSel.NumeroMesa, _carrera, _tipoExamen, CancellationToken.None);
-            foreach (var c in candidatos)
-            {
-                var fila = FilaVm.Desde(c);
-                fila.Indice = _filas.Count;
-                _filas.Add(fila);
-            }
-
-            _refsNota = new MudNumericField<decimal?>?[_filas.Count];
-            _refsFecha = new MudDatePicker?[_filas.Count];
-            _refsActa = new MudTextField<string>?[_filas.Count];
+            _candidatos = await Candidatos.ObtenerAsync(_mesaSel.NumeroMesa, _carrera, _tipoExamen, CancellationToken.None);
+            ArmarFilas(_candidatos);
+            _precarga = await PrecargaQuery.ObtenerAsync(ClaveActual, CancellationToken.None);
+            _valoresTomados = false;
 
             _buscado = true;
             if (_filas.Count == 0)
@@ -337,6 +494,7 @@ else if (_buscado)
             if (resultado.IsSuccess)
             {
                 Snackbar.Add($"Se pasaron {resultado.Value} nota(s) a los archivos.", MudBlazor.Severity.Success);
+                await OfrecerEfectivizar();
                 await BuscarCandidatos();
             }
             else

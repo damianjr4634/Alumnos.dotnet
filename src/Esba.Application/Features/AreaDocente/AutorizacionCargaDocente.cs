@@ -63,6 +63,17 @@ internal static class AutorizacionCargaDocente
         return carga.Estado == EstadoCargaDocente.Borrador ? "La carga ya está en borrador." : null;
     }
 
+    /// <summary>Mensaje de error si el actor no puede efectivizar; null si puede. Solo secretaría, y no dos veces.</summary>
+    public static string? MotivoNoPuedeEfectivizar(ActorCargaDocente actor, ICargaDocente carga)
+    {
+        if (!actor.EsSecretaria)
+        {
+            return "Solo secretaría puede efectivizar una precarga.";
+        }
+
+        return carga.Estado == EstadoCargaDocente.Efectivizada ? "La carga ya está efectivizada." : null;
+    }
+
     public static bool EsTitular(ActorCargaDocente actor, string? codigoDocenteTitular) =>
         actor.CodigoDocente is not null && codigoDocenteTitular is not null
         && string.Equals(actor.CodigoDocente.Trim(), codigoDocenteTitular.Trim(), StringComparison.OrdinalIgnoreCase);

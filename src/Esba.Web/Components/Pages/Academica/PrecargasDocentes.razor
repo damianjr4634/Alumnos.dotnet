@@ -1,0 +1,262 @@
+@page "/academica/precargas-docentes"
+@using Esba.Application.Abstractions
+@using Esba.Application.Common
+@using Esba.Application.DTOs.AreaDocente
+@using Esba.Application.DTOs.Carreras
+@using Esba.Application.Features.AreaDocente
+@using Esba.Domain.Academica
+@using Esba.Domain.Enums
+@using Esba.Web.Components.Shared
+@inject IPrecargasDocenteQuery Precargas
+@inject ICarrerasQuery Carreras
+@inject ReabrirCargaComisionHandler ReabrirComision
+@inject ReabrirCargaMesaHandler ReabrirMesa
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navegacion
+
+<PageTitle>ESBA — Precargas de docentes</PageTitle>
+
+@* Lado secretaría del hito 19: qué dejaron cargado los docentes (comisiones y mesas), en
+   qué estado está cada carga y el camino para procesarla: "Abrir" lleva a la pantalla
+   real (regularización por comisión / notas de finales) con la comisión o mesa ya elegida,
+   donde se toman los valores y se efectiviza; "Reabrir" devuelve una carga finalizada al
+   docente. Las finalizadas son las pendientes y salen primero. *@
+
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mb-2" @bind-ActivePanelIndex="_tab">
+    <MudTabPanel Text="Comisiones" Icon="@Icons.Material.Filled.Groups">
+        <EsbaListView T="PrecargaComisionListItemDto" @ref="_listadoComisiones"
+                      Titulo="Precargas de docentes"
+                      Subtitulo="Notas de cursado precargadas por comisión; las finalizadas esperan revisión"
+                      Columnas="_columnasComision"
+                      DataProvider="CargarComisiones"
+                      NombreArchivo="PrecargasComisiones"
+                      AccionesFila="_accionesComision"
+                      OnFilaClick="AbrirComision">
+            <Filtros>
+                <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+            </Filtros>
+        </EsbaListView>
+    </MudTabPanel>
+    <MudTabPanel Text="Mesas" Icon="@Icons.Material.Filled.Grading">
+        <EsbaListView T="PrecargaMesaListItemDto" @ref="_listadoMesas"
+                      Titulo="Precargas de docentes"
+                      Subtitulo="Notas de final precargadas por mesa; las finalizadas esperan revisión"
+                      Columnas="_columnasMesa"
+                      DataProvider="CargarMesas"
+                      NombreArchivo="PrecargasMesas"
+                      AccionesFila="_accionesMesa"
+                      OnFilaClick="AbrirMesa">
+            <Filtros>
+                <EsbaFilterPanel Campos="_campos" OnBuscar="Aplicar" />
+            </Filtros>
+        </EsbaListView>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    private int _tab;
+    private EsbaListView<PrecargaComisionListItemDto>? _listadoComisiones;
+    private EsbaListView<PrecargaMesaListItemDto>? _listadoMesas;
+    private EsbaFilterValores? _filtros;
+    private IReadOnlyList<EsbaFilterField> _campos = [];
+    private IReadOnlyCollection<string>? _carrerasPermitidas;
+    private int _codigoUsuario;
+    private bool _esSecretaria;
+
+    private readonly IReadOnlyList<EsbaColumn<PrecargaComisionListItemDto>> _columnasComision =
+    [
+        new() { Titulo = "Carrera", Valor = c => c.NombreCarrera ?? c.CodigoCarrera },
+        new() { Titulo = "Materia", Valor = c => c.SiglaMateria ?? c.CodigoMateria, ClaveOrden = "SiglaMateria" },
+        new() { Titulo = "Comisión", Valor = c => c.Cutuco },
+        new() { Titulo = "Período", Valor = c => CuatrimestreAnio.Etiqueta(c.CuatrimestreAnio), ClaveOrden = "CuatrimestreAnio", OcultarEnChico = true },
+        new() { Titulo = "Docente", Valor = c => c.NombreDocente ?? c.CodigoDocente, ClaveOrden = "NombreDocente", OcultarEnChico = true },
+        new() { Titulo = "Alumnos", Valor = c => c.CantidadAlumnos, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Finalizada", Valor = c => c.FechaFinalizacion, Formato = "dd/MM/yyyy HH:mm", ClaveOrden = "FechaFinalizacion", OcultarEnChico = true },
+        new()
+        {
+            Titulo = "Estado",
+            Valor = c => EstadoCargaDocenteCodigo.Etiqueta(c.Estado),
+            Celda = c =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorEstado(c.Estado)">@EstadoCargaDocenteCodigo.Etiqueta(c.Estado)</MudChip>,
+        },
+    ];
+
+    private readonly IReadOnlyList<EsbaColumn<PrecargaMesaListItemDto>> _columnasMesa =
+    [
+        new() { Titulo = "Carrera", Valor = m => m.NombreCarrera ?? m.CodigoCarrera },
+        new() { Titulo = "Mesa", Valor = m => m.NumeroMesa },
+        new() { Titulo = "Materia", Valor = m => m.SiglaMateria ?? m.CodigoMateria, ClaveOrden = "SiglaMateria" },
+        new() { Titulo = "Fecha", Valor = m => m.FechaExamen, Formato = "dd/MM/yyyy", ClaveOrden = "FechaExamen", OcultarEnChico = true },
+        new() { Titulo = "Docente", Valor = m => m.NombreDocente ?? m.CodigoDocente, ClaveOrden = "NombreDocente", OcultarEnChico = true },
+        new() { Titulo = "Alumnos", Valor = m => m.CantidadAlumnos, AlinearDerecha = true, OcultarEnChico = true },
+        new() { Titulo = "Finalizada", Valor = m => m.FechaFinalizacion, Formato = "dd/MM/yyyy HH:mm", ClaveOrden = "FechaFinalizacion", OcultarEnChico = true },
+        new()
+        {
+            Titulo = "Estado",
+            Valor = m => EstadoCargaDocenteCodigo.Etiqueta(m.Estado),
+            Celda = m =>@<MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorEstado(m.Estado)">@EstadoCargaDocenteCodigo.Etiqueta(m.Estado)</MudChip>,
+        },
+    ];
+
+    private RenderFragment<PrecargaComisionListItemDto> _accionesComision => c =>@<text>
+        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" aria-label="Abrir en regularización por comisión"
+                       OnClick="@(() => AbrirComision(c))" />
+        @if (c.Estado != EstadoCargaDocente.Borrador)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Size="Size.Small" Color="Color.Warning" aria-label="Reabrir para el docente"
+                           OnClick="@(() => ReabrirComisionAsync(c))" />
+        }
+    </text>;
+
+    private RenderFragment<PrecargaMesaListItemDto> _accionesMesa => m =>@<text>
+        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" aria-label="Abrir en notas de finales"
+                       OnClick="@(() => AbrirMesa(m))" />
+        @if (m.Estado != EstadoCargaDocente.Borrador)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Size="Size.Small" Color="Color.Warning" aria-label="Reabrir para el docente"
+                           OnClick="@(() => ReabrirMesaAsync(m))" />
+        }
+    </text>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuario = (await EstadoAutenticacion!).User;
+        _codigoUsuario = usuario.CodigoUsuario() ?? 0;
+        _esSecretaria = usuario.TipoDeUsuario() == TipoUsuario.Secretaria;
+        _carrerasPermitidas = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
+
+        _campos =
+        [
+            new()
+            {
+                Clave = "Carrera", Etiqueta = "Carrera", Tipo = EsbaFilterKind.Seleccion, AnchoMd = 4,
+                OpcionesAsync = async () => (await Carreras.ListarParaMenuAsync(_carrerasPermitidas, CancellationToken.None))
+                    .Select(c => new EsbaFilterOption(c.Codigo, $"{c.Codigo} — {c.Nombre}")).ToList(),
+            },
+            new()
+            {
+                Clave = "Estado", Etiqueta = "Estado", Tipo = EsbaFilterKind.Seleccion, AnchoMd = 3,
+                ValorInicial = EstadoCargaDocenteCodigo.Finalizada,
+                Opciones =
+                [
+                    new(EstadoCargaDocenteCodigo.Finalizada, "Finalizadas (pendientes)"),
+                    new(EstadoCargaDocenteCodigo.Borrador, "En borrador"),
+                    new(EstadoCargaDocenteCodigo.Efectivizada, "Efectivizadas"),
+                ],
+            },
+            new() { Clave = "Texto", Etiqueta = "Docente o materia", Tipo = EsbaFilterKind.Texto, AnchoMd = 3 },
+        ];
+    }
+
+    private PrecargasDocenteFiltro ArmarFiltro(EsbaListRequest req) => new()
+    {
+        CarrerasPermitidas = _carrerasPermitidas,
+        CodigoCarrera = _filtros?.Texto("Carrera"),
+        // Sin filtros aplicados todavía, la grilla arranca en "finalizadas" (el valor inicial del combo).
+        Estado = _filtros is null
+            ? EstadoCargaDocente.Finalizada
+            : EstadoCargaDocenteCodigo.DesdeCodigoOpcional(_filtros.Texto("Estado")),
+        Texto = _filtros?.Texto("Texto"),
+        OrdenarPor = req.OrdenarPor,
+        Descendente = req.Descendente,
+        Skip = req.Skip,
+        Take = req.Take,
+    };
+
+    private Task<PagedResult<PrecargaComisionListItemDto>> CargarComisiones(EsbaListRequest req, CancellationToken ct) =>
+        Precargas.BuscarComisionesAsync(ArmarFiltro(req), ct);
+
+    private Task<PagedResult<PrecargaMesaListItemDto>> CargarMesas(EsbaListRequest req, CancellationToken ct) =>
+        Precargas.BuscarMesasAsync(ArmarFiltro(req), ct);
+
+    private async Task Aplicar(EsbaFilterValores valores)
+    {
+        _filtros = valores;
+        await Recargar();
+    }
+
+    private async Task Recargar()
+    {
+        if (_listadoComisiones is not null)
+        {
+            await _listadoComisiones.RecargarAsync();
+        }
+
+        if (_listadoMesas is not null)
+        {
+            await _listadoMesas.RecargarAsync();
+        }
+    }
+
+    private void AbrirComision(PrecargaComisionListItemDto c) =>
+        Navegacion.NavigateTo($"/academica/regularizacion-comision?carrera={Uri.EscapeDataString(c.CodigoCarrera)}&cutuco={c.Cutuco}"
+            + $"&cuatrimestre={Uri.EscapeDataString(c.CuatrimestreAnio)}&materia={Uri.EscapeDataString(c.CodigoMateria)}");
+
+    private void AbrirMesa(PrecargaMesaListItemDto m) =>
+        Navegacion.NavigateTo($"/examenes/notas-finales?carrera={Uri.EscapeDataString(m.CodigoCarrera)}&mesa={m.NumeroMesa}");
+
+    private ActorCargaDocente Actor => new() { CodigoUsuario = _codigoUsuario, EsSecretaria = _esSecretaria };
+
+    private async Task ReabrirComisionAsync(PrecargaComisionListItemDto c)
+    {
+        if (!await ConfirmarReapertura($"la comisión {c.Cutuco} de {c.SiglaMateria ?? c.CodigoMateria}"))
+        {
+            return;
+        }
+
+        var resultado = await ReabrirComision.HandleAsync(new CambiarEstadoCargaComisionCommand
+        {
+            Comision = new ClaveComision { CodigoCarrera = c.CodigoCarrera, Cutuco = c.Cutuco, CodigoMateria = c.CodigoMateria, CuatrimestreAnio = c.CuatrimestreAnio },
+            Actor = Actor,
+        }, CancellationToken.None);
+        await MostrarYRecargar(resultado);
+    }
+
+    private async Task ReabrirMesaAsync(PrecargaMesaListItemDto m)
+    {
+        if (!await ConfirmarReapertura($"la mesa {m.NumeroMesa} de {m.SiglaMateria ?? m.CodigoMateria}"))
+        {
+            return;
+        }
+
+        var resultado = await ReabrirMesa.HandleAsync(new CambiarEstadoCargaMesaCommand
+        {
+            Mesa = new ClaveMesa { CodigoCarrera = m.CodigoCarrera, NumeroMesa = m.NumeroMesa },
+            Actor = Actor,
+        }, CancellationToken.None);
+        await MostrarYRecargar(resultado);
+    }
+
+    private async Task<bool> ConfirmarReapertura(string que)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Reabrir precarga",
+            $"La precarga de {que} vuelve a borrador y el docente puede seguir cargando. ¿Continuar?",
+            yesText: "Reabrir", cancelText: "Cancelar");
+        return confirmar == true;
+    }
+
+    private async Task MostrarYRecargar(Esba.Domain.Common.Result<int> resultado)
+    {
+        if (resultado.Status == Esba.Domain.Common.OperationStatus.Error)
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo reabrir la precarga.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(
+            resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? resultado.Message! : "Precarga reabierta para el docente.",
+            resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? MudBlazor.Severity.Warning : MudBlazor.Severity.Success);
+        await Recargar();
+    }
+
+    private static Color ColorEstado(EstadoCargaDocente estado) => estado switch
+    {
+        EstadoCargaDocente.Borrador => Color.Warning,
+        EstadoCargaDocente.Finalizada => Color.Info,
+        EstadoCargaDocente.Efectivizada => Color.Success,
+        _ => Color.Default,
+    };
+}

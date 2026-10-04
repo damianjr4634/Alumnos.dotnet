@@ -254,6 +254,11 @@ public static class DependencyInjection
         services.AddScoped<FinalizarCargaMesaHandler>();
         services.AddScoped<ReabrirCargaMesaHandler>();
 
+        // Área docente (hito 19): lado secretaría — pendientes, reabrir y efectivizar.
+        services.AddScoped<IPrecargasDocenteQuery, PrecargasDocenteQuery>();
+        services.AddScoped<EfectivizarCargaComisionHandler>();
+        services.AddScoped<EfectivizarCargaMesaHandler>();
+
         // Exámenes: mesas (hito 8).
         services.AddScoped<IMesasQuery, MesasQuery>();
         services.AddScoped<ITipoMesaQuery, TipoMesaQuery>();

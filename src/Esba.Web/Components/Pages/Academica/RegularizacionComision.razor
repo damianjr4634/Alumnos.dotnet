@@ -8,7 +8,14 @@
 @inject ICarrerasQuery Carreras
 @inject IMateriasQuery MateriasQuery
 @inject IRegularizacionQuery Regularizacion
+@inject ICargaComisionDocenteQuery PrecargaQuery
+@inject ReabrirCargaComisionHandler ReabrirPrecarga
+@inject EfectivizarCargaComisionHandler EfectivizarPrecarga
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@using Esba.Application.DTOs.AreaDocente
+@using Esba.Application.Features.AreaDocente
+@using Esba.Domain.Enums
 
 <PageTitle>ESBA — Regularización por comisión</PageTitle>
 
@@ -50,6 +57,40 @@
     </MudGrid>
 </MudPaper>
 
+@* Precarga del docente titular (hito 19): lo que dejó cargado para esta comisión. "Tomar
+   valores" vuelca sus notas sobre la grilla (editable); al procesar la regularización se
+   ofrece marcar la precarga como efectivizada. *@
+@if (_buscado && _precarga is { TieneCarga: true })
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-4">
+        <div class="d-flex align-center flex-wrap gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.Inbox" Color="Color.Secondary" />
+            <div class="flex-grow-1">
+                <MudText Typo="Typo.subtitle2">
+                    Precarga del docente @(_precarga.NombreDocenteTitular ?? _precarga.CodigoDocenteTitular)
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@ColorPrecarga(_precarga.Estado)" Class="ml-1">
+                        @EstadoCargaDocenteCodigo.Etiqueta(_precarga.Estado)
+                    </MudChip>
+                </MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @(_precarga.Alumnos.Count(a => a.TieneDetalle)) alumno(s) con valores
+                    @if (_precarga.FechaFinalizacion is { } ff) { <text> · finalizada el @ff.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)</text> }
+                    @if (!string.IsNullOrWhiteSpace(_precarga.ObservacionesCarga)) { <text> · "@_precarga.ObservacionesCarga"</text> }
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Download"
+                       Disabled="@(_valoresTomados || _cargando)" OnClick="TomarValoresDelDocente">
+                @(_valoresTomados ? "Valores tomados" : "Tomar valores del docente")
+            </MudButton>
+            @if (_precarga.Estado != EstadoCargaDocente.Borrador)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.LockOpen"
+                           Disabled="@_cargando" OnClick="ReabrirParaElDocente">Reabrir para el docente</MudButton>
+            }
+        </div>
+    </MudPaper>
+}
+
 @if (_carreraSel is not null && !_esTerciaria && !_esBachillerato && !_esSecundario && !_esCna)
 {
     <MudAlert Severity="Severity.Info">
@@ -62,23 +103,33 @@ else if (_cargando)
 }
 else if (_buscado && _esTerciaria)
 {
-    <RegularizacionEditor CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas" OnConfirmado="Buscar" />
+    <RegularizacionEditor CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas" OnConfirmado="AlConfirmar" />
 }
 else if (_buscado && _esBachillerato)
 {
-    <RegularizacionEditorBachiller CodigoCarrera="@_carreraSel!.Codigo" Filas="_filasBac" OnConfirmado="Buscar" />
+    <RegularizacionEditorBachiller CodigoCarrera="@_carreraSel!.Codigo" Filas="_filasBac" OnConfirmado="AlConfirmar" />
 }
 else if (_buscado && _esSecundario)
 {
-    <RegularizacionEditor333 CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas333" OnConfirmado="Buscar" />
+    <RegularizacionEditor333 CodigoCarrera="@_carreraSel!.Codigo" Filas="_filas333" OnConfirmado="AlConfirmar" />
 }
 else if (_buscado && _esCna)
 {
-    <RegularizacionEditorCna CodigoCarrera="@_carreraSel!.Codigo" Filas="_filasCna" OnConfirmado="Buscar" />
+    <RegularizacionEditorCna CodigoCarrera="@_carreraSel!.Codigo" Filas="_filasCna" OnConfirmado="AlConfirmar" />
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? EstadoAutenticacion { get; set; }
+
+    // Llegada desde "Precargas de docentes": la comisión viene en la URL y se busca sola.
+    [SupplyParameterFromQuery(Name = "carrera")] public string? CarreraInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "cutuco")] public int? CutucoInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "cuatrimestre")] public string? CuatrimestreInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "materia")] public string? MateriaInicial { get; set; }
+
+    private CargaComisionDocenteDto? _precarga;
+    private bool _valoresTomados;
+    private ActorCargaDocente? _actor;
 
     private IReadOnlyList<CarreraListItemDto> _carreras = [];
     private CarreraListItemDto? _carreraSel;
@@ -106,7 +157,138 @@ else if (_buscado && _esCna)
         var usuario = (await EstadoAutenticacion!).User;
         IReadOnlyCollection<string>? permitidos = usuario.EsSupervisor() ? null : usuario.Permisos().ToList();
         _carreras = await Carreras.ListarParaMenuAsync(permitidos, CancellationToken.None);
+        _actor = new ActorCargaDocente
+        {
+            CodigoUsuario = usuario.CodigoUsuario() ?? 0,
+            EsSecretaria = usuario.TipoDeUsuario() == TipoUsuario.Secretaria,
+            CodigoDocente = usuario.CodigoDocente(),
+        };
+
+        if (CarreraInicial is not null && CutucoInicial is { } cutuco && CuatrimestreInicial is not null && MateriaInicial is not null)
+        {
+            var carrera = _carreras.FirstOrDefault(c => string.Equals(c.Codigo, CarreraInicial, StringComparison.OrdinalIgnoreCase));
+            if (carrera is not null)
+            {
+                await SeleccionarCarrera(carrera);
+                _cutuco = (short)cutuco;
+                _cuatrimestre = CuatrimestreInicial;
+                _materiaSel = _materias.FirstOrDefault(m => string.Equals(m.Codigo, MateriaInicial, StringComparison.OrdinalIgnoreCase));
+                if (PuedeBuscar)
+                {
+                    await Buscar();
+                }
+            }
+        }
     }
+
+    private ClaveComision ClaveActual => new()
+    {
+        CodigoCarrera = _carreraSel!.Codigo,
+        Cutuco = _cutuco!.Value,
+        CodigoMateria = _materiaSel!.Codigo,
+        // La UI acepta "1/24"; la clave de COMARM es "124".
+        CuatrimestreAnio = (_cuatrimestre ?? string.Empty).Replace("/", string.Empty, StringComparison.Ordinal).Trim(),
+    };
+
+    private async Task AlConfirmar()
+    {
+        if (_precarga is { TieneCarga: true } && _precarga.Estado != EstadoCargaDocente.Efectivizada && _actor is not null)
+        {
+            var marcar = await DialogService.ShowMessageBoxAsync(
+                "Precarga del docente",
+                "La regularización quedó procesada. ¿Marcar la precarga del docente como efectivizada? Así deja de figurar entre las pendientes y el docente la ve como procesada.",
+                yesText: "Marcar efectivizada", cancelText: "Todavía no");
+            if (marcar == true)
+            {
+                var resultado = await EfectivizarPrecarga.HandleAsync(
+                    new CambiarEstadoCargaComisionCommand { Comision = ClaveActual, Actor = _actor }, CancellationToken.None);
+                Snackbar.Add(
+                    resultado.IsSuccess ? "Precarga marcada como efectivizada." : resultado.Message ?? "No se pudo marcar la precarga.",
+                    resultado.IsSuccess ? Severity.Success : Severity.Error);
+            }
+        }
+
+        await Buscar();
+    }
+
+    private void TomarValoresDelDocente()
+    {
+        if (_precarga is null)
+        {
+            return;
+        }
+
+        int aplicadas, sinPrecarga;
+        if (_esTerciaria)
+        {
+            var r = PrecargaAplicador.Terciaria(_filas, _precarga);
+            (_filas, aplicadas, sinPrecarga) = (r.Filas, r.Aplicadas, r.SinPrecarga);
+        }
+        else if (_esBachillerato)
+        {
+            var r = PrecargaAplicador.Bachillerato(_filasBac, _precarga);
+            (_filasBac, aplicadas, sinPrecarga) = (r.Filas, r.Aplicadas, r.SinPrecarga);
+        }
+        else if (_esSecundario)
+        {
+            var r = PrecargaAplicador.Secundario(_filas333, _precarga);
+            (_filas333, aplicadas, sinPrecarga) = (r.Filas, r.Aplicadas, r.SinPrecarga);
+        }
+        else if (_esCna)
+        {
+            var r = PrecargaAplicador.Cna(_filasCna, _precarga);
+            (_filasCna, aplicadas, sinPrecarga) = (r.Filas, r.Aplicadas, r.SinPrecarga);
+        }
+        else
+        {
+            return;
+        }
+
+        _valoresTomados = true;
+        Snackbar.Add(
+            sinPrecarga == 0
+                ? $"Se tomaron los valores del docente para {aplicadas} alumno(s). Revisalos y procesá la regularización."
+                : $"Se tomaron los valores del docente para {aplicadas} alumno(s); {sinPrecarga} sin precarga quedan como estaban.",
+            Severity.Info);
+    }
+
+    private async Task ReabrirParaElDocente()
+    {
+        if (_actor is null)
+        {
+            return;
+        }
+
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Reabrir precarga",
+            "La precarga vuelve a borrador y el docente puede seguir cargando. ¿Continuar?",
+            yesText: "Reabrir", cancelText: "Cancelar");
+        if (confirmar != true)
+        {
+            return;
+        }
+
+        var resultado = await ReabrirPrecarga.HandleAsync(
+            new CambiarEstadoCargaComisionCommand { Comision = ClaveActual, Actor = _actor }, CancellationToken.None);
+        if (resultado.IsSuccess)
+        {
+            Snackbar.Add(resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? resultado.Message! : "Precarga reabierta para el docente.",
+                resultado.Status == Esba.Domain.Common.OperationStatus.Warning ? Severity.Warning : Severity.Success);
+            _precarga = await PrecargaQuery.ObtenerAsync(ClaveActual, CancellationToken.None);
+        }
+        else
+        {
+            Snackbar.Add(resultado.Message ?? "No se pudo reabrir la precarga.", Severity.Error);
+        }
+    }
+
+    private static Color ColorPrecarga(EstadoCargaDocente? estado) => estado switch
+    {
+        EstadoCargaDocente.Borrador => Color.Warning,
+        EstadoCargaDocente.Finalizada => Color.Info,
+        EstadoCargaDocente.Efectivizada => Color.Success,
+        _ => Color.Default,
+    };
 
     private async Task SeleccionarCarrera(CarreraListItemDto? carrera)
     {
@@ -198,6 +380,9 @@ else if (_buscado && _esCna)
                     _carreraSel!.Codigo, _cutuco!.Value, _cuatrimestre!, _materiaSel!.Codigo, CancellationToken.None);
                 cantidad = _filasCna.Count;
             }
+
+            _precarga = await PrecargaQuery.ObtenerAsync(ClaveActual, CancellationToken.None);
+            _valoresTomados = false;
 
             _buscado = true;
             if (cantidad == 0)

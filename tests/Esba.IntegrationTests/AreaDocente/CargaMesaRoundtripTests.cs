@@ -129,6 +129,23 @@ public class CargaMesaRoundtripTests
             var enInicio = mesasDocente.Single(m => m.CodigoCarrera == carre && m.NumeroMesa == mesa);
             Assert.Equal("BOR", enInicio.EstadoCarga);
             Assert.Equal(antes.Alumnos.Count, enInicio.CantidadInscriptos);
+
+            // Listado de secretaría + efectivizar.
+            var listado = await new PrecargasDocenteQuery(Factory()).BuscarMesasAsync(
+                new PrecargasDocenteFiltro { CodigoCarrera = carre, Estado = EstadoCargaDocente.Borrador }, ct);
+            var enListado = Assert.Single(listado.Items, i => i.CargaId == cargaId);
+            Assert.Equal(mesa, enListado.NumeroMesa);
+            Assert.Equal(2, enListado.CantidadAlumnos);
+
+            await using (var ctx = CrearContexto())
+            {
+                var efe = await new EfectivizarCargaMesaHandler(new CargaMesaDocenteRepository(ctx), new EfUnitOfWork(ctx), TimeProvider.System)
+                    .HandleAsync(new CambiarEstadoCargaMesaCommand { Mesa = clave, Actor = secretaria }, ct);
+                Assert.Equal(OperationStatus.Ok, efe.Status);
+            }
+
+            var efectivizada = await new CargaMesaDocenteQuery(Factory()).ObtenerAsync(clave, ct);
+            Assert.Equal(EstadoCargaDocente.Efectivizada, efectivizada!.Estado);
         }
         finally
         {

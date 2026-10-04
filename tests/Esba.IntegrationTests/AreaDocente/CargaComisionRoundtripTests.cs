@@ -146,6 +146,29 @@ public class CargaComisionRoundtripTests
             var enInicio = comisionesDocente.Single(c => c.CodigoCarrera == carre && c.Cutuco == cutuco
                 && c.CodigoMateria == codMat && c.CuatrimestreAnio == cuaAnio);
             Assert.Equal("BOR", enInicio.EstadoCarga);
+
+            // Secretaría la ve en el listado de precargas (filtrando por carrera y estado).
+            var listado = await new PrecargasDocenteQuery(Factory()).BuscarComisionesAsync(
+                new PrecargasDocenteFiltro { CodigoCarrera = carre, Estado = EstadoCargaDocente.Borrador }, ct);
+            var enListado = Assert.Single(listado.Items, i => i.CargaId == cargaId);
+            Assert.Equal(titular, enListado.CodigoDocente);
+            Assert.Equal(1, enListado.CantidadAlumnos);
+            Assert.Equal(EstadoCargaDocente.Borrador, enListado.Estado);
+
+            // Efectivizar por secretaría: queda EFE y sale de los borradores.
+            await using (var ctx = CrearContexto())
+            {
+                var efe = await new EfectivizarCargaComisionHandler(new CargaComisionDocenteRepository(ctx), new EfUnitOfWork(ctx), TimeProvider.System)
+                    .HandleAsync(new CambiarEstadoCargaComisionCommand { Comision = clave, Actor = secretaria }, ct);
+                Assert.Equal(OperationStatus.Ok, efe.Status);
+            }
+
+            var efectivizada = await new CargaComisionDocenteQuery(Factory()).ObtenerAsync(clave, ct);
+            Assert.Equal(EstadoCargaDocente.Efectivizada, efectivizada!.Estado);
+            Assert.NotNull(efectivizada.FechaEfectivizacion);
+            var borradores = await new PrecargasDocenteQuery(Factory()).BuscarComisionesAsync(
+                new PrecargasDocenteFiltro { CodigoCarrera = carre, Estado = EstadoCargaDocente.Borrador }, ct);
+            Assert.DoesNotContain(borradores.Items, i => i.CargaId == cargaId);
         }
         finally
         {

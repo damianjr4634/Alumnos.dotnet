@@ -1,10 +1,26 @@
 # Hito 19 — Área docente: precarga de notas por comisión y por mesa
 
-> Estado: **diseño cerrado, esquema aplicado en dev y producción (2026-10-03/04)**, shell
-> del área listo (12.3.1 ✅, ver `hito12-endurecimiento.md`), **precarga por comisión ✅
-> 2026-10-03** y **precarga por mesa ✅ 2026-10-04** (lado docente: guardar borrador /
-> finalizar; secretaría: reabrir por handler). Pendiente: el lado secretaría (lista de
-> pendientes, "Tomar valores" en regularización y en carga de finales, efectivizar).
+> Estado: **COMPLETO ✅ 2026-10-04.** Esquema aplicado en dev y producción (2026-10-03/04),
+> shell del área (12.3.1), precarga por comisión y por mesa del lado docente, y lado
+> secretaría (pendientes, "Tomar valores", reabrir, efectivizar). El circuito
+> alta → cursado → **precarga del docente** → regularización / final queda cerrado.
+
+## Lado secretaría — hecho (2026-10-04)
+
+| Pieza | Artefactos |
+|---|---|
+| Listado de pendientes | `/academica/precargas-docentes` (`PrecargasDocentes.razor`, menú Académica › Precargas de docentes): dos pestañas (Comisiones / Mesas) con `EsbaListView` + `EsbaFilterPanel` (carrera, estado —por defecto **Finalizadas**—, docente/materia); `IPrecargasDocenteQuery` / `PrecargasDocenteQuery` (Dapper, server-side; finalizadas primero, luego borradores, luego efectivizadas; respeta las carreras permitidas del usuario). Acciones: **Abrir** (navega a la pantalla real con la comisión/mesa en la URL) y **Reabrir** |
+| Regularización por comisión | `RegularizacionComision.razor` acepta `?carrera&cutuco&cuatrimestre&materia` y busca sola; si hay precarga muestra el panel (docente, estado, alumnos con valores, observaciones) con **Tomar valores del docente** (vuelca los campos de la variante sobre la grilla, que sigue editable) y **Reabrir**; al procesar la regularización ofrece **marcar la precarga como efectivizada** (`EfectivizarCargaComisionHandler`) |
+| Notas de finales | `CargaNotasFinales.razor` acepta `?carrera&mesa`; mismo panel; "Tomar valores" pone la nota del docente en el **llamado vigente** del alumno con la fecha de la mesa (los **ausentes no reciben nota**: secretaría decide); al procesar la mesa ofrece efectivizar (`EfectivizarCargaMesaHandler`) |
+| Volcado | `PrecargaAplicador` (Application): un método por variante (terciaria / bachillerato / secundario / CNA / mesa), solo alumnos con detalle, solo los campos que edita cada variante; devuelve cuántos se aplicaron, cuántos no tenían precarga y cuántos ausentes |
+| Efectivizar | `EfectivizarCargaComision/MesaHandler`: solo secretaría, desde borrador o finalizada, no dos veces (`AutorizacionCargaDocente.MotivoNoPuedeEfectivizar`). **No toca CURSADA**: la regularización/final real ya la hicieron los handlers de los hitos 15/14; esto cierra el circuito de la precarga (sale de pendientes, el docente la ve como procesada) |
+| Tests | `EfectivizarCargaHandlersTests`, `PrecargaAplicadorTests`; roundtrips de comisión y mesa extendidos con el listado de secretaría y el efectivizar contra Firebird real; smoke HTTP de las tres pantallas con precargas finalizadas reales |
+
+**Decisión de diseño:** efectivizar es un paso explícito (diálogo sí/no tras procesar), no
+automático: secretaría puede haber procesado la comisión sin tomar los valores del docente,
+y en ese caso decide ella si la precarga se da por consumida. Equivalencia "efectivizar =
+cargar a mano" no hace falta como test aparte: los valores pasan por los mismos handlers y
+validadores que la carga manual (la grilla queda editable después de tomarlos).
 
 ## Precarga por mesa — hecho (2026-10-04)
 
@@ -97,16 +113,6 @@ IDs por generador `G_DOC_CARGA_*` + trigger `*_BI0`, como el resto del esquema. 
 
 El `CODUSU_MODIF` del detalle distingue si el último que tocó la fila fue el docente o
 secretaría (ambos son `USUARIOS`).
-
-## Plan de implementación — lo que falta
-
-1. **Lado secretaría**: lista de cargas pendientes (`ESTADO='FIN'`) por carrera; en
-   regularización por comisión, columna "Precarga del docente" + "Tomar valores" + botón
-   "Reabrir"; en carga de notas de finales, lo mismo para mesas; **efectivizar** =
-   correr `ConfirmarRegularizacion*Handler` / `ConfirmarCargaNotasFinalHandler` con los
-   valores del borrador y marcar `EFE` (`EfectivizarCarga*Handler`, solo secretaría).
-2. **Etapa 4 de lo anterior**: equivalencia "efectivizar = mismo resultado que cargar a
-   mano" sobre CURSADA/ANALITIC.
 
 ## Pendientes / a confirmar
 
